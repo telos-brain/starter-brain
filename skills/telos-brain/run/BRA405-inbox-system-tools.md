@@ -1,0 +1,188 @@
+---
+name: Inbox System Tools
+code: BRA405
+version: 2
+description: The seven in-brain system tools for operating the learning-signal
+  inbox — create_inbox_entry, list_inbox_entries, get_inbox_entry,
+  update_inbox_entry, list_inbox_tasks, add_inbox_task and update_inbox_task.
+  All identity is by 8-character reference (never UUID); workflows are selected
+  by code.
+tools:
+  - create_inbox_entry
+  - list_inbox_entries
+  - get_inbox_entry
+  - update_inbox_entry
+  - list_inbox_tasks
+  - add_inbox_task
+  - update_inbox_task
+---
+
+# Inbox System Tools
+
+BRA404 covers the **Execution API** HTTP surface for inbox intake (paths still
+use Guids). This skill covers the complementary **AI-facing system tools**: a
+running brain creating, listing, reading and updating its own inbox entries and
+tasks **in-process** — no webhook URL or API key.
+
+**Identity rule (BRA084):** every tool parameter and every list/detail field that
+identifies an entry or task uses an **8-character lowercase alphanumeric
+reference** (`[a-z0-9]{8}`). Do **not** pass UUIDs. Linked workflows are named by
+**`workflow_code`**, not `workflow_id`.
+
+These are ordinary `system` tools (BRA201 §5.2). Declarations live under
+`tools/inbox/` in the brain schema (and sample brains). This skill lists them in
+frontmatter `tools:` so a workflow that keeps them under `available-tools` can
+promote them via `get_skill` (same pattern as BRA203 / `WF-SKILL-UPDATE`).
+
+---
+
+## The seven tools
+
+| Tool | Purpose | Key parameters | Returns |
+|---|---|---|---|
+| **`create_inbox_entry`** | Create a learning signal | `title`, `body`, `routing_type`, optional `source` | Confirmation with new entry **reference** |
+| **`list_inbox_entries`** | List entries (optional filters) | `status`, `routing_type` | CSV keyed by `Reference` |
+| **`get_inbox_entry`** | Full entry + tasks | `inbox_entry_reference` | Markdown |
+| **`update_inbox_entry`** | Status / routing type | `inbox_entry_reference`, `status`, `routing_type` | Confirmation |
+| **`list_inbox_tasks`** | Tasks for one entry | `inbox_entry_reference` | CSV keyed by `Reference` |
+| **`add_inbox_task`** | Create a task | `inbox_entry_reference`, `workflow_code`, `instructions` | Confirmation with new task reference |
+| **`update_inbox_task`** | Status / action; approve | `inbox_task_reference`, `status`, `action` | Confirmation |
+
+Intended flows:
+
+- **Learning evals:** `create_inbox_entry` (once per learning) — see **BRA207**
+- **Triage / review:** list entries → get entry → list/add/update tasks
+
+---
+
+## Parameter reference (no UUIDs)
+
+| Tool | Parameter | Notes |
+|---|---|---|
+| `create_inbox_entry` | `title`, `body`, `routing_type` | Required |
+| `create_inbox_entry` | `source` | Optional producing-system label |
+| `get_inbox_entry` | `inbox_entry_reference` | Required |
+| `update_inbox_entry` | `inbox_entry_reference` | Required; plus `status` and/or `routing_type` |
+| `list_inbox_tasks` | `inbox_entry_reference` | Required |
+| `add_inbox_task` | `inbox_entry_reference` | Required |
+| `add_inbox_task` | `workflow_code` | Optional — workflow **code**, not id |
+| `add_inbox_task` | `instructions` | Optional — instructions-only task action |
+| `update_inbox_task` | `inbox_task_reference` | Required |
+| `update_inbox_task` | `status` / `action` | At least one required |
+
+Deprecated / invalid for these tools: `id`, `inbox_entry_id`, `workflow_id`,
+`task_id`.
+
+---
+
+## `create_inbox_entry`
+
+Creates a **PENDING** inbox entry in-process via `IInboxService` (same path as
+`POST /inbox`, including automatic trigger matching for `inbox:*` /
+`inbox:<RoutingType>` workflows). Prefer this over a declared HTTP tool that
+`POST`s to a host URL — no outbound network call, no API key, no localhost.
+
+Required: `title`, `body`, `routing_type` (`SKILL_UPDATE`, `WORKFLOW_UPDATE`,
+`TOOL_UPDATE`, `MEMORY_UPDATE`, `SYSTEM_CHANGE`, or a brain-defined value).
+Optional: `source`.
+
+Returns a confirmation including the new entry's **reference** and how many
+triggered tasks were created.
+
+Canonical YAML: `tools/inbox/create-inbox-entry.yml`.
+
+---
+
+## `list_inbox_entries`
+
+Optional `status` (`PENDING`, `REVIEWING`, `APPLIED`, `DISMISSED`) and
+`routing_type`. Returns CSV:
+
+`Reference,Date,Source,Title,Status,RoutingType,CreatedAt`
+
+Use `get_inbox_entry` for the body.
+
+## `get_inbox_entry`
+
+Requires `inbox_entry_reference`. Returns markdown with entry scalars, full body,
+and a task list (each task by **reference**, with `workflow` as a **code**).
+
+## `update_inbox_entry`
+
+Requires `inbox_entry_reference` and at least one of `status` or `routing_type`.
+Status is forward-only: `PENDING → REVIEWING → APPLIED | DISMISSED` (also
+`PENDING → DISMISSED`). Terminal statuses cannot be overwritten.
+
+## `list_inbox_tasks`
+
+Requires `inbox_entry_reference`. Returns CSV for that entry only:
+
+`Reference,Status,WorkflowCode,Action,CreatedAt,UpdatedAt`
+
+## `add_inbox_task`
+
+Requires `inbox_entry_reference`. Optional `workflow_code` (resolved server-side)
+and `instructions` (stored as the task action — instructions-only; entry content
+reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204). Creates status
+`PENDING` and returns the new task's **reference**.
+
+## `update_inbox_task`
+
+Requires `inbox_task_reference` and at least one of `status` or `action`.
+Forward-only task lifecycle. Setting `status` to `RUNNING` from
+`AWAITING_APPROVAL` **approves** the task and runs the linked workflow
+synchronously (settles `COMPLETED` or `FAILED`; never left stranded in
+`RUNNING`).
+
+---
+
+## Wiring them into a workflow
+
+1. Include the `tools/inbox/` group in `brain-compose.yml`.
+2. Either inject under workflow `tools:`, or list under `available-tools:` and
+   load this skill (`BRA405`) via `get_skill` to promote them.
+
+Minimal declaration for create:
+
+```yaml
+name: create_inbox_entry
+version: 1
+description: >-
+  Creates a single inbox entry recording one learning signal.
+system:
+  tool: create_inbox_entry
+parameters:
+  - name: title
+    param: title
+    type: string
+    required: true
+  - name: body
+    param: body
+    type: string
+    required: true
+  - name: routing_type
+    param: routing_type
+    type: string
+    required: true
+```
+
+---
+
+## Safety and scope
+
+- **Brain-scoped, always.** The harness injects the brain; it is never a
+  parameter. Cross-brain references read as not found.
+- **References only.** Agents must copy `Reference` values from list/get /
+  create output — never invent Guids.
+- **Creating entries** uses the `create_inbox_entry` **system** tool (this
+  skill). The Execution API `POST /inbox` (BRA404) remains available for
+  external harnesses; eval workflows should prefer the system tool.
+
+---
+
+## See also
+
+- **BRA404** — Execution API inbox (HTTP; Guid paths)
+- **BRA207** — learning-eval workflows that call `create_inbox_entry`
+- **BRA204** — `{{inboxEntry.*}}` / `{{#inboxTasks}}` template tags
+- **WF-INBOX-ENTRY-CONTEXT** — canonical TRIGGERED inbox workflow pattern

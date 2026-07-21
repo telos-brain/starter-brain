@@ -1,0 +1,27 @@
+name: update_blueprint_entry
+version: 1
+description: >-
+  Updates an existing memory entry by replacing an exact substring of its
+  content with new text. old_str must appear exactly once in the current
+  content; if it matches zero or several times the update is rejected so you
+  can supply a longer, unique substring.
+system:
+  tool: update_blueprint_entry
+parameters:
+  - name: title
+    param: title
+    description: The exact title of the entry to update.
+    type: string
+    required: true
+  - name: old_str
+    param: old_str
+    description: >-
+      The exact substring of the current content to replace. Must appear
+      exactly once — include enough surrounding context to be unique.
+    type: string
+    required: true
+  - name: new_str
+    param: new_str
+    description: The replacement text. Use an empty string to delete the matched text.
+    type: string
+    required: true

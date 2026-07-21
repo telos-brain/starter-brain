@@ -1,0 +1,8 @@
+name: Skills
+description: >-
+  Execution tools for discovering and loading skills, and for searching the
+  workflow's available-tool pool at runtime.
+tools:
+  - ./find-available-skills.yml
+  - ./get-skill.yml
+  - ./find-available-tools.yml

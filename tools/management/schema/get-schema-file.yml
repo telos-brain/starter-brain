@@ -1,0 +1,16 @@
+name: get_schema_file
+version: 1
+description: >-
+  Returns the full canonical content (YAML or markdown) of a single schema file by
+  its path, e.g. "workflows/ask-question.md", "skills/telos-brain/BRA201.md" or
+  "tools/execution/memory/search-blueprint-entries.yml". Get a valid path from
+  list_schema_files or search_schema_files first. Use update_schema_file to edit a
+  file.
+system:
+  tool: get_schema_file
+parameters:
+  - name: path
+    param: path
+    description: The schema file path, e.g. "workflows/ask-question.md". Paths come from list_schema_files or search_schema_files.
+    type: string
+    required: true

@@ -1,0 +1,16 @@
+name: find_available_tools
+version: 1
+description: >-
+  Searches the workflow's available tools for those most relevant to a query and
+  returns their names and descriptions. Use to discover tools that are not
+  injected into every turn before calling them.
+system:
+  tool: find_available_tools
+parameters:
+  - name: query
+    param: query
+    description: >-
+      A description of what you need; the most semantically similar available
+      tools are returned.
+    type: string
+    required: true

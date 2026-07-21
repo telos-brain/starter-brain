@@ -1,0 +1,29 @@
+name: Starter Brain
+description: >-
+  A clean starter brain schema with the Telos Brain skillbook, execution tools
+  (skills, memory, Q&A) and management tools (schema maintenance).
+
+# Embedding model for semantic search (find_available_skills, blueprint search).
+# The API key comes from this brain's own .env (VOYAGE_API_KEY for voyage-*).
+embedding-model: voyage-3-lite
+
+# Tools are split into execution (runtime) and management (brain maintenance).
+tools:
+  - ./tools/execution/skills/tools.yml
+  - ./tools/execution/memory/tools.yml
+  - ./tools/execution/qa/tools.yml
+  - ./tools/execution/native/tools.yml
+  - ./tools/execution/inbox/tools.yml
+  - ./tools/management/schema/tools.yml
+
+skills:
+  - ./skills/telos-brain/skillbook.yml
+
+blueprints:
+  - ./blueprints/memory/blueprint.yml
+
+workflows:
+  - ./workflows/system-prompt.md
+  - ./workflows/chat.md
+  - ./workflows/ask-question.md
+  - ./workflows/eval.md

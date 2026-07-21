@@ -1,0 +1,19 @@
+name: get_blueprint_entry
+version: 1
+description: >-
+  Retrieves a single memory entry by its category and title and returns its full
+  content. Use after search_blueprint_entries or list_blueprint_entries to read
+  an entry in full.
+system:
+  tool: get_blueprint_entry
+parameters:
+  - name: category
+    param: category
+    description: The name of the category the entry is filed under.
+    type: string
+    required: true
+  - name: title
+    param: title
+    description: The exact title of the entry to retrieve.
+    type: string
+    required: true

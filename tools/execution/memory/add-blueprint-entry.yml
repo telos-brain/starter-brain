@@ -1,0 +1,25 @@
+name: add_blueprint_entry
+version: 1
+description: >-
+  Adds a new entry to this brain's memory blueprint under an existing category.
+  Use to record a distilled, reusable insight. Fails if an entry with the same
+  title already exists. The target blueprint is resolved automatically from the
+  run's context; you never choose it.
+system:
+  tool: add_blueprint_entry
+parameters:
+  - name: category
+    param: category
+    description: The name of an existing category to file the entry under (e.g. "Insights").
+    type: string
+    required: true
+  - name: title
+    param: title
+    description: A short, unique title for the entry.
+    type: string
+    required: true
+  - name: content
+    param: content
+    description: The entry content as Markdown.
+    type: string
+    required: true

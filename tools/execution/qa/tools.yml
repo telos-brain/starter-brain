@@ -1,0 +1,4 @@
+name: Q&A
+description: Tools for answering focused questions from the brain's memory.
+tools:
+  - ./ask-question.yml

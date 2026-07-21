@@ -1,0 +1,6 @@
+name: Inbox
+description: >-
+  Execution tools for creating inbox entries — learning signals awaiting human
+  review before any change is applied to the brain.
+tools:
+  - ./create-inbox-entry.yml

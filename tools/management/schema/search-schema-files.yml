@@ -1,0 +1,15 @@
+name: search_schema_files
+version: 1
+description: >-
+  Searches this brain's schema files by matching a query (case-insensitive
+  substring) against each file's code and title. Returns CSV with columns
+  path,type,code,title. A query with no matches returns just the header row. Use
+  get_schema_file to read a matched file by its path.
+system:
+  tool: search_schema_files
+parameters:
+  - name: query
+    param: query
+    description: Text to match against schema file code and title (case-insensitive substring).
+    type: string
+    required: true

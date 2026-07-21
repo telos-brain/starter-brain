@@ -1,0 +1,14 @@
+name: ask_question
+version: 1
+description: >-
+  Asks a single question against this brain's memory blueprint and returns only
+  the information that answers it. Use when you need a focused, evidence-backed
+  answer grounded in stored knowledge.
+workflow:
+  code: WF-ASK-QUESTION
+parameters:
+  - name: query
+    description: >-
+      The question to answer. State it as a single, self-contained question.
+    type: string
+    required: true

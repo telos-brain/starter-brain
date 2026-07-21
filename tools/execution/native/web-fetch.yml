@@ -1,0 +1,6 @@
+name: web_fetch
+version: 1
+description: >-
+  Fetches the contents of a specific URL so the model can read the page.
+native:
+  type: web_fetch

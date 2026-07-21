@@ -1,0 +1,8 @@
+name: Memory
+version: 1
+scope: brain
+categories:
+  - name: Insights
+    description: Distilled, reusable insights the brain has learned and can draw on when answering questions.
+  - name: Overview
+    description: High-level orientation material describing what this brain knows and how to use it.

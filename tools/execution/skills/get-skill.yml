@@ -1,0 +1,13 @@
+name: get_skill
+version: 1
+description: >-
+  Loads a single skill by its code and returns its full instructions. Use after
+  find_available_skills to read a specific skill.
+system:
+  tool: get_skill
+parameters:
+  - name: code
+    param: code
+    description: The code of the skill to load, e.g. "BRA201".
+    type: string
+    required: true

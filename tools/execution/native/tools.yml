@@ -1,0 +1,5 @@
+name: Native tools
+description: Provider-native (built-in) LLM capabilities such as web access.
+tools:
+  - ./web-search.yml
+  - ./web-fetch.yml

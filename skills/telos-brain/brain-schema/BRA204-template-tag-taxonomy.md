@@ -1,0 +1,531 @@
+---
+name: Template Tag Taxonomy
+code: BRA204
+description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown.
+version: 7
+---
+
+# Template Tag Taxonomy
+
+This skill is the **single source of truth** for the template tag syntax used by
+the template service. Use it when authoring or editing:
+
+- Workflow `Instructions` markdown
+- Tool YAML `response-markdown` and `error-markdown` fields
+
+No other reference is required. Tags that cannot be resolved render as blank —
+never an error — so typos produce empty output silently.
+
+---
+
+## 1. Why double-curly-bracket syntax
+
+Template tags use `{{...}}` (not angle brackets or single braces) so they remain
+**YAML-safe** when embedded in tool definitions and markdown. Angle-bracket or
+single-curly alternatives conflict with YAML structure and Markdown parsing.
+
+---
+
+## 2. Tag types
+
+### 2.1 Scalar substitution
+
+```text
+{{scope.field}}
+{{scope.nested.field}}
+```
+
+Replaces the tag with the resolved string value, or blank if unresolvable.
+
+**Example — entity name:**
+
+```markdown
+Working on **{{entity.name}}**.
+```
+
+**Example — entity variable key:**
+
+```markdown
+Organisation id: {{entity.organisationId}}
+```
+
+### 2.2 Iteration
+
+```text
+{{#collection}}
+...body...
+{{/collection}}
+```
+
+Repeats the body once per item. Nesting is supported to arbitrary depth.
+Unresolvable or empty collections render nothing.
+
+**Inside hierarchical loops**, prefer the **qualified** singular prefix
+(`skillBook`, `category`, `skill`). **Inside unit-of-work record loops**, use
+**short form** field names (`date`, `time`, `title`, `source`, `body`).
+
+### 2.3 Conditionals
+
+```text
+{{#if condition}}
+...body...
+{{/if}}
+```
+
+Supported condition forms:
+
+| Form | Meaning |
+| --- | --- |
+| `path` | Truthy when the value is non-null, non-blank, or a non-empty collection |
+| `path == "value"` | String equality (ordinal) |
+| `path != "value"` | String inequality (ordinal) |
+
+String literals may use double or single quotes. There is no full expression
+language (no `&&`, `||`, comparisons other than `==` / `!=`).
+
+**Example:**
+
+```markdown
+{{#if result.status == "error"}}
+The call failed: {{result.message}}
+{{/if}}
+
+{{#if entity.name}}
+Entity in scope: {{entity.name}}
+{{/if}}
+```
+
+---
+
+## 3. Scopes
+
+Only scopes referenced by tags in the content are loaded (lazy load). Adding a
+new scope is a provider + DI registration — the parser itself does not change.
+
+### 3.1 `entity`
+
+| | |
+| --- | --- |
+| **Type** | Scalar + open key/value bag |
+| **Sort** | N/A |
+| **Requires** | `EntityId` on the run; otherwise the scope is empty |
+
+| Field | Description |
+| --- | --- |
+| `entity.name` | Entity display name |
+| `entity.{variableKey}` | Value of a runtime entity variable (any key set on the entity) |
+
+**Example:**
+
+```markdown
+# Context
+Customer: {{entity.name}}
+Region: {{entity.region}}
+```
+
+---
+
+### 3.2 `unitOfWork`
+
+| | |
+| --- | --- |
+| **Type** | Two enumerable collections |
+| **Sort** | Date ascending (then creation order) for both collections |
+| **Requires** | `UnitOfWorkId` on the run; otherwise the scope is empty |
+
+| Collection | Item fields (short form inside the loop) |
+| --- | --- |
+| `unitOfWork.context` | `date`, `time`, `title`, `source`, `body` |
+| `unitOfWork.data` | `date`, `time`, `title`, `source`, `body` |
+
+Notes:
+
+- `date` is `yyyy-MM-dd`; `time` is `HH:mm` (from the record's `Date` timestamp).
+- Context `body` is the narrative message; data `title` is the record type.
+- There is **no** `unitOfWork.combined` scope yet (planned). Interleave by using
+  both blocks when you need narrative and structured data together.
+
+**Example — context log:**
+
+```markdown
+## Unit of work context
+{{#unitOfWork.context}}
+### {{date}} {{time}} — {{title}} ({{source}})
+{{body}}
+
+{{/unitOfWork.context}}
+```
+
+**Example — structured data log:**
+
+```markdown
+## Unit of work data
+{{#unitOfWork.data}}
+### {{date}} {{time}} — {{title}} ({{source}})
+{{body}}
+
+{{/unitOfWork.data}}
+```
+
+**Example — mixed (iteration + conditional):**
+
+```markdown
+{{#unitOfWork.context}}
+- {{title}}{{#if body}}: {{body}}{{/if}}
+{{/unitOfWork.context}}
+```
+
+---
+
+### 3.2a `run` (BRA091)
+
+| | |
+| --- | --- |
+| **Type** | Scalar bag |
+| **Sort** | N/A |
+| **Requires** | `WorkflowRunId` (subject run) on the template render context; otherwise the scope is empty |
+
+| Field | Description |
+| --- | --- |
+| `run.telemetry` | Full OTEL GenAI telemetry for the subject run as indented JSON (same shape as `GET /runs/{id}/telemetry`) |
+
+Notes:
+
+- Used by `workflowrun:complete` eval workflows. The subject run id is passed as
+  `SubjectRunId` on the eval's `WorkflowRunRequest` — it is **not** the eval
+  run's own id.
+- When the subject run is missing, `{{run.telemetry}}` renders blank.
+- Authoring guide for manual / automatic run evals: **BRA207**.
+
+**Example — learning eval instructions:**
+
+```markdown
+## Run telemetry
+{{run.telemetry}}
+```
+
+---
+
+### 3.3 `skillBooks`
+
+| | |
+| --- | --- |
+| **Type** | Three-level hierarchy (list at root) |
+| **Sort** | Alphabetical by title at every level (books, categories, skills) |
+
+| Level | Iteration | Fields (qualified form) |
+| --- | --- | --- |
+| Books | `{{#skillBooks}}...{{/skillBooks}}` | `skillBook.code`, `skillBook.title`, `skillBook.description` |
+| Categories | `{{#skillBook.categories}}...{{/skillBook.categories}}` | `category.code`, `category.title`, `category.description`, `category.range` |
+| Skills | `{{#category.skills}}...{{/category.skills}}` | `skill.code`, `skill.title` |
+
+Notes:
+
+- `category.code` and `category.range` are projected from the category index
+  (e.g. index `100` → code `100`, range `100-199`). There is no separate
+  code/range column in storage.
+
+**Example — nested hierarchy:**
+
+```markdown
+# Available skills
+{{#skillBooks}}
+## {{skillBook.code}} — {{skillBook.title}}
+{{skillBook.description}}
+
+{{#skillBook.categories}}
+### {{category.code}} {{category.title}} ({{category.range}})
+{{category.description}}
+
+{{#category.skills}}
+- `{{skill.code}}`: {{skill.title}}
+{{/category.skills}}
+
+{{/skillBook.categories}}
+{{/skillBooks}}
+```
+
+---
+
+### 3.4 `now`
+
+| | |
+| --- | --- |
+| **Type** | Scalar bag (always available) |
+| **Sort** | N/A |
+| **Requires** | Nothing — resolved at render time |
+
+| Field | Format | Description |
+| --- | --- | --- |
+| `now.utcDate` | `yyyy-MM-dd` | Current UTC date |
+| `now.utcTime` | `HH:mm` | Current UTC time |
+| `now.utcDayOfWeek` | English name | Current UTC day of week (e.g. `Saturday`) |
+| `now.localDate` | `yyyy-MM-dd` | Current local date |
+| `now.localTime` | `HH:mm` | Current local time |
+| `now.localDayOfWeek` | English name | Current local day of week |
+
+Notes:
+
+- **Local** uses the brain environment variable `TIMEZONE` (IANA id, e.g.
+  `Pacific/Auckland`). When unset or unrecognised, local falls back to UTC.
+- Values are captured when Instructions (or tool response templates) are
+  rendered — including each chat continuation turn.
+
+**Example:**
+
+```markdown
+## Clock
+UTC: {{now.utcDayOfWeek}} {{now.utcDate}} {{now.utcTime}}
+Local: {{now.localDayOfWeek}} {{now.localDate}} {{now.localTime}}
+```
+
+---
+
+### 3.5 `result`
+
+| | |
+| --- | --- |
+| **Type** | Open-ended flat key/value bag |
+| **Sort** | N/A |
+| **Source** | Caller-supplied tool/API response (e.g. tool `response-markdown`) |
+
+| Field | Description |
+| --- | --- |
+| `result.{anyKey}` | Top-level key from the JSON response body |
+
+Notes:
+
+- The result scope is **flat**. Nested JSON objects/arrays are stringified.
+- If the tool body is not valid JSON, the scope is `{ result: "<raw content>" }`
+  — use `{{result.result}}` to print the whole body.
+- Field names are unknown at parse time; consult the tool's response payload.
+
+**Example — tool response-markdown:**
+
+```yaml
+response-markdown: |
+  Status: {{result.status}}
+  Id: {{result.id}}
+error-markdown: |
+  Failed: {{result.result}}
+```
+
+---
+
+### 3.6 `input`
+
+| | |
+| --- | --- |
+| **Type** | Open-ended flat key/value bag |
+| **Sort** | N/A |
+| **Source** | Resolved parameters when this workflow is invoked as a **workflow tool** (or via `run_workflow`) |
+
+| Field | Description |
+| --- | --- |
+| `input.{paramName}` | Value of the tool parameter whose AI-facing `name` is `{paramName}` |
+
+Notes:
+
+- Declare parameters on the **workflow tool** YAML (`parameters:` under the tool
+  that has `workflow: code: …`). Each `name` becomes an `input` key.
+- Exposed (model-supplied) params, hardcoded `value:` params, and `entity:`-bound
+  params are included. `secret:` params are **never** forwarded into the child
+  prompt.
+- Field names are case-insensitive (`{{input.question}}` matches `question`).
+- When the run was not started with structured parameters, the scope is empty
+  (tags render blank).
+- The same values are still rendered as markdown on the child input message
+  (`## name\nvalue`) for backwards compatibility — prefer `{{input.*}}` in new
+  Instructions. See **BRA201** §5.2 (Workflow tool).
+
+**Example — tool definition:**
+
+```yaml
+name: ask_question
+workflow:
+  code: WF-ASK-QUESTION
+parameters:
+  - name: question
+    description: The question to answer.
+    type: string
+    required: true
+```
+
+**Example — target workflow Instructions:**
+
+```markdown
+# Instructions
+
+Answer this question directly and concisely:
+
+{{input.question}}
+```
+
+---
+
+### 3.7 `blueprint`
+
+| | |
+| --- | --- |
+| **Type** | Scalar + enumerable categories |
+| **Sort** | Categories alphabetical by name |
+| **Resolution** | Automatic — authors do **not** pick the blueprint |
+
+Resolution waterfall (first match wins):
+
+1. Hard-coded `blueprint_code` (declared-tool `api-value` / Execution API only)
+2. Unit-of-work scoped blueprint (from the run's unit-of-work type)
+3. Entity scoped blueprint (from the run's entity type)
+4. Brain-scoped blueprint
+5. Empty (tags blank) if none match
+
+| Field | Description |
+| --- | --- |
+| `blueprint.name` | Blueprint title |
+| `blueprint.description` | Blueprint description |
+| Inside `{{#blueprint.categories}}` | `category.name`, `category.description` |
+
+**Example:**
+
+```markdown
+# Memory: {{blueprint.name}}
+{{blueprint.description}}
+
+{{#blueprint.categories}}
+### {{category.name}}
+{{category.description}}
+{{/blueprint.categories}}
+```
+
+---
+
+### 3.8 `inboxEntry`
+
+| | |
+| --- | --- |
+| **Type** | Scalar bag |
+| **Sort** | N/A |
+| **Requires** | `InboxEntryId` on the run (set automatically for inbox-triggered workflows); otherwise the scope is empty |
+
+| Field | Description |
+| --- | --- |
+| `inboxEntry.reference` | Short 8-character AI-facing identifier (`[a-z0-9]{8}`) |
+| `inboxEntry.date` | Source-event timestamp (`yyyy-MM-dd HH:mm:ss UTC`) |
+| `inboxEntry.source` | Free-text producing-system identifier (nullable) |
+| `inboxEntry.title` | Entry title |
+| `inboxEntry.body` | Full signal content (markdown) |
+| `inboxEntry.status` | Lifecycle status (`PENDING`, `REVIEWING`, `APPLIED`, `DISMISSED`) |
+| `inboxEntry.routingType` | Routing classification (nullable until triaged) |
+
+Notes:
+
+- Populated when a `TRIGGERED` workflow runs from an inbox task (Hangfire
+  processor, `update_inbox_task` approval, or Execution API approve). Non-inbox
+  runs leave this scope blank.
+- **Do not** expect the entry body in the workflow input message. The task
+  `Action` / input is **instructions-only**; entry content must be pulled in via
+  these tags (see `WF-INBOX-ENTRY-CONTEXT`).
+
+**Example:**
+
+```markdown
+# Inbox signal: {{inboxEntry.title}} ({{inboxEntry.reference}})
+
+**Date:** {{inboxEntry.date}}
+**Source:** {{inboxEntry.source}}
+**Status:** {{inboxEntry.status}}
+**Routing:** {{inboxEntry.routingType}}
+
+## Body
+
+{{inboxEntry.body}}
+```
+
+---
+
+### 3.9 `inboxTasks`
+
+| | |
+| --- | --- |
+| **Type** | Enumerable list at root |
+| **Sort** | Creation order (oldest first) |
+| **Requires** | `InboxEntryId` on the run; otherwise the scope is empty |
+
+| Iteration | Item fields (short form inside the loop) |
+| --- | --- |
+| `{{#inboxTasks}}...{{/inboxTasks}}` | `reference`, `action`, `status`, `workflowCode` |
+
+Notes:
+
+- Lists **all** tasks for the entry that triggered the run (not only the current
+  task).
+- `workflowCode` is the linked workflow's `Code`, or blank when the task has no
+  workflow (informational task).
+- `action` is the task's instructions-only field (routing intent), not entry
+  markdown.
+
+**Example:**
+
+```markdown
+## Tasks on this entry
+{{#inboxTasks}}
+- `{{reference}}` — {{status}}{{#if workflowCode}} → {{workflowCode}}{{/if}}
+  {{#if action}}Instructions: {{action}}{{/if}}
+{{/inboxTasks}}
+```
+
+---
+
+## 4. Contracts authors must know
+
+1. **Silent blank** — unknown scopes, missing fields, null run ids, and typos all
+   render as empty string. Do not expect an error signal for bad tags.
+2. **Lazy load** — only scopes referenced in the content are fetched. Content with
+   no `{{` tags passes through byte-identical (no scope providers called).
+3. **Determinism** — respect the documented sort orders; do not assume another
+   order when writing prompts that list collections.
+4. **YAML block scalars** — for tool `response-markdown` / `error-markdown`, use
+   `|` block literals so markdown stays YAML-safe.
+5. **Where tags run**
+   - Workflow Instructions (system prompt and invoking Instructions)
+   - Tool `response-markdown` / `error-markdown` after a tool result
+
+---
+
+## 5. Quick reference
+
+| Scope | Iteration | Scalar / item fields |
+| --- | --- | --- |
+| `entity` | — | `name`, `{variableKey}` |
+| `unitOfWork` | `.context`, `.data` | `date`, `time`, `title`, `source`, `body` |
+| `run` | — | `telemetry` (OTEL GenAI JSON for subject run, BRA091) |
+| `skillBooks` | root → `.categories` → `.skills` | `skillBook.*`, `category.*`, `skill.*` |
+| `now` | — | `utcDate`, `utcTime`, `utcDayOfWeek`, `localDate`, `localTime`, `localDayOfWeek` |
+| `result` | — | `{anyKey}` (flat) |
+| `input` | — | `{paramName}` (flat; workflow-tool / `run_workflow` params) |
+| `blueprint` | `.categories` | `name`, `description`; `category.name`, `category.description` |
+| `inboxEntry` | — | `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
+| `inboxTasks` | root | `reference`, `action`, `status`, `workflowCode` |
+
+| Tag | Syntax |
+| --- | --- |
+| Scalar | `{{scope.field}}` |
+| Iteration | `{{#path}}...{{/path}}` |
+| Conditional | `{{#if expr}}...{{/if}}` with `==`, `!=`, or truthiness |
+
+---
+
+## 6. Related examples
+
+Reference workflows in `workflows/`:
+
+| Workflow | Code | Demonstrates |
+| --- | --- | --- |
+| Skill Update | `WF-SKILL-UPDATE` | Nested `{{#skillBooks}}` → `{{#skillBook.categories}}` → `{{#category.skills}}`, plus find / load / create / update via schema tools |
+| Unit of Work Context | `WF-UNIT-OF-WORK-CONTEXT` | Dual-block `{{#unitOfWork.context}}` and `{{#unitOfWork.data}}` with short-form fields; optional `{{entity.name}}` |
+| Learning Eval (Run) | `WF-EVAL-RUN` | `{{run.telemetry}}` OTEL GenAI JSON for a subject Completed run (BRA091); `create_inbox_entry` learnings |
+| Inbox Entry Context | `WF-INBOX-ENTRY-CONTEXT` | `{{inboxEntry.*}}` scalars and `{{#inboxTasks}}` iteration for TRIGGERED inbox workflows; instructions-only input |
+| Ask Question | `WF-ASK-QUESTION` | `{{input.question}}` from the `ask_question` workflow-tool parameters |
+
+Also see tool `response-markdown` / `error-markdown` on declared tools (e.g.
+salesmate `record_telemetry`) for the `result` scope.

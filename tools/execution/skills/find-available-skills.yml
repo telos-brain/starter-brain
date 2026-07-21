@@ -1,0 +1,18 @@
+name: find_available_skills
+version: 1
+description: >-
+  Finds available skills by semantic search. Use when you need to discover which
+  skill applies to a task before loading it with get_skill.
+system:
+  tool: find_available_skills
+parameters:
+  - name: skillbooks
+    param: skillbooks
+    value: "BRA"
+    description: The skillbooks to search within (fixed for this brain).
+    type: string
+  - name: query
+    param: query
+    description: The search query used to find relevant skills.
+    type: string
+    required: true

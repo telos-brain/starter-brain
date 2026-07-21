@@ -1,0 +1,33 @@
+name: create_inbox_entry
+version: 1
+description: >-
+  Creates a single inbox entry recording one learning signal. Call this once per
+  learning; each entry is created in PENDING status for human review before any
+  change is applied. Provide title, body, and routing_type; source is optional.
+system:
+  tool: create_inbox_entry
+parameters:
+  - name: title
+    param: title
+    description: Required. A short, specific one-line summary of the learning.
+    type: string
+    required: true
+  - name: body
+    param: body
+    description: >-
+      Required. The full learning as markdown — what was observed, why it
+      matters, and the suggested change.
+    type: string
+    required: true
+  - name: routing_type
+    param: routing_type
+    description: >-
+      Required. Where the learning should be routed after human review. One of:
+      SKILL_UPDATE, WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
+    type: string
+    required: true
+  - name: source
+    param: source
+    description: >-
+      Optional. Free-text identifier of the producing system (e.g. WF-EVAL-RUN).
+    type: string

@@ -1,0 +1,9 @@
+name: list_schema_files
+version: 1
+description: >-
+  Lists every configuration-as-code schema file for this brain (the manifest plus
+  each workflow, skill, tool and blueprint entry) as CSV with columns
+  path,type,code. Use search_schema_files when you also need titles, and
+  get_schema_file to read a file's content by its path.
+system:
+  tool: list_schema_files
