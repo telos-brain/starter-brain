@@ -1,0 +1,15 @@
+name: get_inbox_entry
+version: 1
+description: >-
+  Returns the full inbox entry (scalars, body, and tasks) for an 8-character
+  reference. Prefer {{inboxEntry.*}} when the entry is already in workflow
+  context.
+system:
+  tool: get_inbox_entry
+parameters:
+  - name: inbox_entry_reference
+    param: inbox_entry_reference
+    description: >-
+      Required. The 8-character inbox entry reference. Never pass a UUID.
+    type: string
+    required: true

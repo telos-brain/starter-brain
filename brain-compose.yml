@@ -27,3 +27,6 @@ workflows:
   - ./workflows/chat.md
   - ./workflows/ask-question.md
   - ./workflows/eval.md
+  - ./workflows/Maintenance/brain-system.md
+  - ./workflows/Maintenance/triage.md
+  - ./workflows/Maintenance/update-skill.md

@@ -1,0 +1,25 @@
+name: update_inbox_entry
+version: 1
+description: >-
+  Updates an inbox entry's status and/or routing_type. Status is forward-only:
+  PENDING → REVIEWING → APPLIED | DISMISSED (also PENDING → DISMISSED).
+system:
+  tool: update_inbox_entry
+parameters:
+  - name: inbox_entry_reference
+    param: inbox_entry_reference
+    description: >-
+      Required. The 8-character inbox entry reference. Never pass a UUID.
+    type: string
+    required: true
+  - name: status
+    param: status
+    description: >-
+      Optional. Forward-only status: PENDING, REVIEWING, APPLIED, or DISMISSED.
+    type: string
+  - name: routing_type
+    param: routing_type
+    description: >-
+      Optional. Routing classification such as SKILL_UPDATE, WORKFLOW_UPDATE,
+      TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
+    type: string

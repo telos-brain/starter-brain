@@ -1,0 +1,18 @@
+name: list_inbox_entries
+version: 1
+description: >-
+  Lists inbox entries as CSV keyed by Reference. Optionally filter by status
+  and/or routing_type. Use get_inbox_entry to read a body.
+system:
+  tool: list_inbox_entries
+parameters:
+  - name: status
+    param: status
+    description: >-
+      Optional. Filter to PENDING, REVIEWING, APPLIED, or DISMISSED.
+    type: string
+  - name: routing_type
+    param: routing_type
+    description: >-
+      Optional. Filter to a routing classification such as SKILL_UPDATE.
+    type: string

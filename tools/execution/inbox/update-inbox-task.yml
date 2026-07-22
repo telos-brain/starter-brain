@@ -1,0 +1,25 @@
+name: update_inbox_task
+version: 1
+description: >-
+  Updates an inbox task's status and/or action. Setting status to RUNNING from
+  AWAITING_APPROVAL approves the task and runs its linked workflow.
+system:
+  tool: update_inbox_task
+parameters:
+  - name: inbox_task_reference
+    param: inbox_task_reference
+    description: >-
+      Required. The 8-character inbox task reference. Never pass a UUID.
+    type: string
+    required: true
+  - name: status
+    param: status
+    description: >-
+      Optional. Forward-only task status (e.g. AWAITING_APPROVAL, RUNNING,
+      CANCELLED).
+    type: string
+  - name: action
+    param: action
+    description: >-
+      Optional. Replacement instructions-only text for the task action.
+    type: string

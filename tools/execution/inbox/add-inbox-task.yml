@@ -1,0 +1,29 @@
+name: add_inbox_task
+version: 1
+description: >-
+  Creates a PENDING inbox task on an existing entry, optionally linking a
+  workflow by code and storing instructions-only routing intent. Entry content
+  is not copied into the task — triggered workflows read it via
+  {{inboxEntry.*}}.
+system:
+  tool: add_inbox_task
+parameters:
+  - name: inbox_entry_reference
+    param: inbox_entry_reference
+    description: >-
+      Required. The 8-character reference of the parent inbox entry
+      (e.g. from {{inboxEntry.reference}}). Never pass a UUID.
+    type: string
+    required: true
+  - name: workflow_code
+    param: workflow_code
+    description: >-
+      Optional. Workflow code to run when this task executes
+      (e.g. "WF-UPDATE-SKILL"). Resolved server-side — never pass a workflow id.
+    type: string
+  - name: instructions
+    param: instructions
+    description: >-
+      Optional. Short instructions-only action for the linked workflow. Do not
+      paste the entry body here — the workflow already has {{inboxEntry.body}}.
+    type: string

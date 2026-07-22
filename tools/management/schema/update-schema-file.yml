@@ -1,29 +1,31 @@
 name: update_schema_file
 version: 1
 description: >-
-  Applies a targeted string-replace edit to a single schema file (e.g.
-  "skills/telos-brain/BRA201.md") and persists it. Provide str_replace_old copied
-  verbatim from get_schema_file output; it must match exactly once. Call
-  get_schema_file first, then copy the exact text you want to change. The file's
-  version is bumped automatically. The brain-compose.yml manifest is generated and
-  cannot be edited this way.
+  Edits or creates a schema file and persists it. For updates: provide
+  str_replace_old copied verbatim from get_schema_file (must match exactly once).
+  For creates: set str_replace_old to "" and str_replace_new to the full file
+  content. Version bumps automatically. brain-compose.yml cannot be edited.
 system:
   tool: update_schema_file
 parameters:
   - name: path
     param: path
-    description: The schema file path to edit, e.g. "skills/telos-brain/BRA201.md".
+    description: >-
+      The schema file path to edit or create, e.g.
+      "skills/telos-brain/concepts/BRA103-what-is-a-skill-book.md".
     type: string
     required: true
   - name: str_replace_old
     param: str_replace_old
     description: >-
-      The exact text to find, copied verbatim from get_schema_file output. Must
-      match exactly once — include enough surrounding context to be unique.
+      For updates: the exact text to find, copied verbatim from get_schema_file
+      (must match exactly once). For creates: pass an empty string.
     type: string
     required: true
   - name: str_replace_new
     param: str_replace_new
-    description: The replacement text. Use an empty string to delete the matched text.
+    description: >-
+      The replacement text, or the full new file content when creating. Use an
+      empty string to delete a matched substring on update.
     type: string
     required: true
