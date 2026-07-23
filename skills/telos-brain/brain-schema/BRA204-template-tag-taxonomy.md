@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown.
-version: 7
+version: 8
 ---
 
 # Template Tag Taxonomy
@@ -187,19 +187,32 @@ Notes:
 
 | Field | Description |
 | --- | --- |
-| `run.telemetry` | Full OTEL GenAI telemetry for the subject run as indented JSON (same shape as `GET /runs/{id}/telemetry`) |
+| `run.reference` | Subject run's 8-character AI-facing reference (`WorkflowRuns.Reference`) for `set_run_grading` (BRA406) |
+| `run.telemetry` | OTEL GenAI telemetry for the subject run as indented JSON (same shape as `GET /runs/{id}/telemetry`, compacted for eval prompts) |
 
 Notes:
 
 - Used by `workflowrun:complete` eval workflows. The subject run id is passed as
   `SubjectRunId` on the eval's `WorkflowRunRequest` — it is **not** the eval
   run's own id.
-- When the subject run is missing, `{{run.telemetry}}` renders blank.
-- Authoring guide for manual / automatic run evals: **BRA207**.
+- When the subject run is missing, the `run` scope is empty (both tags blank).
+- **`run.reference` is not a shortened Guid.** Telemetry's `runId` field is the
+  first 8 hex characters of the UUID and must **not** be passed to
+  `set_run_grading` — always use `{{run.reference}}`.
+- Compacted for eval prompts: GUID values inside telemetry JSON are shortened to
+  their first 8 hex characters, and `gen_ai.message.content` / `error.message`
+  longer than 500 characters are truncated with an explicit marker
+  (`...[truncated, full content length: N]`). The Execution API
+  `GET /runs/{id}/telemetry` response stays full fidelity.
+- Authoring guide for manual / automatic run evals: **BRA207**. Grading tool:
+  **BRA406**.
 
 **Example — learning eval instructions:**
 
 ```markdown
+## Subject run
+Reference: {{run.reference}}
+
 ## Run telemetry
 {{run.telemetry}}
 ```
@@ -498,7 +511,7 @@ Notes:
 | --- | --- | --- |
 | `entity` | — | `name`, `{variableKey}` |
 | `unitOfWork` | `.context`, `.data` | `date`, `time`, `title`, `source`, `body` |
-| `run` | — | `telemetry` (OTEL GenAI JSON for subject run, BRA091) |
+| `run` | — | `reference` (AI-facing run code for `set_run_grading`), `telemetry` (OTEL GenAI JSON for subject run) |
 | `skillBooks` | root → `.categories` → `.skills` | `skillBook.*`, `category.*`, `skill.*` |
 | `now` | — | `utcDate`, `utcTime`, `utcDayOfWeek`, `localDate`, `localTime`, `localDayOfWeek` |
 | `result` | — | `{anyKey}` (flat) |
@@ -523,7 +536,7 @@ Reference workflows in `workflows/`:
 | --- | --- | --- |
 | Skill Update | `WF-SKILL-UPDATE` | Nested `{{#skillBooks}}` → `{{#skillBook.categories}}` → `{{#category.skills}}`, plus find / load / create / update via schema tools |
 | Unit of Work Context | `WF-UNIT-OF-WORK-CONTEXT` | Dual-block `{{#unitOfWork.context}}` and `{{#unitOfWork.data}}` with short-form fields; optional `{{entity.name}}` |
-| Learning Eval (Run) | `WF-EVAL-RUN` | `{{run.telemetry}}` OTEL GenAI JSON for a subject Completed run (BRA091); `create_inbox_entry` learnings |
+| Learning Eval (Run) | `WF-EVAL-RUN` | `{{run.reference}}` + `{{run.telemetry}}`; `set_run_grading` + `create_inbox_entry` (BRA207 / BRA406) |
 | Inbox Entry Context | `WF-INBOX-ENTRY-CONTEXT` | `{{inboxEntry.*}}` scalars and `{{#inboxTasks}}` iteration for TRIGGERED inbox workflows; instructions-only input |
 | Ask Question | `WF-ASK-QUESTION` | `{{input.question}}` from the `ask_question` workflow-tool parameters |
 

@@ -1,13 +1,14 @@
 ---
 name: "Execution API: Inbox Entries & Tasks"
 code: BRA404
-version: 4
+version: 5
 description: How to create, list, read and update inbox entries and their tasks
   via the Execution API — the learning-signal intake surface. Covers the entry and
-  task lifecycles, listing by status, adding entries (with automatic trigger
-  matching), and updating an entry's or task's status and content (including
-  approving a task to run its linked workflow). In-brain evals should prefer the
-  create_inbox_entry system tool (BRA405) over HTTP.
+  task lifecycles, inbox trigger matching (entry create vs task auto-run), learning
+  mode qualifiers, listing by status, adding entries, and updating an entry's or
+  task's status and content (including approving a task to run its linked
+  workflow). In-brain evals should prefer the create_inbox_entry system tool
+  (BRA405) over HTTP.
 ---
 
 # Execution API: Inbox Entries & Tasks
@@ -50,6 +51,61 @@ created trigger tasks start with a null `action`. Canonical example workflow:
 
 ---
 
+## Inbox triggers (two stages)
+
+Triggers live on **workflows** (`trigger:` in frontmatter — see BRA201 §8), not
+on the task row. Inbox work uses them in two distinct stages:
+
+| Stage | When | What is matched | Outcome |
+| --- | --- | --- | --- |
+| **Entry create** | `POST /inbox` / `create_inbox_entry` with status `PENDING` | Each `TRIGGERED` workflow's `inbox:…` pattern against the **entry's `routingType`** and the brain's **`learning-mode`** | Matching workflows each get a new `InboxTask` (`PENDING`, linked to that workflow) |
+| **Task auto-run** | Hangfire processor picks up a `PENDING` task that has a linked workflow | That **task's linked workflow** only — does it have an inbox trigger whose learning-mode qualifier is satisfied? | Yes → `PENDING → RUNNING` and the workflow runs. No → `PENDING → AWAITING_APPROVAL` |
+
+### Stage 1 — which tasks get created
+
+Pattern shape: `inbox:<RoutingType>` or `inbox:*`, optionally with a learning-mode
+qualifier (BRA122):
+
+```text
+inbox:SKILL_UPDATE
+inbox:*
+inbox:SKILL_UPDATE:low
+inbox:WORKFLOW_UPDATE:medium
+```
+
+- `inbox:*` matches any routing type (including null).
+- `inbox:<RoutingType>` requires an exact match on the entry's `routingType`.
+- Multiple patterns on one workflow are OR'd (BRA121): a scalar, comma-separated
+  list, or YAML list in frontmatter.
+- Qualifier hierarchy: `off < low < medium < high`. A qualified trigger fires
+  when the brain's `learning-mode` **meets or exceeds** the qualifier.
+  Unqualified inbox triggers always pass the learning-mode check (including when
+  the brain mode is omitted / off).
+- Creating an entry as `PROCESSED` skips this stage entirely (no tasks).
+
+### Stage 2 — whether a PENDING task auto-runs
+
+Once a task exists, **the workflow already linked on that task is authoritative**
+(via `WorkflowId` / `workflow_code`). The processor does **not** re-match the
+entry's routing type.
+
+- Auto-run when the linked workflow has **at least one** `inbox:…` trigger whose
+  learning-mode qualifier is satisfied (routing segment ignored at this stage).
+- Otherwise the task moves to `AWAITING_APPROVAL` for human sign-off (admin UI,
+  `PATCH` approve, or `update_inbox_task` — see below / BRA405).
+- A task with **no** linked workflow cannot auto-run; it parks at
+  `AWAITING_APPROVAL`.
+- Workflow `trigger-mode` (`manual` / `automatic`) does **not** control inbox
+  task approval. That field is for eval-style triggers such as
+  `workflowrun:complete` (BRA207).
+
+**Authoring tip:** a triage flow that calls `add_inbox_task` with
+`workflow_code: WF-SKILL-UPDATE` only auto-runs if `WF-SKILL-UPDATE` itself declares
+an inbox trigger (and learning mode allows). Omit the inbox trigger (or use a
+qualifier above the brain's mode) to keep a human in the loop.
+
+---
+
 ## Lifecycles
 
 Both records progress **forward-only**; a backward move, or overwriting a
@@ -60,7 +116,13 @@ current) is allowed so a sibling field can be edited without advancing status.
 (`APPLIED` and `DISMISSED` are terminal; `DISMISSED` is reachable from `PENDING`
 or `REVIEWING`, `APPLIED` only from `REVIEWING`).
 
-**Inbox task** — `PENDING → AWAITING_APPROVAL → RUNNING → COMPLETED | FAILED`,
+**Inbox task** — all new tasks start `PENDING`. Then either:
+
+- `PENDING → RUNNING → COMPLETED | FAILED` when the linked workflow has a
+  qualifying inbox trigger (auto-run), or
+- `PENDING → AWAITING_APPROVAL → RUNNING → COMPLETED | FAILED` when it does not
+  (human approval required),
+
 or `→ CANCELLED` from any non-terminal state.
 
 ---
@@ -69,10 +131,12 @@ or `→ CANCELLED` from any non-terminal state.
 
 ### `POST /inbox` — add an entry
 
-Creating an entry **also runs inbox trigger matching in the same atomic write**:
-every `TRIGGERED` workflow whose trigger matches (`inbox:*` for any entry, or
-`inbox:<RoutingType>` for an exact routing-type match) gets an `InboxTask`. The
-response therefore includes any tasks generated for the entry.
+Creating an entry **also runs stage-1 inbox trigger matching in the same atomic
+write**: every `TRIGGERED` workflow whose `inbox:…` pattern matches the entry's
+`routingType` (and learning-mode qualifier) gets a `PENDING` `InboxTask` linked
+to that workflow. The response therefore includes any tasks generated for the
+entry. Whether those tasks auto-run is decided later (stage 2) from each task's
+linked workflow — see [Inbox triggers](#inbox-triggers-two-stages).
 
 ```json
 {
@@ -203,3 +267,12 @@ fields are supplied.
 > Tenancy is implicit (BRA401): every entry and task is scoped to the brain the
 > API key resolves to. A record belonging to another brain always reads as
 > `404 Not Found`, never `403`. No `brain_id` is ever accepted in a route or body.
+
+---
+
+## See also
+
+- **BRA201** §8 — workflow `trigger` / `learning-mode` authoring
+- **BRA405** — inbox system tools (`create_inbox_entry`, `add_inbox_task`, …)
+- **BRA207** — learning-eval workflows (`trigger-mode` for `workflowrun:complete`)
+- **BRA204** — `{{inboxEntry.*}}` / `{{#inboxTasks}}` template tags

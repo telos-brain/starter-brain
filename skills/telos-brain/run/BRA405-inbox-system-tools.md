@@ -1,12 +1,13 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 2
-description: The seven in-brain system tools for operating the learning-signal
-  inbox — create_inbox_entry, list_inbox_entries, get_inbox_entry,
-  update_inbox_entry, list_inbox_tasks, add_inbox_task and update_inbox_task.
-  All identity is by 8-character reference (never UUID); workflows are selected
-  by code.
+version: 4
+description: The in-brain system tools for operating the learning-signal inbox
+  — create_inbox_entry, list_inbox_entries, get_inbox_entry, update_inbox_entry,
+  list_inbox_tasks, add_inbox_task and update_inbox_task. All identity is by
+  8-character reference (never UUID); workflows are selected by code. Covers how
+  PENDING tasks auto-run from the linked workflow's inbox trigger (see BRA404).
+  For persisting a run quality score, see BRA406 (set_run_grading).
 tools:
   - create_inbox_entry
   - list_inbox_entries
@@ -34,13 +35,17 @@ These are ordinary `system` tools (BRA201 §5.2). Declarations live under
 frontmatter `tools:` so a workflow that keeps them under `available-tools` can
 promote them via `get_skill` (same pattern as BRA203 / `WF-SKILL-UPDATE`).
 
+**Run grading** (`set_run_grading`) is declared in the same `tools/inbox/` group
+but documented in **BRA406** — eval workflows typically call both
+`create_inbox_entry` and `set_run_grading` (BRA207).
+
 ---
 
-## The seven tools
+## The seven inbox tools
 
 | Tool | Purpose | Key parameters | Returns |
 |---|---|---|---|
-| **`create_inbox_entry`** | Create a learning signal | `title`, `body`, `routing_type`, optional `source` | Confirmation with new entry **reference** |
+| **`create_inbox_entry`** | Create a learning signal | `title`, `body`, `routing_type`, optional `source`, `status` | Confirmation with new entry **reference** |
 | **`list_inbox_entries`** | List entries (optional filters) | `status`, `routing_type` | CSV keyed by `Reference` |
 | **`get_inbox_entry`** | Full entry + tasks | `inbox_entry_reference` | Markdown |
 | **`update_inbox_entry`** | Status / routing type | `inbox_entry_reference`, `status`, `routing_type` | Confirmation |
@@ -50,7 +55,8 @@ promote them via `get_skill` (same pattern as BRA203 / `WF-SKILL-UPDATE`).
 
 Intended flows:
 
-- **Learning evals:** `create_inbox_entry` (once per learning) — see **BRA207**
+- **Learning evals:** `create_inbox_entry` (once per learning) then
+  `set_run_grading` (BRA406 / BRA207)
 - **Triage / review:** list entries → get entry → list/add/update tasks
 
 ---
@@ -77,17 +83,23 @@ Deprecated / invalid for these tools: `id`, `inbox_entry_id`, `workflow_id`,
 
 ## `create_inbox_entry`
 
-Creates a **PENDING** inbox entry in-process via `IInboxService` (same path as
-`POST /inbox`, including automatic trigger matching for `inbox:*` /
-`inbox:<RoutingType>` workflows). Prefer this over a declared HTTP tool that
-`POST`s to a host URL — no outbound network call, no API key, no localhost.
+Creates an inbox entry in-process via `IInboxService` (same path as
+`POST /inbox`). Prefer this over a declared HTTP tool that `POST`s to a host
+URL — no outbound network call, no API key, no localhost.
 
 Required: `title`, `body`, `routing_type` (`SKILL_UPDATE`, `WORKFLOW_UPDATE`,
 `TOOL_UPDATE`, `MEMORY_UPDATE`, `SYSTEM_CHANGE`, or a brain-defined value).
-Optional: `source`.
+Optional: `source`, `status`.
+
+| `status` | Behaviour |
+| --- | --- |
+| omitted / `PENDING` | Stage-1 inbox trigger matching runs (entry `routing_type` + learning mode — BRA404), then the entry auto-promotes to `PROCESSED` |
+| `PROCESSED` | Created without firing inbox triggers — preferred for grade-linked findings that should not spawn tasks |
 
 Returns a confirmation including the new entry's **reference** and how many
-triggered tasks were created.
+triggered tasks were created. Those tasks start `PENDING`; auto-run vs
+`AWAITING_APPROVAL` is decided later from each task's linked workflow (BRA404
+stage 2).
 
 Canonical YAML: `tools/inbox/create-inbox-entry.yml`.
 
@@ -95,8 +107,8 @@ Canonical YAML: `tools/inbox/create-inbox-entry.yml`.
 
 ## `list_inbox_entries`
 
-Optional `status` (`PENDING`, `REVIEWING`, `APPLIED`, `DISMISSED`) and
-`routing_type`. Returns CSV:
+Optional `status` (`PENDING`, `PROCESSED`, `COMPLETED`) and `routing_type`.
+Returns CSV:
 
 `Reference,Date,Source,Title,Status,RoutingType,CreatedAt`
 
@@ -110,8 +122,8 @@ and a task list (each task by **reference**, with `workflow` as a **code**).
 ## `update_inbox_entry`
 
 Requires `inbox_entry_reference` and at least one of `status` or `routing_type`.
-Status is forward-only: `PENDING → REVIEWING → APPLIED | DISMISSED` (also
-`PENDING → DISMISSED`). Terminal statuses cannot be overwritten.
+Entry lifecycle is `PENDING → PROCESSED → COMPLETED` (BRA113). Terminal
+`COMPLETED` cannot be overwritten.
 
 ## `list_inbox_tasks`
 
@@ -125,6 +137,13 @@ Requires `inbox_entry_reference`. Optional `workflow_code` (resolved server-side
 and `instructions` (stored as the task action — instructions-only; entry content
 reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204). Creates status
 `PENDING` and returns the new task's **reference**.
+
+**Auto-run:** the Hangfire processor decides from the **workflow named by
+`workflow_code`**, not from the entry's routing type. If that workflow has an
+`inbox:…` trigger whose learning-mode qualifier is satisfied, the task moves
+`PENDING → RUNNING` and runs. Otherwise it moves to `AWAITING_APPROVAL` for
+human sign-off. Full rules: **BRA404** (Inbox triggers — two stages). Workflow
+`trigger-mode` does not control this path.
 
 ## `update_inbox_task`
 
@@ -182,7 +201,10 @@ parameters:
 
 ## See also
 
-- **BRA404** — Execution API inbox (HTTP; Guid paths)
+- **BRA404** — Execution API inbox (HTTP; Guid paths) and **inbox trigger stages**
+  (entry create vs task auto-run, learning-mode qualifiers)
+- **BRA201** §8 — authoring `trigger: inbox:…` / learning-mode on workflows
 - **BRA207** — learning-eval workflows that call `create_inbox_entry`
+- **BRA406** — `set_run_grading` (persist 0–100 score on a WorkflowRun)
 - **BRA204** — `{{inboxEntry.*}}` / `{{#inboxTasks}}` template tags
 - **WF-INBOX-ENTRY-CONTEXT** — canonical TRIGGERED inbox workflow pattern

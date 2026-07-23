@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 24
+version: 26
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -125,6 +125,10 @@ Key facts:
 name: kappa                      # REQUIRED: the brain's name
 # description: optional          # optional; used as the brain description on first deploy
 
+# Optional brain-level settings (persisted on every `brain deploy`):
+# embedding-model: voyage-3-lite # optional; defaults to voyage-3-lite when omitted
+# learning-mode: off             # optional; off | low | medium | high (omit = off)
+
 # Entities: top-level things the brain reasons about.
 entities:
   - name: Application            # REQUIRED
@@ -160,6 +164,9 @@ workflows:
 Rules:
 
 - `name` is the only required top-level field.
+- `embedding-model` is optional (defaults to `voyage-3-lite` when omitted).
+- `learning-mode` is optional (`off` | `low` | `medium` | `high`; omit or null is
+  treated as `off`). Persisted onto the Brain on every deploy.
 - `entities` / `unitsofwork` are optional lists; each item needs `name` + `code`.
 - `tools`, `skills`, `blueprints`, `workflows` are optional lists of relative
   paths. Anything **not listed here is not deployed**, even if the file exists on
@@ -251,7 +258,8 @@ system:
 The schema system tools — which let a running brain inspect and edit its own
 configuration-as-code files — are documented in BRA203. The inbox system tools —
 list / get / update entries and tasks by **reference** (never UUID) — are
-documented in BRA405.
+documented in BRA405. Run grading (`set_run_grading`) is documented in BRA406;
+learning-eval authoring that uses it is in BRA207.
 
 **Workflow tool** (routes to another workflow in the same brain):
 
@@ -735,7 +743,11 @@ code: WF-REVIEW                        # REQUIRED (unique workflow code)
 description: Reviews a blueprint submission and posts findings to the ticket.  # optional
 version: 1.1                           # optional (see §9)
 type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM (default RUNNABLE)
-# trigger: <condition>                 # optional; used when type is TRIGGERED
+# trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list (BRA121)
+# trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier (BRA122): low|medium|high
+# trigger:
+#   - inbox:SKILL_UPDATE
+#   - inbox:WORKFLOW_UPDATE:medium
 # model: anthropic\claude-sonnet-4-6   # optional metadata
 
 # Injected tools — included in the Claude tool declarations for every turn.
@@ -778,9 +790,21 @@ Rules:
   the instructions).
 - `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `SYSTEM`;
   omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when `trigger` matches, `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt.
-- Well-known `trigger` values include `unitofwork:complete` (unit-of-work learning
-  eval) and `workflowrun:complete` (workflow-run learning eval, BRA091). For
-  `workflowrun:complete`, `trigger-mode: automatic` enqueues on Completed;
+- Well-known `trigger` values include `inbox:<RoutingType>` / `inbox:*` (inbox
+  learning loop), `unitofwork:complete` (unit-of-work learning eval), and
+  `workflowrun:complete` (workflow-run learning eval, BRA091).
+- **Inbox triggers** (two stages — full rules in **BRA404**):
+  - **Entry create:** `inbox:<RoutingType>` or `inbox:*` (optional
+    `:low|medium|high` learning-mode qualifier, BRA122) selects which
+    `TRIGGERED` workflows get a `PENDING` inbox task when an entry is created.
+    Qualifiers use `off < low < medium < high` (brain mode must meet or exceed
+    the qualifier; unqualified inbox triggers always fire).
+  - **Task auto-run:** once a task exists, the **workflow linked on that task**
+    is authoritative. If that workflow has an inbox trigger whose learning-mode
+    qualifier is satisfied, the task auto-runs (`PENDING → RUNNING`); otherwise
+    it moves to `AWAITING_APPROVAL`. Entry routing is not re-checked at this
+    stage. `trigger-mode` does **not** control inbox task approval.
+- For `workflowrun:complete`, `trigger-mode: automatic` enqueues on Completed;
   `trigger-mode: manual` (or omitted) is kicked off from the admin **Run eval**
   button. Use `{{run.telemetry}}` (BRA204) for OTEL GenAI telemetry of the
   subject run. Full authoring guide (manual vs automatic, tools, prompts):
