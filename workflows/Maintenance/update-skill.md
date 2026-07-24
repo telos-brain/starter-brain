@@ -5,11 +5,15 @@ description: >-
   Autonomously extracts transferable skill knowledge from an inbox entry and
   creates or updates skills (and rarely categories) via schema tools. Source
   material comes from {{inboxEntry.body}}; skill book structure is injected.
-version: 2
+version: 4
 model: anthropic/claude-sonnet-4-6
 
-# Started by inbox tasks created by WF-TRIAGE (not by an inbox trigger of its own).
-type: RUNNABLE
+# Tasks are usually created by WF-TRIAGE (add_inbox_task). Declaring an inbox
+# trigger with :high makes those tasks auto-run when brain learning-mode is
+# high (BRA404 stage 2). Stage 1 also creates a task if an entry is posted
+# already routed as SKILL_UPDATE while learning-mode >= high.
+type: TRIGGERED
+trigger: inbox:SKILL_UPDATE:high
 
 system-prompt-code: WF-BRAIN-SYSTEM
 
@@ -27,6 +31,7 @@ tools:
   - search_schema_files
   - get_schema_file
   - update_schema_file
+  - create_skill
   - update_inbox_entry
   - list_inbox_tasks
 
@@ -156,9 +161,6 @@ Do not create duplicates.
 
 ### Phase 4: Execute skill changes
 
-Use schema tools only (there is no separate `create_skill` / `update_skill`
-tool):
-
 **Update an existing skill**
 
 1. `search_schema_files` or `list_schema_files` to find the path.
@@ -171,20 +173,25 @@ tool):
 
 **Create a new skill**
 
-1. Choose the Skill Book and category from the injected structure.
-2. Pick the next free code in that category's range (`<prefix><index+nn>`).
-3. Create the file with `update_schema_file`:
-   - `path` — follow existing layout (category subfolders under the skillbook
-     folder), e.g. `skills/telos-brain/<category-folder>/<CODE>-<slug>.md`
-   - `str_replace_old` — empty string
-   - `str_replace_new` — full markdown including frontmatter (`name`, `code`,
-     `description`, `version`) and body
-4. Register the new relative path in that book's `skillbook.yml` under the
-   correct category's `skills:` list (`get_schema_file` + `update_schema_file`).
+Use `create_skill` — do **not** hand-author skill files via `update_schema_file`
+or `create_schema_file`. The tool assigns the next code in the category range
+and registers the skill in the book.
+
+1. Choose the Skill Book and category from the injected structure (category must
+   already exist — create/broaden categories in Phase 2 first if needed).
+2. Call `create_skill` with:
+   - `skillbook_code` — e.g. `BRA`
+   - `category_title` — exact category title from the lens (case-insensitive)
+   - `title` — clear, specific skill name
+   - `description` — one sentence, when to use the skill (search-optimised)
+   - `content` — markdown body only (no YAML frontmatter; the tool supplies
+     metadata). Lead with the outcome, then steps or principles.
+3. On failure, load BRA203 / BRA208 / BRA201 via `get_skill`, fix the inputs,
+   and retry.
 
 **New skill writing rules**
 
-- **Name:** Clear and specific
+- **Title:** Clear and specific
 - **Description:** One sentence — when to use the skill (search-optimised)
 - **Content:** Concise, actionable markdown. Lead with the outcome, then steps
   or principles.

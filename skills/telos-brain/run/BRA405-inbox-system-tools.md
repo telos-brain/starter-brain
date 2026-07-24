@@ -129,7 +129,7 @@ Entry lifecycle is `PENDING → PROCESSED → COMPLETED` (BRA113). Terminal
 
 Requires `inbox_entry_reference`. Returns CSV for that entry only:
 
-`Reference,Status,WorkflowCode,Action,CreatedAt,UpdatedAt`
+`Reference,Status,WorkflowCode,Action,Response,CreatedAt,UpdatedAt`
 
 ## `add_inbox_task`
 

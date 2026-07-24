@@ -43,7 +43,7 @@ injected into the input message. Authors must pull it in with template tags
 | Scope | Use |
 | --- | --- |
 | `{{inboxEntry.*}}` | Entry scalars: `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
-| `{{#inboxTasks}}...{{/inboxTasks}}` | Sibling tasks: `reference`, `action`, `status`, `workflowCode` |
+| `{{#inboxTasks}}...{{/inboxTasks}}` | Sibling tasks: `reference`, `action`, `response`, `status`, `workflowCode` |
 
 The task `action` / run input is triage instructions only (routing intent). Auto-
 created trigger tasks start with a null `action`. Canonical example workflow:
@@ -219,7 +219,8 @@ GET /inbox/tasks?status=AWAITING_APPROVAL&entry_id=3f0c...
 | `entry_id` | Optional. Scopes to a single parent entry's tasks. |
 
 Response `200 OK` — a task array (most recent first), each flattened with its
-linked workflow's title and trigger mode, and its `workflowRunId` once it has run.
+linked workflow's title and trigger mode, and its `workflowRunId` and `response`
+once it has run.
 
 ### `PATCH /inbox/{entryId}/tasks/{taskId}` — update a task (status and/or content)
 
@@ -242,7 +243,8 @@ its parent entry.
 approves it — the linked workflow runs synchronously with `action` as its input
 message (instructions-only) and the entry available via `{{inboxEntry.*}}`
 template tags. The task settles to `COMPLETED` (or `FAILED` on error), never
-stranded in `RUNNING`. Its `workflowRunId` is recorded. A task with **no** linked
+stranded in `RUNNING`. Its `workflowRunId` and final `response` (assistant reply)
+are recorded. A task with **no** linked
 workflow cannot be approved (`409`). **Cancelling** is `status: CANCELLED` from
 any non-terminal state.
 

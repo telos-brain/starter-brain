@@ -466,7 +466,7 @@ Notes:
 
 | Iteration | Item fields (short form inside the loop) |
 | --- | --- |
-| `{{#inboxTasks}}...{{/inboxTasks}}` | `reference`, `action`, `status`, `workflowCode` |
+| `{{#inboxTasks}}...{{/inboxTasks}}` | `reference`, `action`, `response`, `status`, `workflowCode` |
 
 Notes:
 
@@ -476,6 +476,8 @@ Notes:
   workflow (informational task).
 - `action` is the task's instructions-only field (routing intent), not entry
   markdown.
+- `response` is the final assistant reply from the linked workflow run, or blank
+  until the task has executed.
 
 **Example:**
 
@@ -484,6 +486,7 @@ Notes:
 {{#inboxTasks}}
 - `{{reference}}` — {{status}}{{#if workflowCode}} → {{workflowCode}}{{/if}}
   {{#if action}}Instructions: {{action}}{{/if}}
+  {{#if response}}Response: {{response}}{{/if}}
 {{/inboxTasks}}
 ```
 
@@ -518,7 +521,7 @@ Notes:
 | `input` | — | `{paramName}` (flat; workflow-tool / `run_workflow` params) |
 | `blueprint` | `.categories` | `name`, `description`; `category.name`, `category.description` |
 | `inboxEntry` | — | `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
-| `inboxTasks` | root | `reference`, `action`, `status`, `workflowCode` |
+| `inboxTasks` | root | `reference`, `action`, `response`, `status`, `workflowCode` |
 
 | Tag | Syntax |
 | --- | --- |

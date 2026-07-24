@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 26
+version: 27
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -614,6 +614,8 @@ tools:
   - list_schema_files
   - get_schema_file
   - update_schema_file
+  - create_skill
+  - create_schema_file
 ---
 
 # Instructions
@@ -766,6 +768,8 @@ available-tools:
   - list_schema_files
   - get_schema_file
   - update_schema_file
+  - create_skill
+  - create_schema_file
 
 # Skills referenced by CODE.
 #  - injected-skills are inlined into the prompt at run time.

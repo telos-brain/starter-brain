@@ -1,0 +1,45 @@
+name: create_skill
+version: 1
+description: >-
+  Creates a new skill in a Skill Book category. Resolves the book by code and
+  the category by title (case-insensitive), auto-assigns the next skill code in
+  that category range, and registers the skill in the book. Prefer this over
+  create_schema_file or update_schema_file when creating skills.
+system:
+  tool: create_skill
+parameters:
+  - name: skillbook_code
+    param: skillbook_code
+    description: >-
+      Required. Skill Book code to create the skill in (e.g. "BRA").
+    type: string
+    required: true
+  - name: category_title
+    param: category_title
+    description: >-
+      Required. Existing category title within that Skill Book (case-insensitive
+      match), e.g. "Brain Schema".
+    type: string
+    required: true
+  - name: title
+    param: title
+    description: Required. Clear, specific skill name.
+    type: string
+    required: true
+  - name: description
+    param: description
+    description: >-
+      Required. One sentence explaining when to use this skill (search-optimised).
+    type: string
+    required: true
+  - name: content
+    param: content
+    description: >-
+      Required. Full markdown skill body (instructions only — no YAML
+      frontmatter; the tool supplies metadata).
+    type: string
+    required: true
+error-markdown: |
+  Could not create skill: {{result.result}}
+  Load BRA203 (schema tools), BRA208 (category design) and BRA201 §6 (skill
+  format) via get_skill, then retry.

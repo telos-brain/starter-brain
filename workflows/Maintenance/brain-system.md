@@ -4,7 +4,7 @@ code: WF-BRAIN-SYSTEM
 description: >-
   Maintenance system prompt — how the brain, skillbooks, skills and management
   tools work. Used only by brain-maintenance workflows (triage, skill update).
-version: 1
+version: 2
 
 # Never executed directly — referenced via system-prompt-code.
 type: SYSTEM
@@ -84,17 +84,17 @@ the harness injects the brain; you never pass a brain id.
 | `list_schema_files` | List schema paths (`path,type,code`) |
 | `search_schema_files` | Find files by code or title substring |
 | `get_schema_file` | Read full file content by path |
-| `update_schema_file` | Targeted edit, or create a new file |
+| `update_schema_file` | Targeted edit of an existing file |
+| `create_skill` | Create a skill in a Skill Book category (preferred) |
 
 **Update an existing file:** call `get_schema_file` first, copy the exact
 substring into `str_replace_old`, put the replacement in `str_replace_new`.
 The old string must match exactly once. Prefer small, surgical edits.
 
-**Create a new file:** call `update_schema_file` with `str_replace_old` set to
-an empty string and `str_replace_new` set to the full file content. Choose a
-path consistent with existing skills (category subfolders under the skillbook
-folder). After creating a skill file, also register its relative path under the
-correct category in that book's `skillbook.yml`.
+**Create a skill:** call `create_skill` with `skillbook_code`, `category_title`,
+`title`, `description`, and markdown `content` (no frontmatter). The tool
+auto-assigns the next code in the category range and registers the skill.
+Do not create skills by hand-editing files with `update_schema_file`.
 
 **Categories:** there is no separate category tool. Create or broaden categories
 by editing `skillbook.yml` with `get_schema_file` + `update_schema_file`.

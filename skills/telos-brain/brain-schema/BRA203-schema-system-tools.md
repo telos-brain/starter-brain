@@ -1,13 +1,13 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 2
-description: The four in-brain system tools that let a running brain inspect and
-  edit its own configuration-as-code schema — list_schema_files,
-  search_schema_files, get_schema_file and update_schema_file. Covers what each
-  does, how to wire them into a workflow, the schema file model they expose, and
-  the safety guarantees (brain scoping, exact-one-match edits, automatic
-  versioning).
+version: 3
+description: The in-brain system tools that let a running brain inspect, edit,
+  and create its own configuration-as-code schema — list_schema_files,
+  search_schema_files, get_schema_file, update_schema_file, create_skill and
+  create_schema_file. Covers what each does, how to wire them into a workflow,
+  the schema file model they expose, and the safety guarantees (brain scoping,
+  exact-one-match edits, automatic versioning, create paths).
 # Tools this skill needs when loaded via get_skill. The hosting workflow must
 # list them under available-tools (see WF-SKILL-UPDATE) for mid-run promotion.
 tools:
@@ -15,30 +15,32 @@ tools:
   - search_schema_files
   - get_schema_file
   - update_schema_file
+  - create_skill
+  - create_schema_file
 ---
 
 # Schema System Tools
 
 BRA201 covers authoring the schema as files and deploying them with the CLI. This
 skill covers the complementary runtime capability: a **running brain editing its
-own schema**. Four `system` tools expose the brain's configuration-as-code as a
-virtual filesystem — list, search, read and edit the workflow, skill, tool and
-blueprint files — without any outbound HTTP call. This is how a learning-review
-workflow applies an approved learning back into the brain.
+own schema**. Six `system` tools expose the brain's configuration-as-code as a
+virtual filesystem — list, search, read, edit and create workflow, skill, tool
+and blueprint files — without any outbound HTTP call. This is how a
+learning-review workflow applies an approved learning back into the brain.
 
 These are ordinary `system` tools (see BRA201 §5.2): they are declared with a
 `system:` block and added to a workflow's tool lists like any other tool. They
 are executed in-process by the tool router — no webhook URL, MCP server or API
 key is involved.
 
-This skill declares those four tools in its own frontmatter `tools:` list
+This skill declares those tools in its own frontmatter `tools:` list
 (BRA201 §6.3). When a workflow keeps them under `available-tools` and the agent
 calls `get_skill` for `BRA203`, matching tools are promoted into the run's Claude
 declarations for the rest of that run — see `WF-SKILL-UPDATE` for the wiring.
 
 ---
 
-## The four tools
+## The six tools
 
 | Tool | Purpose | Parameters | Returns |
 |---|---|---|---|
@@ -46,9 +48,12 @@ declarations for the rest of that run — see `WF-SKILL-UPDATE` for the wiring.
 | **`search_schema_files`** | Filter files whose **code** or **title** contains a query (case-insensitive substring). | `query` | CSV: `path,type,code,title` |
 | **`get_schema_file`** | Read the full canonical content (YAML or markdown) of one file. | `path` | file content |
 | **`update_schema_file`** | Apply a targeted string-replace edit to one file and persist it. | `path`, `str_replace_old`, `str_replace_new` | success / error |
+| **`create_skill`** | Create a skill in a SkillBook category with an auto-assigned code. | `skillbook_code`, `category_title`, `title`, `description`, `content` | new skill code / error |
+| **`create_schema_file`** | Create any supported schema file via the deploy parse/persist path. | `path`, `content` | resource code / error |
 
-The intended flow is **list/search → get → update**: discover a path, read the
-file to copy the exact text, then edit it.
+The intended flow for edits is **list/search → get → update**: discover a path,
+read the file to copy the exact text, then edit it. For creates, prefer
+**`create_skill`** (skills) or **`create_schema_file`** (other types).
 
 ---
 
@@ -111,6 +116,39 @@ Requires `path`, `str_replace_old` and `str_replace_new`.
 Zero-match, multi-match, unknown-path and parse errors are returned verbatim so
 the agent can correct and retry.
 
+## `create_skill`
+
+Requires `skillbook_code`, `category_title`, `title`, `description`, and
+`content`. Resolves the SkillBook by code and a category by title
+(case-insensitive), auto-assigns the next skill code in that category range
+(soft-deleted codes stay reserved), defaults version to 1, and returns the new
+code (e.g. `BRA209`). Prefer this over `create_schema_file` for skills.
+
+On failure, load **BRA208** (skill-book design) and **BRA201** §6 (skill format)
+before retrying. Example tool definition: `tools/brain-schema/create-skill.yml`.
+
+## `create_schema_file`
+
+Requires `path` and `content` (full file). Supported paths:
+
+| Path | Type |
+|---|---|
+| `workflows/{code}.md` | Workflow |
+| `tools/{group}/{name}.yml` | Tool |
+| `skills/{book}/{code}-{title}.md` | Skill |
+| `blueprints/{code}/{title}.md` | Blueprint entry |
+
+Rejected: `brain-compose.yml` and generated group manifests
+(`tools/*/tools.yml`, `skills/*/skillbook.yml`, `blueprints/*/blueprint.yml`).
+Omit `version` to default to 1. Version conflicts return a clear error when the
+incoming version is not strictly greater than the stored version.
+
+On failure, the tool's `error-markdown` (see
+`tools/brain-schema/create-schema-file.yml`) names the skills that define each
+file type's format — typically **BRA201**, plus **BRA208** for skills and
+**BRA204** when template tags are involved. Load those with `get_skill`, fix the
+content, and retry.
+
 ---
 
 ## Wiring them into a workflow
@@ -128,48 +166,31 @@ Two patterns are supported:
 A minimal tool definition:
 
 ```yaml
-# tools/schema/list-schema-files.yml
-name: list_schema_files
+# tools/brain-schema/create-schema-file.yml
+name: create_schema_file
 version: 1
 description: >-
-  Lists every configuration-as-code schema file for this brain (the manifest plus
-  each workflow, skill, tool and blueprint entry) as CSV with columns
-  path,type,code.
+  Creates a schema file at the given path with full content…
 system:
-  tool: list_schema_files
-```
-
-`update_schema_file` additionally declares its three parameters:
-
-```yaml
-# tools/schema/update-schema-file.yml
-name: update_schema_file
-version: 1
-description: >-
-  Applies a targeted string-replace edit to a single schema file and persists it.
-  Provide str_replace_old copied verbatim from get_schema_file output; it must
-  match exactly once. The brain-compose.yml manifest cannot be edited this way.
-system:
-  tool: update_schema_file
+  tool: create_schema_file
 parameters:
   - name: path
     param: path
-    description: The schema file path to edit, e.g. "skills/sales/SL101.md".
+    description: The schema file path, e.g. "workflows/wf-example.md".
     type: string
     required: true
-  - name: str_replace_old
-    param: str_replace_old
-    description: >-
-      The exact text to find, copied verbatim from get_schema_file output. Must
-      match exactly once — include enough surrounding context to be unique.
+  - name: content
+    param: content
+    description: Full file content (YAML or markdown with frontmatter).
     type: string
     required: true
-  - name: str_replace_new
-    param: str_replace_new
-    description: The replacement text. Use an empty string to delete the matched text.
-    type: string
-    required: true
+error-markdown: |
+  Could not create schema file: {{result.result}}
+  Load BRA201 (file formats) and BRA203 (this skill) via get_skill, then retry.
 ```
+
+`create_skill` and `create_schema_file` example definitions (with full
+`error-markdown` skill pointers) live under `tools/brain-schema/`.
 
 ---
 
@@ -177,11 +198,11 @@ parameters:
 
 - **Brain-scoped, always.** The brain the run belongs to is injected by the
   harness; it is never a tool parameter. Files from other brains are never
-  listed, read or edited.
+  listed, read, edited or created.
 - **Exact-one-match edits.** `update_schema_file` refuses zero-match and
   multi-match edits, so an edit can never silently hit the wrong text.
 - **Manifest is read-only.** `brain-compose.yml` is generated and rejected by
-  `update_schema_file`.
-- **No file create / delete.** These tools read and edit **existing** files'
-  content. There is no system tool to add a brand-new schema file or remove one;
-  structural changes of that kind go through a CLI `brain deploy` (BRA201).
+  both `update_schema_file` and `create_schema_file`.
+- **Create via dedicated tools.** Prefer `create_skill` / `create_schema_file`.
+  The older empty-`str_replace_old` workaround on `update_schema_file` is a
+  fallback only for types those tools do not cover.

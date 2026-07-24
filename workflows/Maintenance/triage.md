@@ -74,8 +74,7 @@ still create a skill-update task if any transferable practice is present.
      - `workflow_code` = `WF-UPDATE-SKILL`
      - `instructions` = a short routing line only, e.g. `Extract transferable
        skill knowledge from this inbox entry.` Do **not** paste or summarise the
-       entry body in `instructions` — `WF-UPDATE-SKILL` reads
-       `{{inboxEntry.body}}`.
+       entry body in `instructions`.
 4. **If no skill-worthy content:** make no skill-update task. Leave the entry
    for other routing. Do not dismiss solely because it lacks skill content.
 5. Reply with one or two lines: what you decided and whether a task was created.

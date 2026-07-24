@@ -7,3 +7,4 @@ tools:
   - ./search-schema-files.yml
   - ./get-schema-file.yml
   - ./update-schema-file.yml
+  - ./create-skill.yml

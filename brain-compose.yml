@@ -7,6 +7,10 @@ description: >-
 # The API key comes from this brain's own .env (VOYAGE_API_KEY for voyage-*).
 embedding-model: voyage-3-lite
 
+# Learning loop intensity. high enables auto-run of inbox workflows whose
+# triggers declare a :high (or lower) learning-mode qualifier (BRA122 / BRA404).
+learning-mode: high
+
 # Tools are split into execution (runtime) and management (brain maintenance).
 tools:
   - ./tools/execution/skills/tools.yml
