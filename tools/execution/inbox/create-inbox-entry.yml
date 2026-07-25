@@ -2,8 +2,10 @@ name: create_inbox_entry
 version: 1
 description: >-
   Creates a single inbox entry recording one learning signal. Call this once per
-  learning; each entry is created in PENDING status for human review before any
-  change is applied. Provide title, body, and routing_type; source is optional.
+  learning. Provide title, body, and routing_type; source and status are
+  optional. Default status is PENDING (fires inbox triggers, then auto-promotes
+  to PROCESSED). Pass status PROCESSED to skip entry-create triggers when tasks
+  will be added directly via add_inbox_task.
 system:
   tool: create_inbox_entry
 parameters:
@@ -22,12 +24,18 @@ parameters:
   - name: routing_type
     param: routing_type
     description: >-
-      Required. Where the learning should be routed after human review. One of:
-      SKILL_UPDATE, WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
+      Required. Where the learning should be routed. One of: SKILL_UPDATE,
+      WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
     type: string
     required: true
   - name: source
     param: source
     description: >-
       Optional. Free-text identifier of the producing system (e.g. WF-EVAL-RUN).
+    type: string
+  - name: status
+    param: status
+    description: >-
+      Optional. PENDING (default — fires inbox entry triggers) or PROCESSED
+      (skip entry-create triggers; use when attaching tasks via add_inbox_task).
     type: string
