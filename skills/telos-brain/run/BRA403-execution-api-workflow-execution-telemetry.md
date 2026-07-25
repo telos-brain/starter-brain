@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 8
+version: 10
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), hold a multi-turn chat session against a single run, and
@@ -9,7 +9,8 @@ description: How to list a brain's workflows (with pending inbox-task counts),
   including model, thinking mode and turn totals on run telemetry. Documents
   when a run settles Failed (max-turns exhausted, final max_tokens with no
   retries). Also notes when a Completed run becomes eligible for learning
-  evals (BRA207).
+  evals (BRA207). Documents SSRF rules for async callbackUrl
+  (allowed-callback-domains).
 ---
 
 # Execution API: Workflow Execution & Telemetry
@@ -70,7 +71,7 @@ All fields are optional:
 | `inputMessage` | The triggering user message. |
 | `entityId` | Optional runtime scope. |
 | `unitOfWorkId` | Optional runtime scope for template tags (e.g. `{{#unitOfWork.context}}`). Nothing is hard-coded into the prompt; workflows that need the logs declare those tags in Instructions. |
-| `callbackUrl` | Honoured on the async path only. |
+| `callbackUrl` | Honoured on the async path only. Must be `https` (or `http://localhost` / `http://127.0.0.1` in Development). Subject to the brain's shared outbound host allowlist — see [Async callback SSRF rules](#async-callback-ssrf-rules). |
 
 ### `POST /workflows/{code}/run/sync` — synchronous (SSE)
 
@@ -133,6 +134,26 @@ Content-Type: application/json
 ```
 
 `status` is `complete` or `failed`. Webhook delivery is retried on transient failure; a persistent failure is logged but does not fail the run. Results are always retrievable via telemetry.
+
+#### Async callback SSRF rules
+
+Outbound `callbackUrl` delivery is SSRF-hardened (same rules as declared-tool
+`api.path` webhooks — see BRA201 §4.3):
+
+| Rule | Behaviour |
+|---|---|
+| Scheme | `https` required. In Development only, `http://localhost` and `http://127.0.0.1` (any port) are also allowed. |
+| Host allowlist | Optional per-brain list from `brain-compose.yml` `allowed-callback-domains`. When set, the callback host must match an entry exactly (case-insensitive; no wildcards). When omitted, any public host is allowed. |
+| IP blocklist | Always applied after DNS resolution: private, loopback, link-local, and cloud metadata ranges (e.g. `169.254.169.254`) are blocked in all environments. |
+| Redirects | Automatic redirect following is disabled on the callback HTTP client. |
+| Rejection | An unsafe `callbackUrl` marks the run `Failed` and no outbound POST is made. A `SYSTEM_CHANGE` inbox entry (`PROCESSED`) is created with the denied URL, reason, workflow code, and run id. |
+
+Configure harness callback hosts in `brain-compose.yml` before using async runs:
+
+```yaml
+allowed-callback-domains:
+  - app.example.com
+```
 
 ---
 

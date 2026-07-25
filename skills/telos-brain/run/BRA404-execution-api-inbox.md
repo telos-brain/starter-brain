@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Inbox Entries & Tasks"
 code: BRA404
-version: 6
+version: 5
 description: How to create, list, read and update inbox entries and their tasks
   via the Execution API — the learning-signal intake surface. Covers the entry and
   task lifecycles, inbox trigger matching (entry create vs task auto-run), learning
@@ -112,8 +112,9 @@ Both records progress **forward-only**; a backward move, or overwriting a
 terminal state, is rejected with `409 Conflict`. A "no change" (target equals
 current) is allowed so a sibling field can be edited without advancing status.
 
-**Inbox entry** — `PENDING → PROCESSED → COMPLETED`. `COMPLETED` is terminal
-and cannot be overwritten.
+**Inbox entry** — `PENDING → REVIEWING → APPLIED | DISMISSED`
+(`APPLIED` and `DISMISSED` are terminal; `DISMISSED` is reachable from `PENDING`
+or `REVIEWING`, `APPLIED` only from `REVIEWING`).
 
 **Inbox task** — all new tasks start `PENDING`. Then either:
 
@@ -181,7 +182,7 @@ Partial update. Supply **at least one** field.
 
 ```json
 {
-  "status": "PROCESSED",
+  "status": "REVIEWING",
   "body": "Corrected signal content.",
   "routingType": "TOOL_UPDATE"
 }

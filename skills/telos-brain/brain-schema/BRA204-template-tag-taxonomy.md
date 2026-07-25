@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown.
-version: 11
+version: 10
 ---
 
 # Template Tag Taxonomy
@@ -451,7 +451,7 @@ Notes:
 | `inboxEntry.source` | Free-text producing-system identifier (nullable) |
 | `inboxEntry.title` | Entry title |
 | `inboxEntry.body` | Full signal content (markdown) |
-| `inboxEntry.status` | Lifecycle status (`PENDING`, `PROCESSED`, `COMPLETED`) |
+| `inboxEntry.status` | Lifecycle status (`PENDING`, `REVIEWING`, `APPLIED`, `DISMISSED`) |
 | `inboxEntry.routingType` | Routing classification (nullable until triaged) |
 
 Notes:

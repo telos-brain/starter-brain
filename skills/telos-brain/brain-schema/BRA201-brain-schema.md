@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 27
+version: 29
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -128,6 +128,9 @@ name: kappa                      # REQUIRED: the brain's name
 # Optional brain-level settings (persisted on every `brain deploy`):
 # embedding-model: voyage-3-lite # optional; defaults to voyage-3-lite when omitted
 # learning-mode: off             # optional; off | low | medium | high (omit = off)
+# checkpoint-strategy: Daily     # optional; see §4.2 (omit = Daily)
+# allowed-callback-domains:      # optional; shared outbound host allowlist (see §4.3)
+#   - harness.example.com
 
 # Entities: top-level things the brain reasons about.
 entities:
@@ -167,6 +170,9 @@ Rules:
 - `embedding-model` is optional (defaults to `voyage-3-lite` when omitted).
 - `learning-mode` is optional (`off` | `low` | `medium` | `high`; omit or null is
   treated as `off`). Persisted onto the Brain on every deploy.
+- `checkpoint-strategy` is optional (see §4.2).
+- `allowed-callback-domains` is optional (see §4.3) — shared host allowlist for
+  async run callbacks and declared-tool webhook URLs.
 - `entities` / `unitsofwork` are optional lists; each item needs `name` + `code`.
 - `tools`, `skills`, `blueprints`, `workflows` are optional lists of relative
   paths. Anything **not listed here is not deployed**, even if the file exists on
@@ -201,6 +207,108 @@ Rules:
 - The point of declaring a variable is so a **tool parameter can bind to it** and
   have the current entity's value injected automatically at dispatch — see the
   `entity:` parameter field in §5.3.
+
+### 4.2 Checkpoint strategy
+
+Checkpoints are lightweight point-in-time markers for a Brain's schema (skills,
+workflows, tools, blueprint entries). Creation is cheap; schema components are
+copied on write when they change after a checkpoint exists. Runtime data
+(workflow runs, entities, units of work, inbox) is out of scope.
+
+Configure the schedule in `brain-compose.yml` (persisted on every `brain deploy`).
+Strategy is **not** editable via the Management API or Settings UI. Retention
+(`MaxCheckpoints`) is a system setting — not writable from the brain schema.
+
+```yaml
+# Scalar (single strategy):
+checkpoint-strategy: Daily
+
+# Comma-separated (multiple strategies):
+checkpoint-strategy: Weekly,BeforeDeploy
+
+# YAML list (equivalent):
+checkpoint-strategy:
+  - Weekly
+  - BeforeDeploy
+```
+
+**`checkpoint-strategy`** — one or more of:
+
+| Value | Kind | When a checkpoint is created |
+| ----- | ---- | ---------------------------- |
+| `BeforeDeploy` | Event | Immediately **before** schema resource phases on `brain deploy` (server-side). Copy-on-write then captures the pre-deploy schema as resources mutate. |
+| `AfterDeploy` | Event | Immediately **after** all schema resource phases on `brain deploy` (server-side). Marks the post-deploy schema as the restore baseline. |
+| `Daily` | Schedule | Once per day (Hangfire / `NextCheckpointUtc`). Equivalent aliases: `@daily`. |
+| `Weekly` | Schedule | Once per week. Equivalent aliases: `@weekly`, `0 0 * * 0`. |
+| *(cron)* | Schedule | Any other free-form cron expression (e.g. `0 30 9 * * 1-5`). |
+
+Defaults: omit or blank → `Daily`. Multiple values are normalised to PascalCase
+and stored comma-separated. **Every listed strategy is active** — they form a
+union (a checkpoint fires when any strategy triggers). Event and schedule
+strategies may be combined (e.g. `Weekly,BeforeDeploy` or
+`Daily,Weekly,BeforeDeploy,AfterDeploy`).
+
+Rules:
+
+- Event strategies (`BeforeDeploy` / `AfterDeploy`) are handled **server-side**
+  during deploy — the CLI does not create checkpoints. Both may be set together;
+  each fires at its phase.
+- Schedule strategies (`Daily` / `Weekly` / cron) are armed on deploy via
+  `NextCheckpointUtc` (soonest next fire across **all** schedule entries). A
+  Hangfire job sweeps due brains. Multiple schedules are a union, not
+  first-wins.
+- Event-only strategies clear `NextCheckpointUtc` so Hangfire does not invent a
+  schedule that was not configured.
+- Do not set `max-checkpoints` in `brain-compose.yml` — it is ignored on deploy.
+
+### 4.3 Allowed callback / webhook domains (SSRF allowlist)
+
+The Brain makes outbound HTTP calls to harness-owned URLs in two places:
+
+1. **Async run callbacks** — optional `callbackUrl` on
+   `POST /workflows/{code}/run/async` (see BRA403).
+2. **Declared API tools** — `api.path` webhook URLs dispatched by the Tool Router
+   during a run.
+
+To prevent server-side request forgery (SSRF), both surfaces share one per-brain
+host allowlist configured in `brain-compose.yml` and persisted on every
+`brain deploy`. The field is **not** editable via Management API PATCH or the
+Settings UI.
+
+```yaml
+# Scalar (single host):
+allowed-callback-domains: harness.example.com
+
+# Comma-separated:
+allowed-callback-domains: harness.example.com, hooks.example.org
+
+# YAML list (equivalent):
+allowed-callback-domains:
+  - harness.example.com
+  - hooks.example.org
+```
+
+Rules:
+
+- Hostnames are matched **exactly** (case-insensitive). No wildcards, no
+  subdomain matching (`evil.harness.example.com` does not match
+  `harness.example.com`).
+- Ports are not part of the allowlist entry — match is on the DNS host only.
+- Omit or blank → no host allowlist. Private / loopback / link-local / cloud
+  metadata IP ranges are still blocked after DNS resolution in all environments.
+- Schemes: `https` only in non-Development. In Development,
+  `http://localhost` and `http://127.0.0.1` (any port) are also permitted for
+  local harnesses.
+- When the list is populated, a `callbackUrl` or tool `api.path` whose host is
+  not listed is rejected (async run → `Failed`; tool call → error result, no
+  outbound request). A `SYSTEM_CHANGE` inbox entry (status `PROCESSED`) is also
+  created with the denied URL, reason, and the workflow/tool/run involved.
+- Redirect following is disabled on outbound webhook HTTP clients so a redirect
+  chain cannot reach an internal target after the initial URL passed validation.
+
+Configure every harness hostname that will receive async completion callbacks or
+declared-tool webhooks before deploying tools / using async runs against those
+hosts.
 
 ---
 
@@ -239,6 +347,10 @@ api:
   method: POST                         # optional (maps to httpMethod)
   path: https://go.telosready.com/tool-api/add-ticket-comment   # REQUIRED (the webhook URL)
 ```
+
+The `api.path` host must satisfy the shared outbound allowlist in §4.3
+(`allowed-callback-domains`) when that list is configured. `https` is required
+outside Development; private and metadata IP ranges are always blocked.
 
 **MCP tool** (invoked via an MCP server tool):
 
