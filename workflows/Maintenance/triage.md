@@ -19,7 +19,7 @@ output-tokens: 2048, 4096, 8192
 caching: automatic
 max-turns: 20
 thinking: effort
-max-runs-per-hour: 500
+max-runs-per-hour: 50
 
 tools:
   - list_inbox_tasks

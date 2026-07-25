@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown.
-version: 8
+version: 10
 ---
 
 # Template Tag Taxonomy
@@ -380,25 +380,35 @@ Answer this question directly and concisely:
 
 | | |
 | --- | --- |
-| **Type** | Scalar + enumerable categories |
-| **Sort** | Categories alphabetical by name |
+| **Type** | Scalar + enumerable `categories` and `entries` |
+| **Sort** | `blueprint.categories` by `Index` ascending; entries by title alphabetical within each category (same order in both lists) |
 | **Resolution** | Automatic — authors do **not** pick the blueprint |
 
-Resolution waterfall (first match wins):
+Template-scope resolution (EntityId only — UnitOfWork is not consulted):
 
-1. Hard-coded `blueprint_code` (declared-tool `api-value` / Execution API only)
-2. Unit-of-work scoped blueprint (from the run's unit-of-work type)
-3. Entity scoped blueprint (from the run's entity type)
-4. Brain-scoped blueprint
-5. Empty (tags blank) if none match
+1. Entity scoped blueprint when the run has an `EntityId` (from the entity type)
+2. Brain-scoped blueprint when no `EntityId` is present
+3. Empty (tags blank) if none match
 
-| Field | Description |
-| --- | --- |
-| `blueprint.name` | Blueprint title |
-| `blueprint.description` | Blueprint description |
-| Inside `{{#blueprint.categories}}` | `category.name`, `category.description` |
+| Path | Iteration | Fields |
+| --- | --- | --- |
+| `blueprint` | — | `blueprint.name`, `blueprint.description` |
+| `blueprint.categories` | `{{#blueprint.categories}}...{{/blueprint.categories}}` | `category.name`, `category.description`, `category.entries` |
+| `category.entries` | `{{#category.entries}}...{{/category.entries}}` | `entry.title`, `entry.version`, `entry.category` |
+| `blueprint.entries` | `{{#blueprint.entries}}...{{/blueprint.entries}}` | `entry.title`, `entry.version`, `entry.category` |
 
-**Example:**
+Notes:
+
+- `category.entries` and `blueprint.entries` share the **same entry field names**.
+- `entry.category` is the parent category **name** (string), not a nested object.
+- `entry.version` is the entry's centrality integer (default `1`).
+- There is no `entry.code` — BlueprintEntry has no Code column.
+- Empty categories still render (`category.name` / `category.description`); the
+  `{{#category.entries}}` block simply produces no inner content.
+- Prefer qualified prefixes inside loops (`{{entry.title}}`, `{{category.name}}`)
+  so nested frames do not collide.
+
+**Example — `blueprint.categories` with nested `category.entries`:**
 
 ```markdown
 # Memory: {{blueprint.name}}
@@ -407,7 +417,21 @@ Resolution waterfall (first match wins):
 {{#blueprint.categories}}
 ### {{category.name}}
 {{category.description}}
+
+{{#category.entries}}
+- {{entry.title}} (v{{entry.version}}) — {{entry.category}}
+{{/category.entries}}
+
 {{/blueprint.categories}}
+```
+
+**Example — flat `blueprint.entries`:**
+
+```markdown
+# All entries
+{{#blueprint.entries}}
+- [{{entry.category}}] {{entry.title}} (v{{entry.version}})
+{{/blueprint.entries}}
 ```
 
 ---
@@ -519,7 +543,7 @@ Notes:
 | `now` | — | `utcDate`, `utcTime`, `utcDayOfWeek`, `localDate`, `localTime`, `localDayOfWeek` |
 | `result` | — | `{anyKey}` (flat) |
 | `input` | — | `{paramName}` (flat; workflow-tool / `run_workflow` params) |
-| `blueprint` | `.categories` | `name`, `description`; `category.name`, `category.description` |
+| `blueprint` | `.categories` → `.entries`; `.entries` | `blueprint.name/description`; `category.name/description`; `entry.title/version/category` |
 | `inboxEntry` | — | `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
 | `inboxTasks` | root | `reference`, `action`, `response`, `status`, `workflowCode` |
 

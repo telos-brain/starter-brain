@@ -1,7 +1,7 @@
 name: Telos Brain
 code: BRA
 prefix: BRA
-version: 23
+version: 22
 categories:
   - name: Concepts
     description: "The foundational theory of Telos Brain: what it is, how it works,
@@ -14,7 +14,6 @@ categories:
       - ./concepts/BRA101-telos-brain-core-concepts.md
       - ./concepts/BRA102-company-brain-model.md
       - ./concepts/BRA103-what-is-a-skill-book.md
-      - ./concepts/BRA104-getting-started.md
   - name: Brain Schema
     description: Designing and structuring brain schemas — the configuration that
       defines a Brain's identity, behaviour, capabilities, and knowledge scope.
