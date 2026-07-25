@@ -34,3 +34,5 @@ workflows:
   - ./workflows/Maintenance/brain-system.md
   - ./workflows/Maintenance/triage.md
   - ./workflows/Maintenance/update-skill.md
+  - ./workflows/Maintenance/update-workflow.md
+  - ./workflows/Maintenance/update-brain.md

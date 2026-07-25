@@ -1,0 +1,26 @@
+name: create_schema_file
+version: 1
+description: >-
+  Creates a new schema file at the given path with full content (YAML or
+  markdown with frontmatter). Use for workflows, tools and blueprint entries.
+  Prefer create_skill when creating skills. Cannot create brain-compose.yml or
+  group manifests (tools.yml / skillbook.yml / blueprint.yml).
+system:
+  tool: create_schema_file
+parameters:
+  - name: path
+    param: path
+    description: >-
+      Schema file path, e.g. "workflows/Maintenance/my-workflow.md" or
+      "tools/execution/qa/my-tool.yml".
+    type: string
+    required: true
+  - name: content
+    param: content
+    description: Full file content (YAML or markdown with frontmatter).
+    type: string
+    required: true
+error-markdown: |
+  Could not create schema file: {{result.result}}
+  Load BRA201 (file formats), BRA203 (schema tools) and BRA204 (template tags)
+  via get_skill as needed, then retry.

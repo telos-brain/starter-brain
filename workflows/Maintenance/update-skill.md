@@ -5,7 +5,7 @@ description: >-
   Autonomously extracts transferable skill knowledge from an inbox entry and
   creates or updates skills (and rarely categories) via schema tools. Source
   material comes from {{inboxEntry.body}}; skill book structure is injected.
-version: 4
+version: 5
 model: anthropic/claude-sonnet-4-6
 
 # Tasks are usually created by WF-TRIAGE (add_inbox_task). Declaring an inbox
@@ -37,8 +37,9 @@ tools:
 
 available-skills:
   - BRA103
-  - BRA208
+  - BRA201
   - BRA203
+  - BRA208
 ---
 
 # Instructions
@@ -140,7 +141,8 @@ loosely), the distinction is subtle, or the item is a one-off.
 
 Execute category changes now by editing the relevant `skillbook.yml` with
 `get_schema_file` + `update_schema_file` before creating skills that depend on
-them. Follow BRA208 for description quality and range choice.
+them. Load **BRA208**, **BRA201**, and **BRA203** via `get_skill` first (see
+Phase 4 prerequisite). Follow BRA208 for description quality and range choice.
 
 ### Phase 3: Skill extraction and matching
 
@@ -161,15 +163,29 @@ Do not create duplicates.
 
 ### Phase 4: Execute skill changes
 
+#### Prerequisite — load Telos Brain skills first
+
+Before **any** `create_skill`, `update_schema_file`, or other schema mutation in
+this run, call `get_skill` for each skill below (skip only if already loaded
+earlier in this run):
+
+| Before you… | Load first |
+|---|---|
+| Create or update a skill | **BRA203**, **BRA201** (§6), **BRA103** |
+| Create or change a category / edit `skillbook.yml` | **BRA208**, **BRA201** (§6), **BRA203** |
+
+Do not call schema mutation tools until these have been loaded.
+
 **Update an existing skill**
 
-1. `search_schema_files` or `list_schema_files` to find the path.
-2. `get_schema_file` to read current content.
-3. `update_schema_file` with surgical `str_replace_old` / `str_replace_new`
+1. Ensure prerequisite skills are loaded.
+2. `search_schema_files` or `list_schema_files` to find the path.
+3. `get_schema_file` to read current content.
+4. `update_schema_file` with surgical `str_replace_old` / `str_replace_new`
    edits. Weave new material into a coherent whole — never append a changelog
    block. If the resource corrects the skill, replace the outdated guidance;
    never leave two conflicting statements.
-4. Never replace an entire large file in one call — make multiple targeted edits.
+5. Never replace an entire large file in one call — make multiple targeted edits.
 
 **Create a new skill**
 
@@ -177,16 +193,17 @@ Use `create_skill` — do **not** hand-author skill files via `update_schema_fil
 or `create_schema_file`. The tool assigns the next code in the category range
 and registers the skill in the book.
 
-1. Choose the Skill Book and category from the injected structure (category must
+1. Ensure prerequisite skills are loaded.
+2. Choose the Skill Book and category from the injected structure (category must
    already exist — create/broaden categories in Phase 2 first if needed).
-2. Call `create_skill` with:
+3. Call `create_skill` with:
    - `skillbook_code` — e.g. `BRA`
    - `category_title` — exact category title from the lens (case-insensitive)
    - `title` — clear, specific skill name
    - `description` — one sentence, when to use the skill (search-optimised)
    - `content` — markdown body only (no YAML frontmatter; the tool supplies
      metadata). Lead with the outcome, then steps or principles.
-3. On failure, load BRA203 / BRA208 / BRA201 via `get_skill`, fix the inputs,
+4. On failure, re-read the loaded skills (and reload if needed), fix the inputs,
    and retry.
 
 **New skill writing rules**
@@ -239,6 +256,8 @@ mark the entry APPLIED).
 ## Rules
 
 - Never ask questions, present plans, or wait for user input
+- Always load the required Telos Brain skills via `get_skill` before schema
+  create/update
 - Always search before creating
 - Prefer fewer, higher-signal skills — but split genuinely distinct topics
 - Filter noise, truisms and ephemeral details before extracting
