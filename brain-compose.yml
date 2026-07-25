@@ -12,7 +12,7 @@ embedding-model: voyage-3-lite
 learning-mode: high
 
 # Checkpoints: weekly schedule plus a snapshot before each deploy.
-checkpoint-strategy: Weekly,BeforeDeploy
+checkpoint-strategy: Daily,BeforeDeploy
 
 # Entities: top-level things the brain reasons about (multi-tenancy anchor).
 entities:
