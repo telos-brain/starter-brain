@@ -6,7 +6,7 @@ description: >-
   concepts. Routes skill craft, workflow/tool fixes, and brain self-management
   to update workflows, and creates review_blueprint tasks for clear category
   matches — without repeating the entry body into maintenance task instructions.
-version: 4
+version: 5
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -154,7 +154,7 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
    - If **only** blueprint tasks were created (no maintenance destination), set
      `routing_type` = `MEMORY_UPDATE`.
    - If the entry is still `PENDING` and you created at least one task of any
-     kind, set `status` = `REVIEWING`.
+     kind, set `status` = `PROCESSED`.
 6. If neither pass produces tasks: leave the entry for other routing. Do not
    dismiss solely because it lacks signal.
 7. Reply in a few lines: maintenance destinations, blueprint task count, and any

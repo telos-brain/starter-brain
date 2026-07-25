@@ -2,7 +2,7 @@ name: update_inbox_entry
 version: 1
 description: >-
   Updates an inbox entry's status and/or routing_type. Status is forward-only:
-  PENDING → REVIEWING → APPLIED | DISMISSED (also PENDING → DISMISSED).
+  PENDING → PROCESSED → COMPLETED. COMPLETED cannot be overwritten.
 system:
   tool: update_inbox_entry
 parameters:
@@ -15,7 +15,7 @@ parameters:
   - name: status
     param: status
     description: >-
-      Optional. Forward-only status: PENDING, REVIEWING, APPLIED, or DISMISSED.
+      Optional. Forward-only status: PENDING, PROCESSED, or COMPLETED.
     type: string
   - name: routing_type
     param: routing_type

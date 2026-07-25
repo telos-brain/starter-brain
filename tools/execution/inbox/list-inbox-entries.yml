@@ -9,7 +9,7 @@ parameters:
   - name: status
     param: status
     description: >-
-      Optional. Filter to PENDING, REVIEWING, APPLIED, or DISMISSED.
+      Optional. Filter to PENDING, PROCESSED, or COMPLETED.
     type: string
   - name: routing_type
     param: routing_type

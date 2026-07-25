@@ -5,7 +5,7 @@ description: >-
   Autonomously self-heals and self-manages the brain: subagents (TOOL workflows
   exposed as workflow tools), wiring, and other structural schema fixes outside
   skill-craft and simple workflow/tool edits. High learning mode only.
-version: 2
+version: 3
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -214,8 +214,8 @@ unless the source clearly requires it.
 If you made changes:
 
 1. Set `routing_type` to `SYSTEM_CHANGE`.
-2. Advance status when still non-terminal: `PENDING` → `REVIEWING` if needed,
-   then `REVIEWING` → `APPLIED`. If already terminal, leave status alone.
+2. Advance status when still non-terminal: `PENDING` → `PROCESSED` if needed,
+   then `PROCESSED` → `COMPLETED`. If already `COMPLETED`, leave status alone.
 
 Return a concise summary:
 

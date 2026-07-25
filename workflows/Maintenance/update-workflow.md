@@ -5,7 +5,7 @@ description: >-
   Autonomously applies learnings to workflow instructions and tool definitions
   (create or update). Triggered for WORKFLOW_UPDATE and TOOL_UPDATE at high
   learning mode.
-version: 2
+version: 3
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -189,8 +189,8 @@ If you made changes:
 1. Set `routing_type` to `WORKFLOW_UPDATE` or `TOOL_UPDATE` (whichever best matches
    the dominant change).
 2. Advance status with `update_inbox_entry` when still non-terminal:
-   `PENDING` → `REVIEWING` if needed, then `REVIEWING` → `APPLIED`. If the entry
-   is already terminal, leave status alone.
+   `PENDING` → `PROCESSED` if needed, then `PROCESSED` → `COMPLETED`. If the
+   entry is already `COMPLETED`, leave status alone.
 
 Return a concise summary:
 

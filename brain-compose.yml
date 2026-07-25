@@ -11,6 +11,9 @@ embedding-model: voyage-3-lite
 # triggers declare a :high (or lower) learning-mode qualifier (BRA122 / BRA404).
 learning-mode: high
 
+# Checkpoints: weekly schedule plus a snapshot before each deploy.
+checkpoint-strategy: Weekly,BeforeDeploy
+
 # Entities: top-level things the brain reasons about (multi-tenancy anchor).
 entities:
   - code: clients
