@@ -50,17 +50,17 @@ Do not delete `brain.lock` after first deploy — subsequent deploys read the br
 
 **Option B — Inbox:** Upload documents, transcripts, or emails via the Brain admin UI or API inbox. Processing follows the brain's learning mode.
 
-**Learning mode:** `brain-compose.yml` defaults to `learning-mode: high`. Recommended: start at `low`, review daily checkpoints for the first 5 days on the Grading graph, then set `high` when learning quality is acceptable.
+**Learning mode:** `brain-compose.yml` defaults to `learning-mode: high`. Recommended: start at `high`, review daily checkpoints for the first 5 days on the Grading graph, then set `low` when learning quality is acceptable.
 
 ## 5. Use the brain via the Execute API
 
 Smoke-test with the Brain API key from step 3:
 
 ```bash
-curl -X POST https://api.telosbrain.com/workflows/chat/run/sync \
+curl -X POST https://go.telosbrain.com/workflows/WF-CHAT/run/sync \
   -H "Authorization: Bearer YOUR_BRAIN_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"message": "Hello world"}'
+  -d '{"inputMessage": "Hello world"}'
 ```
 
 Full Execution API docs: Telos Brain skill book **Run** category — start with **BRA401** (authentication conventions), then **BRA402**–**BRA407**.
