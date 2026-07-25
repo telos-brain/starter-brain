@@ -11,6 +11,18 @@ embedding-model: voyage-3-lite
 # triggers declare a :high (or lower) learning-mode qualifier (BRA122 / BRA404).
 learning-mode: high
 
+# Entities: top-level things the brain reasons about (multi-tenancy anchor).
+entities:
+  - code: clients
+    name: Clients
+    description: A client of the business
+
+# Units of work: scoped pieces of work that trigger learning on completion.
+unitsofwork:
+  - code: jobs
+    name: Jobs
+    scope: entity:clients
+
 # Tools are split into execution (runtime) and management (brain maintenance).
 tools:
   - ./tools/execution/skills/tools.yml
@@ -22,9 +34,12 @@ tools:
 
 skills:
   - ./skills/telos-brain/skillbook.yml
+  - ./skills/business/skillbook.yml
 
 blueprints:
   - ./blueprints/memory/blueprint.yml
+  - ./blueprints/company/blueprint.yml
+  - ./blueprints/clients/blueprint.yml
 
 workflows:
   - ./workflows/system-prompt.md

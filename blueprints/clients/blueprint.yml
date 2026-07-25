@@ -1,0 +1,13 @@
+name: Client
+scope:
+  type: entity
+  code: clients
+categories:
+  - name: Client Context
+    description: Specific context, preferences and history for this client
+  - name: Operations
+    description: Operational matters and processes specific to this client
+  - name: Finance
+    description: Financial information, billing and commercial terms for this client
+  - name: General
+    description: General notes about this client that do not fit other categories

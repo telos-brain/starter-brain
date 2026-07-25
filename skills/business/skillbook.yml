@@ -1,0 +1,28 @@
+name: Business
+code: BUS
+prefix: BUS
+version: 1
+description: >-
+  Starter skillbook for small-business operations — sales, customer management,
+  operations, finance, and general skills.
+categories:
+  - name: Sales
+    description: Sales processes, lead management and conversion
+    index: 100
+    skills: []
+  - name: Customer Management
+    description: Managing client relationships, communication and retention
+    index: 200
+    skills: []
+  - name: Operations
+    description: Day-to-day operational tasks and processes
+    index: 300
+    skills: []
+  - name: Finance
+    description: Financial processes, invoicing, billing and reporting
+    index: 400
+    skills: []
+  - name: General
+    description: General skills that span multiple areas
+    index: 500
+    skills: []

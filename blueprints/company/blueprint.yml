@@ -1,0 +1,13 @@
+name: Company
+scope:
+  type: brain
+  code: null
+categories:
+  - name: Business Concepts
+    description: Domain concepts and terminology specific to this business
+  - name: Operations
+    description: How the business operates day to day, processes and workflows
+  - name: Finance
+    description: Financial information, pricing, billing and financial processes
+  - name: General
+    description: General knowledge about the business that does not fit other categories
