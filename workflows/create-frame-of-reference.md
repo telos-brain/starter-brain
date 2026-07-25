@@ -18,8 +18,8 @@ output-tokens: 2048, 4096
 caching: automatic
 max-turns: 12
 
-# Glossary is injected as {{glossary}} (not fetched at runtime). Retrieval uses
-# blueprint search — ask_question is a separate workflow-tool, not used here.
+# Glossary is built from {{#blueprint.entries}} (title + version/centrality).
+# Retrieval uses blueprint search — ask_question is a separate workflow-tool.
 tools:
   - search_blueprint_entries
   - get_blueprint_entry
@@ -44,16 +44,18 @@ out ambiguity when the mapping is unclear.
 
 ## Glossary
 
-The glossary lists blueprint entry titles and centrality in the current scope
-(higher centrality ≈ updated more often — a relevance heuristic, not a
-guarantee of importance). It is pre-injected; do **not** try to call
-`get_glossary`.
+Blueprint entry titles and centrality (`version`) in the current scope.
+Higher version ≈ updated more often — a relevance heuristic, not a guarantee
+of importance. If the list is empty, proceed without it — do not error.
 
-{{glossary}}
+<glossary>
+{{#blueprint.entries}}
+{{entry.title}}, {{entry.version}}
+{{/blueprint.entries}}
+</glossary>
 
-If the glossary is empty, proceed without it — do not error. Prefer
-`search_blueprint_entries` / `list_blueprint_entries` / `get_blueprint_entry`
-to ground yourself when needed.
+Prefer `search_blueprint_entries` / `list_blueprint_entries` /
+`get_blueprint_entry` to ground yourself when needed.
 
 ## Process
 
