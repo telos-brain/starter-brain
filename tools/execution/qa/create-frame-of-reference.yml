@@ -1,0 +1,17 @@
+name: create_frame_of_reference
+version: 1
+description: >-
+  Builds a grounded frame of reference for a given context using the brain
+  glossary and blueprint memory. Use as a pre-step before knowledge-intensive
+  work when you need a shared problem statement, frame, domain model, bigger
+  picture, and considerations.
+workflow:
+  code: WF-FRAME-OF-REFERENCE
+parameters:
+  - name: context
+    description: >-
+      The situation, question, ticket, or task to ground. Include enough detail
+      for problem framing — raw user language is fine; the workflow will map it
+      to brain concepts or call out ambiguity.
+    type: string
+    required: true
