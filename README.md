@@ -35,7 +35,7 @@ VOYAGE_API_KEY=your-voyage-api-key
 - `VOYAGE_API_KEY` — https://dash.voyageai.com (required; this brain defaults to `voyage-3-lite`)
 
 ```bash
-brain deploy
+brain deploy --instance mybrain
 ```
 
 **Capture the Brain API key from stdout immediately.** On first deploy the CLI prints a plaintext Brain API key **once only**. Store it securely (password manager / secrets manager). Do **not** commit it to source control.
