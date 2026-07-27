@@ -5,7 +5,7 @@ description: >-
   Autonomously extracts transferable skill knowledge from an inbox entry and
   creates or updates skills (and rarely categories) via schema tools. Source
   material comes from {{inboxEntry.body}}; skill book structure is injected.
-version: 6
+version: 8
 model: anthropic/claude-sonnet-4-6
 
 # Tasks are usually created by WF-TRIAGE (add_inbox_task). Declaring an inbox
@@ -49,9 +49,22 @@ reversible.
 
 ## Scope of this run
 
-Your job is skill / skillbook work for this task. Follow any short routing
-instructions in the run input (from triage) as hints about what to extract.
+Your job is skill / skillbook work for **this task only**. Follow the task
+instructions below; treat expert opinion (when present) as pre-task guidance.
 Use the Skill Book lens and `<import-text>` below as source material.
+
+## This task
+
+**Reference:** `{{task.reference}}`
+{{#if task.action}}**Instructions:** {{task.action}}{{/if}}
+
+{{#if task.expertOpinion}}
+### Expert Opinion
+
+The following expert input has been provided for this task:
+
+{{task.expertOpinion}}
+{{/if}}
 
 Skills are reusable instruction patterns that encode best practices, standards,
 processes and domain knowledge. They are transferable across platforms, so they

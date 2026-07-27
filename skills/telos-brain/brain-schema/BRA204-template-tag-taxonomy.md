@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown.
-version: 10
+version: 11
 ---
 
 # Template Tag Taxonomy
@@ -490,18 +490,19 @@ Notes:
 
 | Iteration | Item fields (short form inside the loop) |
 | --- | --- |
-| `{{#inboxTasks}}...{{/inboxTasks}}` | `reference`, `action`, `response`, `status`, `workflowCode` |
+| `{{#inboxTasks}}...{{/inboxTasks}}` | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
 
 Notes:
 
 - Lists **all** tasks for the entry that triggered the run (not only the current
-  task).
+  task). Prefer `{{task.*}}` (below) when you need the triggering task alone.
 - `workflowCode` is the linked workflow's `Code`, or blank when the task has no
   workflow (informational task).
 - `action` is the task's instructions-only field (routing intent), not entry
   markdown.
 - `response` is the final assistant reply from the linked workflow run, or blank
   until the task has executed.
+- `expertOpinion` is human review notes, or blank when null.
 
 **Example:**
 
@@ -511,7 +512,53 @@ Notes:
 - `{{reference}}` — {{status}}{{#if workflowCode}} → {{workflowCode}}{{/if}}
   {{#if action}}Instructions: {{action}}{{/if}}
   {{#if response}}Response: {{response}}{{/if}}
+  {{#if expertOpinion}}Expert opinion: {{expertOpinion}}{{/if}}
 {{/inboxTasks}}
+```
+
+---
+
+### 3.10 `task`
+
+| | |
+| --- | --- |
+| **Type** | Scalar bag |
+| **Sort** | N/A |
+| **Requires** | `InboxTaskId` on the run (set automatically when a workflow is started from an inbox task); otherwise the scope is empty |
+
+| Field | Description |
+| --- | --- |
+| `task.reference` | Short 8-character AI-facing identifier (`[a-z0-9]{8}`) |
+| `task.action` | Instructions-only field (routing intent), not entry markdown |
+| `task.response` | Final assistant reply from the linked run, or blank until executed |
+| `task.status` | Lifecycle status (`PENDING`, `AWAITING_APPROVAL`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`) |
+| `task.workflowCode` | Linked workflow `Code`, or blank when the task has no workflow |
+| `task.expertOpinion` | Human expert review notes, or blank when null |
+
+Notes:
+
+- Populated for the **triggering** inbox task only (Hangfire processor,
+  `update_inbox_task` approval, or Execution API approve). Sibling tasks remain
+  available via `{{#inboxTasks}}`.
+- Field names match the short-form item fields inside `{{#inboxTasks}}`, but are
+  qualified with the `task.` prefix because this is a scalar bag, not a loop.
+- Non-inbox runs leave this scope blank.
+
+**Example:**
+
+```markdown
+## Current task
+
+**Reference:** `{{task.reference}}`
+**Status:** {{task.status}}
+{{#if task.workflowCode}}**Workflow:** `{{task.workflowCode}}`{{/if}}
+{{#if task.action}}**Instructions:** {{task.action}}{{/if}}
+
+{{#if task.expertOpinion}}
+### Expert Opinion
+
+{{task.expertOpinion}}
+{{/if}}
 ```
 
 ---
@@ -545,7 +592,8 @@ Notes:
 | `input` | — | `{paramName}` (flat; workflow-tool / `run_workflow` params) |
 | `blueprint` | `.categories` → `.entries`; `.entries` | `blueprint.name/description`; `category.name/description`; `entry.title/version/category` |
 | `inboxEntry` | — | `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
-| `inboxTasks` | root | `reference`, `action`, `response`, `status`, `workflowCode` |
+| `inboxTasks` | root | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
+| `task` | — | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
 
 | Tag | Syntax |
 | --- | --- |
@@ -564,7 +612,7 @@ Reference workflows in `workflows/`:
 | Skill Update | `WF-SKILL-UPDATE` | Nested `{{#skillBooks}}` → `{{#skillBook.categories}}` → `{{#category.skills}}`, plus find / load / create / update via schema tools |
 | Unit of Work Context | `WF-UNIT-OF-WORK-CONTEXT` | Dual-block `{{#unitOfWork.context}}` and `{{#unitOfWork.data}}` with short-form fields; optional `{{entity.name}}` |
 | Learning Eval (Run) | `WF-EVAL-RUN` | `{{run.reference}}` + `{{run.telemetry}}`; `set_run_grading` + `create_inbox_entry` (BRA207 / BRA406) |
-| Inbox Entry Context | `WF-INBOX-ENTRY-CONTEXT` | `{{inboxEntry.*}}` scalars and `{{#inboxTasks}}` iteration for TRIGGERED inbox workflows; instructions-only input |
+| Inbox Entry Context | `WF-INBOX-ENTRY-CONTEXT` | `{{inboxEntry.*}}` / `{{task.*}}` scalars and `{{#inboxTasks}}` iteration for TRIGGERED inbox workflows; instructions-only input |
 | Ask Question | `WF-ASK-QUESTION` | `{{input.question}}` from the `ask_question` workflow-tool parameters |
 
 Also see tool `response-markdown` / `error-markdown` on declared tools (e.g.

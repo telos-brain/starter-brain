@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Inbox Entries & Tasks"
 code: BRA404
-version: 5
+version: 6
 description: How to create, list, read and update inbox entries and their tasks
   via the Execution API — the learning-signal intake surface. Covers the entry and
   task lifecycles, inbox trigger matching (entry create vs task auto-run), learning
@@ -43,11 +43,13 @@ injected into the input message. Authors must pull it in with template tags
 | Scope | Use |
 | --- | --- |
 | `{{inboxEntry.*}}` | Entry scalars: `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
-| `{{#inboxTasks}}...{{/inboxTasks}}` | Sibling tasks: `reference`, `action`, `response`, `status`, `workflowCode` |
+| `{{task.*}}` | Triggering task scalars: `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
+| `{{#inboxTasks}}...{{/inboxTasks}}` | Sibling tasks: `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
 
 The task `action` / run input is triage instructions only (routing intent). Auto-
-created trigger tasks start with a null `action`. Canonical example workflow:
-`WF-INBOX-ENTRY-CONTEXT`.
+created trigger tasks start with a null `action`. Prefer `{{task.*}}` for the
+current task; use `{{#inboxTasks}}` when sibling context is needed. Canonical
+example workflow: `WF-INBOX-ENTRY-CONTEXT`.
 
 ---
 
@@ -277,4 +279,4 @@ fields are supplied.
 - **BRA201** §8 — workflow `trigger` / `learning-mode` authoring
 - **BRA405** — inbox system tools (`create_inbox_entry`, `add_inbox_task`, …)
 - **BRA207** — learning-eval workflows (`trigger-mode` for `workflowrun:complete`)
-- **BRA204** — `{{inboxEntry.*}}` / `{{#inboxTasks}}` template tags
+- **BRA204** — `{{inboxEntry.*}}` / `{{task.*}}` / `{{#inboxTasks}}` template tags

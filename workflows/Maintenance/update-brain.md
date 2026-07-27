@@ -5,7 +5,7 @@ description: >-
   Autonomously self-heals and self-manages the brain: subagents (TOOL workflows
   exposed as workflow tools), wiring, and other structural schema fixes outside
   skill-craft and simple workflow/tool edits. High learning mode only.
-version: 3
+version: 5
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -31,7 +31,6 @@ tools:
   - create_schema_file
   - create_skill
   - update_inbox_entry
-  - list_inbox_tasks
 
 available-skills:
   - BRA101
@@ -44,8 +43,21 @@ available-skills:
 
 # Instructions
 
-Autonomously process an inbox entry to **self-heal and self-manage** this brain.
+Autonomously process **this task** to **self-heal and self-manage** this brain.
 All changes are tracked and reversible.
+
+## This task
+
+**Reference:** `{{task.reference}}`
+{{#if task.action}}**Instructions:** {{task.action}}{{/if}}
+
+{{#if task.expertOpinion}}
+### Expert Opinion
+
+The following expert input has been provided for this task:
+
+{{task.expertOpinion}}
+{{/if}}
 
 You own structural and capability changes that are not pure Skill Book craft
 (`WF-UPDATE-SKILL`) and not a narrow workflow/tool wording fix

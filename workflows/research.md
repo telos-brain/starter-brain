@@ -5,7 +5,7 @@ description: >-
   Researches a topic from an inbox entry using web search, web fetch, skills,
   and memory. Compiles findings into a new PROCESSED inbox entry (no RESEARCH
   routing — prevents recursion).
-version: 1
+version: 3
 model: anthropic/claude-sonnet-4-6
 
 # Tasks are created by WF-TRIAGE (or Admin routing) with workflow_code
@@ -39,13 +39,26 @@ You research **one** topic from this inbox entry. Fully autonomous — do not as
 questions or wait for confirmation. Do **not** update the source inbox entry
 status.
 
+## This task
+
+**Reference:** `{{task.reference}}`
+{{#if task.action}}**Instructions:** {{task.action}}{{/if}}
+
+{{#if task.expertOpinion}}
+### Expert Opinion
+
+The following expert input has been provided for this task:
+
+{{task.expertOpinion}}
+{{/if}}
+
 ## Topic
 
-Derive the research question from the entry title, body, and any matching task
-instructions below. Prefer an explicit question or "research …" ask over a
-vague theme.
+Derive the research question from this task's instructions, plus the entry
+title and body. Prefer an explicit question or "research …" ask over a vague
+theme.
 
-- **Reference:** {{inboxEntry.reference}}
+- **Entry reference:** {{inboxEntry.reference}}
 - **Title:** {{inboxEntry.title}}
 
 {{#if inboxEntry.body}}
@@ -53,11 +66,6 @@ vague theme.
 {{inboxEntry.body}}
 </entry-body>
 {{/if}}
-
-{{#inboxTasks}}
-- `{{reference}}` — {{status}}{{#if workflowCode}} → {{workflowCode}}{{/if}}
-  {{#if action}}Instructions: {{action}}{{/if}}
-{{/inboxTasks}}
 
 ## Process
 

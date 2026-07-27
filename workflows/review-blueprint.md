@@ -5,7 +5,7 @@ description: >-
   Applies one blueprint memory write from a review_blueprint inbox task —
   searches for a close match, then either merges into an existing entry or
   creates a new one. Never both.
-version: 1
+version: 3
 model: anthropic/claude-sonnet-4-6
 
 # Tasks are created by WF-REVIEW-UOW / WF-TRIAGE via add_inbox_task with
@@ -40,23 +40,27 @@ update the inbox entry status.
 Blueprint scope (entity vs brain-global) is resolved automatically from the run
 context — never pass scope to tools.
 
+## This task
+
+**Reference:** `{{task.reference}}`
+{{#if task.action}}**Instructions:** {{task.action}}{{/if}}
+
+{{#if task.expertOpinion}}
+### Expert Opinion
+
+The following expert input has been provided for this task:
+
+{{task.expertOpinion}}
+{{/if}}
+
 ## Task to process
 
-Parse **category** and **concept** from the task instructions. Format (em dash):
+Parse **category** and **concept** from **this task's** instructions. Format
+(em dash):
 
 ```text
 review blueprint: {category name} — {short concept description}
 ```
-
-Instructions usually arrive as this run's input message. If the input is blank
-or not in that format, use the `RUNNING` (or otherwise matching) task below
-whose `action` starts with `review blueprint:` and whose `workflowCode` is
-`WF-REVIEW-BLUEPRINT`.
-
-{{#inboxTasks}}
-- `{{reference}}` — {{status}}{{#if workflowCode}} → {{workflowCode}}{{/if}}
-  {{#if action}}Instructions: {{action}}{{/if}}
-{{/inboxTasks}}
 
 After the first ` — ` (space-em-dash-space):
 

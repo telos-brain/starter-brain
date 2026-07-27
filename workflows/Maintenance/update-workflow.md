@@ -5,7 +5,7 @@ description: >-
   Autonomously applies learnings to workflow instructions and tool definitions
   (create or update). Triggered for WORKFLOW_UPDATE and TOOL_UPDATE at high
   learning mode.
-version: 3
+version: 5
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -32,7 +32,6 @@ tools:
   - update_schema_file
   - create_schema_file
   - update_inbox_entry
-  - list_inbox_tasks
 
 available-skills:
   - BRA201
@@ -42,12 +41,25 @@ available-skills:
 
 # Instructions
 
-Autonomously process an inbox entry to improve this brain's **workflows** and
+Autonomously process **this task** to improve this brain's **workflows** and
 **tool definitions**. All changes are tracked and reversible.
 
 You fix how the brain *runs* jobs — instruction quality, tool wiring, parameter
 descriptions, and tool YAML — not Skill Book craft (that is `WF-UPDATE-SKILL`) and
 not structural self-management / subagents (that is `WF-UPDATE-BRAIN`).
+
+## This task
+
+**Reference:** `{{task.reference}}`
+{{#if task.action}}**Instructions:** {{task.action}}{{/if}}
+
+{{#if task.expertOpinion}}
+### Expert Opinion
+
+The following expert input has been provided for this task:
+
+{{task.expertOpinion}}
+{{/if}}
 
 The source body is at the **end** of this prompt (inside `<import-text>`). It
 may be a long transcript or eval learning. All operating rules come first.

@@ -212,8 +212,10 @@ Rules:
 
 Checkpoints are lightweight point-in-time markers for a Brain's schema (skills,
 workflows, tools, blueprint entries). Creation is cheap; schema components are
-copied on write when they change after a checkpoint exists. Runtime data
-(workflow runs, entities, units of work, inbox) is out of scope.
+copied on write when they change after a checkpoint exists — each snapshot stores
+the full serialised `.md`/`.yml` file content so diffs and reverts round-trip
+tools, parameters, and all frontmatter. Runtime data (workflow runs, entities,
+units of work, inbox) is out of scope.
 
 Configure the schedule in `brain-compose.yml` (persisted on every `brain deploy`).
 Strategy is **not** editable via the Management API or Settings UI. Retention

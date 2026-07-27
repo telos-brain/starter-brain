@@ -7,7 +7,7 @@ description: >-
   self-management, and research asks to the matching workflows, and creates
   review_blueprint tasks for clear category matches — without repeating the
   entry body into maintenance task instructions.
-version: 6
+version: 7
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -23,7 +23,6 @@ thinking: effort
 max-runs-per-hour: 50
 
 tools:
-  - list_inbox_tasks
   - add_inbox_task
   - update_inbox_entry
 
@@ -147,10 +146,9 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
 
 ## Actions
 
-1. Read the entry body at the end of this prompt.
-2. Call `list_inbox_tasks` for `{{inboxEntry.reference}}` (or use the existing
-   tasks list below).
-3. **Maintenance pass** — decide which maintenance destinations apply (zero or
+1. Read the entry body and the **Existing tasks** list at the end of this
+   prompt — do not call a tool to list tasks; they are already injected.
+2. **Maintenance pass** — decide which maintenance destinations apply (zero or
    more), including `WF-RESEARCH` when criteria match. Skip any destination
    whose workflow code already has a non-`CANCELLED` / non-`FAILED` task. For
    each new destination, call `add_inbox_task` with:
@@ -164,7 +162,7 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
      - `Research the topic in this inbox entry and summarise findings.`
      Do **not** paste or summarise the entry body — maintenance workflows read
      `{{inboxEntry.body}}`.
-4. **Blueprint pass** — independently list candidate concepts that clearly fit a
+3. **Blueprint pass** — independently list candidate concepts that clearly fit a
    category. If none: create no blueprint tasks (do not invent any). For each
    candidate, call `add_inbox_task` with:
    - `inbox_entry_reference` = `{{inboxEntry.reference}}`
@@ -172,7 +170,7 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
    - `instructions` = exactly this format (em dash):
      `review blueprint: {category name} — {short concept description}`
      Example: `review blueprint: Business Concepts — billboard sites`
-5. Set entry classification with `update_inbox_entry`:
+4. Set entry classification with `update_inbox_entry`:
    - Prefer a maintenance `routing_type` when any maintenance destination
      applies, using priority
      `SYSTEM_CHANGE` > `TOOL_UPDATE` / `WORKFLOW_UPDATE` > `SKILL_UPDATE` > `RESEARCH`
@@ -183,9 +181,9 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
      `routing_type` = `MEMORY_UPDATE`.
    - If the entry is still `PENDING` and you created at least one task of any
      kind, set `status` = `PROCESSED`.
-6. If neither pass produces tasks: leave the entry for other routing. Do not
+5. If neither pass produces tasks: leave the entry for other routing. Do not
    dismiss solely because it lacks signal.
-7. Reply in a few lines: maintenance destinations (including research), blueprint
+6. Reply in a few lines: maintenance destinations (including research), blueprint
    task count, and any skips for duplicates.
 
 ## Rules

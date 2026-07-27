@@ -1,13 +1,15 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 4
+version: 6
 description: The in-brain system tools for operating the learning-signal inbox
   — create_inbox_entry, list_inbox_entries, get_inbox_entry, update_inbox_entry,
   list_inbox_tasks, add_inbox_task and update_inbox_task. All identity is by
   8-character reference (never UUID); workflows are selected by code. Covers how
   PENDING tasks auto-run from the linked workflow's inbox trigger (see BRA404).
-  For persisting a run quality score, see BRA406 (set_run_grading).
+  For persisting a run quality score, see BRA406 (set_run_grading). For listing
+  Organisation members and assigning tasks by email, see BRA408 (list_users,
+  assign_task_to_user).
 tools:
   - create_inbox_entry
   - list_inbox_entries
@@ -50,7 +52,7 @@ but documented in **BRA406** — eval workflows typically call both
 | **`get_inbox_entry`** | Full entry + tasks | `inbox_entry_reference` | Markdown |
 | **`update_inbox_entry`** | Status / routing type | `inbox_entry_reference`, `status`, `routing_type` | Confirmation |
 | **`list_inbox_tasks`** | Tasks for one entry | `inbox_entry_reference` | CSV keyed by `Reference` |
-| **`add_inbox_task`** | Create a task | `inbox_entry_reference`, `workflow_code`, `instructions` | Confirmation with new task reference |
+| **`add_inbox_task`** | Create a task | `inbox_entry_reference`, `workflow_code`, `instructions`, optional `assigned_to` | Confirmation with new task reference |
 | **`update_inbox_task`** | Status / action; approve | `inbox_task_reference`, `status`, `action` | Confirmation |
 
 Intended flows:
@@ -73,6 +75,7 @@ Intended flows:
 | `add_inbox_task` | `inbox_entry_reference` | Required |
 | `add_inbox_task` | `workflow_code` | Optional — workflow **code**, not id |
 | `add_inbox_task` | `instructions` | Optional — instructions-only task action |
+| `add_inbox_task` | `assigned_to` | Optional — email of an active Organisation member; omit/null leaves unassigned (BRA408) |
 | `update_inbox_task` | `inbox_task_reference` | Required |
 | `update_inbox_task` | `status` / `action` | At least one required |
 
@@ -96,10 +99,21 @@ Optional: `source`, `status`.
 | omitted / `PENDING` | Stage-1 inbox trigger matching runs (entry `routing_type` + learning mode — BRA404), then the entry auto-promotes to `PROCESSED` |
 | `PROCESSED` | Created without firing inbox triggers — preferred for grade-linked findings that should not spawn tasks |
 
-Returns a confirmation including the new entry's **reference** and how many
-triggered tasks were created. Those tasks start `PENDING`; auto-run vs
+Returns a confirmation including the new entry's **reference**, **Depth**, and
+how many triggered tasks were created. Those tasks start `PENDING`; auto-run vs
 `AWAITING_APPROVAL` is decided later from each task's linked workflow (BRA404
 stage 2).
+
+**Depth** (mirrors `WorkflowRun.RecursionDepth`):
+
+| How the entry is created | Depth |
+| --- | --- |
+| Management / Execution API, email, Granola, etc. | `1` |
+| `create_inbox_entry` from a run **not** linked to an inbox entry | `1` |
+| `create_inbox_entry` from a run whose `InboxEntryId` is set (workflow triggered from an inbox entry/task) | parent entry `Depth + 1` |
+
+So a top-level inbox signal is depth 1; a learning created by a workflow that
+ran from that entry is depth 2; and so on.
 
 Canonical YAML: `tools/inbox/create-inbox-entry.yml`.
 
@@ -133,10 +147,12 @@ Requires `inbox_entry_reference`. Returns CSV for that entry only:
 
 ## `add_inbox_task`
 
-Requires `inbox_entry_reference`. Optional `workflow_code` (resolved server-side)
-and `instructions` (stored as the task action — instructions-only; entry content
-reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204). Creates status
-`PENDING` and returns the new task's **reference**.
+Requires `inbox_entry_reference`. Optional `workflow_code` (resolved server-side),
+`instructions` (stored as the task action — instructions-only; entry content
+reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204), and
+`assigned_to` (email of an active Organisation member — same validation as
+`assign_task_to_user` in **BRA408**; omit or pass null to leave unassigned).
+Creates status `PENDING` and returns the new task's **reference**.
 
 **Auto-run:** the Hangfire processor decides from the **workflow named by
 `workflow_code`**, not from the entry's routing type. If that workflow has an
@@ -144,6 +160,9 @@ reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204). Creates status
 `PENDING → RUNNING` and runs. Otherwise it moves to `AWAITING_APPROVAL` for
 human sign-off. Full rules: **BRA404** (Inbox triggers — two stages). Workflow
 `trigger-mode` does not control this path.
+
+To assign an **existing** task, use `assign_task_to_user` (**BRA408**) instead
+of recreating it.
 
 ## `update_inbox_task`
 
@@ -206,5 +225,7 @@ parameters:
 - **BRA201** §8 — authoring `trigger: inbox:…` / learning-mode on workflows
 - **BRA207** — learning-eval workflows that call `create_inbox_entry`
 - **BRA406** — `set_run_grading` (persist 0–100 score on a WorkflowRun)
-- **BRA204** — `{{inboxEntry.*}}` / `{{#inboxTasks}}` template tags
+- **BRA204** — `{{inboxEntry.*}}` / `{{task.*}}` / `{{#inboxTasks}}` template tags
+- **BRA408** — `list_users` / `assign_task_to_user` (Organisation members and
+  task assignment)
 - **WF-INBOX-ENTRY-CONTEXT** — canonical TRIGGERED inbox workflow pattern
