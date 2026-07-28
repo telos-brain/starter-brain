@@ -1,9 +1,9 @@
 ---
 name: Telos Brain Core Concepts
 code: BRA101
-version: 2
-description: The six building blocks of a Telos Brain, how they relate, and the
-  two authoring styles used to define them — the essential mental model before
+version: 3
+description: The building blocks of a Telos Brain, how they relate, and the two
+  authoring styles used to define them — the essential mental model before
   authoring or deploying a brain.
 ---
 
@@ -15,12 +15,13 @@ Everything is wired together from a single entry-point manifest (`brain-compose.
 
 ---
 
-## The six building blocks
+## The building blocks
 
 | Concept | What it is | Defined by |
 |---|---|---|
 | **Entities** | Top-level things the brain reasons about (e.g. `Application`). | Inline in `brain-compose.yml`. |
 | **Units of work** | A scoped piece of work operating across entities (e.g. `Ticket`). | Inline in `brain-compose.yml`. |
+| **Connectors** | Named integrations with external services (REST/MCP) — URL, auth type, declared credentials. | Connector YAML files (`connectors/{name}.yml`). See **BRA209**. |
 | **Tools** | Callable actions — HTTP API, MCP, workflow, native, or in-brain system tools. | Tool-group folders (`tools.yml`). |
 | **Skills** | Reusable knowledge and practices, grouped into skillbooks. | Skillbook folders (`skillbook.yml`). |
 | **Blueprints** | Long-form scoped knowledge (vision, architecture, concepts…). | Blueprint folders (`blueprint.yml`). |
@@ -41,7 +42,7 @@ These are used deliberately and are not interchangeable:
 
 - **The compose file is the source of truth.** Anything not listed in `brain-compose.yml` is not deployed, even if the file exists on disk.
 - **All paths are relative** to the manifest that references them. Convention is to prefix them with `./`.
-- **Deploy order is fixed:** skills → workflows → tools → memory (blueprints). Cross-references (e.g. workflows referencing skill codes) must resolve correctly, so the referenced resource must already exist.
+- **Deploy order is fixed:** skills → connectors → tools → workflows → memory (blueprints) → entity types → unit-of-work types. Cross-references (e.g. workflows referencing skill codes) must resolve correctly, so the referenced resource must already exist.
 - **The whole brain is parsed up front.** Any schema error fails the deploy before a single API call is made. Use `--dry-run` while authoring to validate without touching the API.
 
 ---

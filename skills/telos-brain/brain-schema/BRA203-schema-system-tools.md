@@ -1,7 +1,7 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 3
+version: 4
 description: The in-brain system tools that let a running brain inspect, edit,
   and create its own configuration-as-code schema — list_schema_files,
   search_schema_files, get_schema_file, update_schema_file, create_skill and
@@ -24,8 +24,8 @@ tools:
 BRA201 covers authoring the schema as files and deploying them with the CLI. This
 skill covers the complementary runtime capability: a **running brain editing its
 own schema**. Six `system` tools expose the brain's configuration-as-code as a
-virtual filesystem — list, search, read, edit and create workflow, skill, tool
-and blueprint files — without any outbound HTTP call. This is how a
+virtual filesystem — list, search, read, edit and create workflow, skill, tool,
+blueprint and connector files — without any outbound HTTP call. This is how a
 learning-review workflow applies an approved learning back into the brain.
 
 These are ordinary `system` tools (see BRA201 §5.2): they are declared with a
@@ -61,7 +61,8 @@ read the file to copy the exact text, then edit it. For creates, prefer
 
 Every file is addressed by a stable **path** and carries a **type** token and a
 stable **code**. The path prefix matches the resource family, e.g.
-`workflows/wf-review.md`, `skills/eng/EP101.md`, `tools/core/load-customer.yml`.
+`workflows/wf-review.md`, `skills/eng/EP101.md`, `tools/core/load-customer.yml`,
+`connectors/my-connector.yml`.
 
 The `type` column uses these tokens (leaf resources use the resource token to
 match the path prefix; container manifests use a distinct token so a listing
@@ -77,13 +78,14 @@ never conflates a manifest with a resource of the same family):
 | `toolgroup` | a tool-group manifest |
 | `blueprint` | a blueprint entry |
 | `blueprint-manifest` | a blueprint manifest |
+| `connector` | a connector definition (`connectors/{name}.yml` — see **BRA209**) |
 
 ---
 
 ## `list_schema_files`
 
 Takes no parameters. Returns a flat CSV (`path,type,code`) of the root manifest
-plus one row per workflow, skill, tool and blueprint entry. Use
+plus one row per workflow, skill, tool, blueprint entry and connector. Use
 `search_schema_files` when you also need titles.
 
 ## `search_schema_files`
@@ -140,6 +142,10 @@ Requires `path` and `content` (full file). Supported paths:
 
 Rejected: `brain-compose.yml` and generated group manifests
 (`tools/*/tools.yml`, `skills/*/skillbook.yml`, `blueprints/*/blueprint.yml`).
+`connectors/{name}.yml` is **not** creatable via this tool yet — add the file
+and compose entry, then `brain deploy` (or edit an existing connector with
+`update_schema_file`). See **BRA209**.
+
 Omit `version` to default to 1. Version conflicts return a clear error when the
 incoming version is not strictly greater than the stored version.
 

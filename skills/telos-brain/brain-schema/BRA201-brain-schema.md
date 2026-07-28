@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 29
+version: 30
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -21,12 +21,13 @@ behaviour exactly. Follow it literally.
 ## 1. Mental model
 
 A brain is composed from a single entry-point manifest (`brain-compose.yml`)
-that **points to** self-contained definitions for five kinds of thing:
+that **points to** self-contained definitions for these kinds of thing:
 
 | Concept       | What it is                                                        | Defined by                          |
 | ------------- | ----------------------------------------------------------------- | ----------------------------------- |
 | **Entities**  | Top-level things the brain reasons about (e.g. `Application`).     | Inline in `brain-compose.yml`.      |
 | **Units of work** | A scoped piece of work operating across entities (e.g. `Ticket`). | Inline in `brain-compose.yml`.  |
+| **Connectors** | Named external-service integrations (URL, auth, declared params). | Connector YAML (`connectors/{name}.yml`). See **BRA209**. |
 | **Tools**     | Callable actions (HTTP API, MCP, or in-brain system tools).       | Tool-group folders (`tools.yml`).   |
 | **Skills**    | Reusable knowledge/practices, grouped into skillbooks.            | Skillbook folders (`skillbook.yml`). |
 | **Blueprints** | Long-form scoped knowledge (vision, architecture, concepts…).     | Blueprint folders (`blueprint.yml`). |
@@ -56,6 +57,10 @@ brain-schema/
   package.json                   # provides `npm run deploy`
   .env.example                   # template for deploy credentials (copy to .env)
   .gitignore                     # ignores .env, node_modules, brain.lock
+
+  connectors/
+    example-oauth2.yml           # one connector definition per file (BRA209)
+    example-api-key.yml
 
   tools/
     tickets/
@@ -113,9 +118,10 @@ Key facts:
   secrets always win.
 - The **whole brain is parsed up front**, so any schema error fails the deploy
   before a single API call is made. Use `--dry-run` while authoring.
-- Deploy order is fixed: **skills → workflows → tools → memory (blueprints)**.
-  This matters for cross-references: e.g. workflows reference skills/tools by
-  code/name, so those codes must be correct.
+- Deploy order is fixed: **skills → connectors → tools → workflows → memory
+  (blueprints)** (then entity / unit-of-work types). Connectors precede tools so
+  tool definitions can eventually reference connector names. Workflows reference
+  skills/tools by code/name, so those codes must be correct.
 
 ---
 
@@ -149,6 +155,9 @@ unitsofwork:                     # also accepted as `unitsOfWork`
     scope: entity:application    # optional
 
 # Each of the following is a LIST OF PATHS to self-contained definitions.
+connectors:
+  - ./connectors/example-oauth2.yml
+
 tools:
   - ./tools/tickets/tools.yml
 
@@ -174,9 +183,9 @@ Rules:
 - `allowed-callback-domains` is optional (see §4.3) — shared host allowlist for
   async run callbacks and declared-tool webhook URLs.
 - `entities` / `unitsofwork` are optional lists; each item needs `name` + `code`.
-- `tools`, `skills`, `blueprints`, `workflows` are optional lists of relative
-  paths. Anything **not listed here is not deployed**, even if the file exists on
-  disk.
+- `connectors`, `tools`, `skills`, `blueprints`, `workflows` are optional lists of
+  relative paths. Anything **not listed here is not deployed**, even if the file
+  exists on disk.
 
 ### 4.1 Entity variables (per-entity key/value pairs)
 
@@ -354,13 +363,20 @@ The `api.path` host must satisfy the shared outbound allowlist in §4.3
 (`allowed-callback-domains`) when that list is configured. `https` is required
 outside Development; private and metadata IP ranges are always blocked.
 
-**MCP tool** (invoked via an MCP server tool):
+**MCP tool** (invoked via an MCP server tool — BRA200):
 
 ```yaml
 mcp:
-  server: my-mcp-server                # REQUIRED
-  tool: search                         # REQUIRED (the MCP tool name)
+  tool: search                         # REQUIRED — MCP tool name on the server
+  # Provide at least one outbound target (connector and/or direct URL / server):
+  connector: my-mcp-connector          # optional — named connector (BRA209)
+  server-url: https://mcp.example.com  # optional — direct MCP server URL
+  server: my-mcp-server                # optional — legacy server label (still accepted)
 ```
+
+A tool may use a connector, a direct `server-url` / `server`, or both. Runtime
+MCP protocol dispatch is BRA201; connector auth/URL resolution for API tools is
+BRA199.
 
 **System tool** (executed by an in-brain system tool, not an external call):
 
@@ -682,6 +698,41 @@ Authorization: Bearer sk_live_xxx
 
 To authenticate via a query parameter instead (a GET endpoint keyed by
 `?api_key=…`), drop `header:` and set `method: GET` — see BRA202 §3.3.
+
+---
+
+## 5A. Connectors
+
+Connectors are named, brain-scoped integrations with an external service (REST
+API root or MCP endpoint). Each connector is a single plain-YAML file; the compose
+file lists the paths to deploy. Full authoring guide and worked examples:
+**BRA209**. Canonical examples live under `connectors/` in this brain.
+
+### 5A.1 Connector file (`connectors/{name}.yml`)
+
+```yaml
+name: my-connector                 # REQUIRED — unique per brain
+url: https://api.example.com       # REQUIRED — base URL
+auth-type: oauth2                  # REQUIRED — oauth2 | api-key | none
+scope: brain                       # optional — defaults to brain (only value today)
+parameters:                         # optional — omit the key entirely when empty
+  - name: client-id
+    description: OAuth 2 client ID
+  - name: client-secret
+    description: OAuth 2 client secret
+```
+
+Rules:
+
+- Plain YAML — **no** markdown frontmatter delimiters (same style as tool files).
+- `name` is unique per brain and is the stable path/code (`connectors/{name}.yml`).
+- `parameters` declare credential **names** only. Secret **values** belong in
+  brain environment variables (`.env` / BRA202) — never in the YAML.
+- OAuth access/refresh tokens are runtime state (`ConnectorTokens`), not schema.
+- Upsert-always on deploy (no `version` field): Name / Url / AuthType / Scope /
+  parameters are replaced on every deploy.
+- Register paths under `connectors:` in `brain-compose.yml` (unlisted = not
+  deployed).
 
 ---
 
@@ -1079,6 +1130,7 @@ Required fields, by file type (everything else is optional):
 | ------------------------ | --------------------------------------------------------------------- |
 | `brain-compose.yml`      | `name`                                                                 |
 | — entity                 | `name`, `code`; each `variables` item needs `key`                      |
+| Connector YAML           | `name`, `url`, `auth-type` (`oauth2` \| `api-key` \| `none`); each parameter needs `name` + `description` |
 | Tool group `tools.yml`   | `name`, `description`                                                  |
 | Tool definition          | `name`, `description`, exactly one of `api`/`mcp`/`system`/`workflow`/`native` |
 | — `api` block            | `path`                                                                 |
@@ -1100,17 +1152,21 @@ Required fields, by file type (everything else is optional):
 When creating or extending a brain:
 
 1. Add/confirm entities and units of work in `brain-compose.yml`.
-2. For each capability, create its self-contained folder/file **and** add its
-   path to the matching list in `brain-compose.yml` (unlisted files are ignored).
-3. Keep relative paths (`./…`) correct — they resolve against the manifest's own
+2. For each connector, create `connectors/{name}.yml` **and** list it under
+   `connectors:` (see §5A / **BRA209**). Put secret values in `.env`, not YAML.
+3. For each other capability, create its self-contained folder/file **and** add
+   its path to the matching list in `brain-compose.yml` (unlisted files are
+   ignored).
+4. Keep relative paths (`./…`) correct — they resolve against the manifest's own
    folder.
-4. Ensure cross-references resolve: workflow `tools` / `available-tools` → tool
+5. Ensure cross-references resolve: workflow `tools` / `available-tools` → tool
    `name`s; skill `tools` → tool `name`s that the hosting workflow also lists
    under `available-tools` when you want mid-run promotion; workflow
    `injected-skills`/`available-skills` → skill `code`s; blueprint entry
    `category` → a manifest category; scope `code` → an entity/unit code.
-5. Give every long-form markdown file a **non-empty body**.
-6. Bump the **leading integer** of `version` on anything you change.
-7. Use British English spelling in content.
-8. Validate with `npm run deploy:dry` before deploying — it parses and validates
+6. Give every long-form markdown file a **non-empty body**.
+7. Bump the **leading integer** of `version` on anything you change (connectors
+   have no version — they upsert-always).
+8. Use British English spelling in content.
+9. Validate with `npm run deploy:dry` before deploying — it parses and validates
    the entire brain without touching the API.

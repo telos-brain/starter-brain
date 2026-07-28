@@ -1,11 +1,12 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 5
+version: 6
 description: How a brain's .env variables are uploaded, encrypted and stored; the
   well-known "system" keys the platform recognises (LLM provider keys, the brain
-  API key); and how to inject a stored secret into an api tool's outbound request
-  — as an HTTP header, a query parameter or a JSON body field.
+  API key); how to inject a stored secret into an api tool's outbound request —
+  as an HTTP header, a query parameter or a JSON body field; and how connector
+  credential values relate to the same store.
 ---
 
 # Environment Variables, Secrets & API Keys
@@ -242,7 +243,24 @@ from the model.
 
 ---
 
-## 4. Checklist
+## 4. Connector credentials
+
+**Connectors** (BRA209) declare required auth inputs in YAML (`parameters` with
+`name` / `description` only). The **values** for those inputs — OAuth client id /
+secret, API keys, and similar — are stored as brain environment variables in this
+same encrypted store. They are never written into the connector YAML.
+
+- Declare the parameter names on the connector file (schema).
+- Put the values in `.env` (or upsert via the Management API secrets endpoint,
+  which uses connector-scoped keys such as `CONNECTOR_{connectorId}_CLIENT_ID`).
+- OAuth **access / refresh tokens** are runtime state (`ConnectorTokens`), not
+  environment variables — do not put bearer tokens in `.env` for that purpose.
+
+See **BRA209** for the connector file format and examples.
+
+---
+
+## 5. Checklist
 
 1. Put every secret the brain needs in the schema's `.env` (never commit it).
 2. Name the Claude key exactly `ANTHROPIC_API_KEY` (and OpenAI `OPENAI_API_KEY`).
@@ -251,5 +269,7 @@ from the model.
    add `header:` (plus an optional `value: "Bearer {secret}"` template) to send
    it as a header, or omit `header:` to inject it into the query string (GET) or
    JSON body (POST). Never paste the key into the tool file.
-5. Redeploy to rotate a secret — the value is upserted (replaced) against the
+5. For **connectors**, declare parameter names in `connectors/*.yml` and store
+   values here — never in the connector file (BRA209).
+6. Redeploy to rotate a secret — the value is upserted (replaced) against the
    brain and re-encrypted.
