@@ -6,11 +6,6 @@ description: >-
 system:
   tool: find_available_skills
 parameters:
-  - name: skillbooks
-    param: skillbooks
-    value: "BRA"
-    description: The skillbooks to search within (fixed for this brain).
-    type: string
   - name: query
     param: query
     description: The search query used to find relevant skills.

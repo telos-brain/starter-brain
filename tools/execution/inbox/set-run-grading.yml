@@ -1,0 +1,31 @@
+name: set_run_grading
+version: 1
+description: >-
+  Persists a 0–100 quality score on a completed workflow run (and optionally
+  links an inbox entry that explains the grade). Call once per subject run after
+  scoring. Identity is by the run's 8-character reference from {{run.reference}}
+  — never a Guid from telemetry. Re-calling overwrites the previous grade.
+system:
+  tool: set_run_grading
+parameters:
+  - name: run_reference
+    param: run_reference
+    description: >-
+      Required. Subject run's 8-character reference ([a-z0-9]{8}). In a
+      workflowrun:complete eval, use the value from {{run.reference}}. Do not
+      pass a Guid or shortened runId from telemetry.
+    type: string
+    required: true
+  - name: grading
+    param: grading
+    description: >-
+      Required. Integer quality score from 0 to 100 inclusive.
+    type: string
+    required: true
+  - name: inbox_entry_reference
+    param: inbox_entry_reference
+    description: >-
+      Optional. Reference of an InboxEntry that explains the grade (typically
+      the primary learning just created). If supplied but not found, the tool
+      errors and writes nothing.
+    type: string
