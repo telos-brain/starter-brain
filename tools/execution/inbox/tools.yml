@@ -3,10 +3,10 @@ description: >-
   System tools for the learning-signal inbox — create entries, list/read/update
   entries and tasks, and route work by adding workflow-linked tasks.
 tools:
-  - ./create-inbox-entry.yml
-  - ./list-inbox-entries.yml
-  - ./get-inbox-entry.yml
-  - ./update-inbox-entry.yml
-  - ./list-inbox-tasks.yml
-  - ./add-inbox-task.yml
-  - ./update-inbox-task.yml
+  - create-inbox-entry.yml
+  - list-inbox-entries.yml
+  - get-inbox-entry.yml
+  - update-inbox-entry.yml
+  - list-inbox-tasks.yml
+  - add-inbox-task.yml
+  - update-inbox-task.yml

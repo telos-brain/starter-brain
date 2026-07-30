@@ -3,8 +3,8 @@ description: >-
   Execution tools for reading and writing this brain's memory blueprint —
   distilled, reusable knowledge resolved automatically from the run's scope.
 tools:
-  - ./search-blueprint-entries.yml
-  - ./list-blueprint-entries.yml
-  - ./get-blueprint-entry.yml
-  - ./add-blueprint-entry.yml
-  - ./update-blueprint-entry.yml
+  - search-blueprint-entries.yml
+  - list-blueprint-entries.yml
+  - get-blueprint-entry.yml
+  - add-blueprint-entry.yml
+  - update-blueprint-entry.yml

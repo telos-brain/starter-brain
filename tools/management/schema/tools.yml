@@ -3,9 +3,9 @@ description: >-
   Management tools for reading and editing this brain's own configuration-as-code
   schema files (skills, workflows, tools and blueprint entries).
 tools:
-  - ./list-schema-files.yml
-  - ./search-schema-files.yml
-  - ./get-schema-file.yml
-  - ./update-schema-file.yml
-  - ./create-skill.yml
-  - ./create-schema-file.yml
+  - list-schema-files.yml
+  - search-schema-files.yml
+  - get-schema-file.yml
+  - update-schema-file.yml
+  - create-skill.yml
+  - create-schema-file.yml

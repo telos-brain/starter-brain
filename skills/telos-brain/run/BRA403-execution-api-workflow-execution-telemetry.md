@@ -1,16 +1,17 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 10
+version: 11
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
-  with callback), hold a multi-turn chat session against a single run, and
-  retrieve run telemetry and unit-of-work telemetry via the Execution API —
-  including model, thinking mode and turn totals on run telemetry. Documents
-  when a run settles Failed (max-turns exhausted, final max_tokens with no
-  retries). Also notes when a Completed run becomes eligible for learning
-  evals (BRA207). Documents SSRF rules for async callbackUrl
-  (allowed-callback-domains).
+  with callback), pass optional run variables for {{input.*}} template tags
+  and pre-called input-tools (BRA409), hold a multi-turn chat session against
+  a single run, and retrieve run telemetry and unit-of-work telemetry via the
+  Execution API — including model, thinking mode and turn totals on run
+  telemetry. Documents when a run settles Failed (max-turns exhausted, final
+  max_tokens with no retries). Also notes when a Completed run becomes
+  eligible for learning evals (BRA207). Documents SSRF rules for async
+  callbackUrl (allowed-callback-domains).
 ---
 
 # Execution API: Workflow Execution & Telemetry
@@ -62,6 +63,10 @@ All fields are optional:
   "inputMessage": "Draft a proposal",
   "entityId": "3f0c...",
   "unitOfWorkId": "7b2d...",
+  "variables": {
+    "widget_reference": "WID-001",
+    "current_date": "2026-07-30"
+  },
   "callbackUrl": "https://app.example.com/brain/callbacks/run-complete"
 }
 ```
@@ -71,7 +76,71 @@ All fields are optional:
 | `inputMessage` | The triggering user message. |
 | `entityId` | Optional runtime scope. |
 | `unitOfWorkId` | Optional runtime scope for template tags (e.g. `{{#unitOfWork.context}}`). Nothing is hard-coded into the prompt; workflows that need the logs declare those tags in Instructions. |
+| `variables` | Optional string→string map persisted on the `WorkflowRun` and exposed to templates as `{{input.<key>}}`. Omit or leave null for unchanged behaviour. Keys and values are plain strings (no type coercion). See [Run variables](#run-variables-input) and **BRA409**. |
 | `callbackUrl` | Honoured on the async path only. Must be `https` (or `http://localhost` / `http://127.0.0.1` in Development). Subject to the brain's shared outbound host allowlist — see [Async callback SSRF rules](#async-callback-ssrf-rules). |
+
+### Run variables (`variables` → `{{input.*}}`)
+
+Pass caller-defined named strings into a workflow at invocation time. Both sync
+and async endpoints accept the same optional `variables` object.
+
+**What happens**
+
+1. The map is persisted on the `WorkflowRun` as JSON before execution starts
+   (so Hangfire async jobs can read it from the database).
+2. Template tags `{{input.<key>}}` resolve to those values in workflow
+   Instructions, system prompts, tool response markdown, and `input-tools`
+   parameter mappings (see **BRA201** §8.0a / **BRA409**).
+3. Nested `run_workflow` / workflow-tool child runs inherit the parent's
+   variables automatically.
+4. Missing keys render blank (never an error). Omitting `variables` leaves
+   `WorkflowRun.Variables` null — fully backward-compatible.
+
+**Example — sync with variables**
+
+```http
+POST /workflows/WF-INPUT-VARIABLES/run/sync
+Authorization: Bearer {brainApiKey}
+Content-Type: application/json
+
+{
+  "inputMessage": "Produce the briefing.",
+  "variables": {
+    "topic": "Telos Brain Execution API",
+    "seed_question": "What is the Execution API used for in one sentence?"
+  }
+}
+```
+
+**Example — async with variables**
+
+```http
+POST /workflows/WF-WIDGET/run/async
+Authorization: Bearer {brainApiKey}
+Content-Type: application/json
+
+{
+  "variables": {
+    "widget_reference": "WID-001"
+  },
+  "callbackUrl": "https://app.example.com/brain/callbacks/run-complete"
+}
+```
+
+Wire the same keys in the workflow schema:
+
+- Instructions: `Working on {{input.topic}}.`
+- Pre-called tools (`input-tools`):
+
+  ```yaml
+  input-tools:
+    - variable: widget_information
+      tool: get_widget_details
+      parameters:
+        widget_reference: "{{input.widget_reference}}"
+  ```
+
+Full authoring guide: **BRA409**. Template taxonomy: **BRA204** §3.6.
 
 ### `POST /workflows/{code}/run/sync` — synchronous (SSE)
 

@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Authentication & Conventions"
 code: BRA401
-version: 2
+version: 3
 description: How to authenticate with the Telos Brain Execution API, how tenancy
   is resolved, the brain identity endpoint, and the common conventions (status
   codes, error format, content types) that apply across all endpoints.
@@ -16,7 +16,7 @@ The Execution API is the runtime surface of a Telos Brain. It is entirely separa
 | Purpose | Provision & configure brains | Run workflows against entities/units of work |
 | Auth | Clerk org JWT / `tbk_` org API key | Per-brain API key |
 | Tenant scope | Explicit `BrainId` per query | Implicit — resolved from the API key |
-| Routes | `/brains/...` | `/brain`, `/entities`, `/units-of-work`, `/workflows`, `/runs` |
+| Routes | `/brains/...` | `/brain`, `/entities`, `/units-of-work`, `/workflows`, `/runs`, `/inbox`, `/skills`, `/transcription` |
 
 ---
 
@@ -80,7 +80,7 @@ Does **not** return the API key or organisation id.
 ## Conventions
 
 - **Base URL** — all paths are relative to the brain service host.
-- **Content type** — request and response bodies are JSON (`application/json`), except the sync run endpoint which streams `text/event-stream`.
+- **Content type** — request and response bodies are JSON (`application/json`), except the sync run endpoint which streams `text/event-stream`, and `POST /transcription` which accepts `multipart/form-data` (see BRA410).
 - **Tenancy** — implicit; derived from the API key.
 - **Codes vs IDs** — entity types and unit-of-work types are referenced by their stable deploy **code**; instances are referenced by their **id** (GUID).
 - **Errors** — failures return `{ "error": "message" }` with an appropriate status code.

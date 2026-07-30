@@ -1,7 +1,7 @@
 ---
 name: Getting Started
 code: BRA104
-version: 1
+version: 3
 description: Interactive onboarding interview to configure a brain schema from
   scratch — entity type, unit of work type, blueprint categories, and skill
   categories. Use after brain init, before the first deploy.
@@ -27,7 +27,8 @@ apply to the schema files.
 
 After the brain is deployed and in use, point the user at the **Run** skills
 (**BRA401** onwards) for the Execute API, entities/units of work at runtime,
-inbox, and related operations.
+inbox, run variables / `input-tools` (**BRA409**), file transcription
+(**BRA410**), and related operations.
 
 ---
 

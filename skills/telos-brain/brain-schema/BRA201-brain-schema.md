@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 30
+version: 33
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -42,7 +42,9 @@ Two authoring styles are used, deliberately:
   markdown body is the content itself.
 
 All referenced paths inside a manifest are **relative to that manifest's own
-folder**. Convention is to prefix them with `./`.
+folder**. Prefer paths without a `./` prefix (`tools/…`, not `./tools/…`) —
+`NormalisePath` drops `.` segments, so both resolve the same, but the preferred
+form omits `./`.
 
 ---
 
@@ -156,21 +158,21 @@ unitsofwork:                     # also accepted as `unitsOfWork`
 
 # Each of the following is a LIST OF PATHS to self-contained definitions.
 connectors:
-  - ./connectors/example-oauth2.yml
+  - connectors/example-oauth2.yml
 
 tools:
-  - ./tools/tickets/tools.yml
+  - tools/tickets/tools.yml
 
 skills:
-  - ./skills/eng/skillbook.yml
-  - ./skills/ops/skillbook.yml
+  - skills/eng/skillbook.yml
+  - skills/ops/skillbook.yml
 
 blueprints:
-  - ./blueprints/product-brain/blueprint.yml
-  - ./blueprints/application/blueprint.yml
+  - blueprints/product-brain/blueprint.yml
+  - blueprints/application/blueprint.yml
 
 workflows:
-  - ./workflows/review-blueprint.md
+  - workflows/review-blueprint.md
 ```
 
 Rules:
@@ -334,7 +336,7 @@ Tools are organised into **groups**. The compose file points to a group manifest
 name: Tickets                          # REQUIRED
 description: Tools for reading and updating tickets.   # REQUIRED
 tools:
-  - ./add-ticket-comment.yml           # paths relative to this manifest
+  - add-ticket-comment.yml           # paths relative to this manifest
 ```
 
 ### 5.2 Tool definition (one file per tool)
@@ -449,8 +451,8 @@ Native tools are authored like any other tool — as a tool group with one file 
 name: Native tools
 description: Provider-native (built-in) LLM capabilities such as web access.
 tools:
-  - ./web-search.yml
-  - ./web-fetch.yml
+  - web-search.yml
+  - web-fetch.yml
 ```
 
 **Step 2 — Create one file per native tool.** Each declares only `name`, `description`, and the `native` block — no `parameters`.
@@ -481,7 +483,7 @@ native:
 
 ```yaml
 tools:
-  - ./tools/native/tools.yml
+  - tools/native/tools.yml
 ```
 
 **Step 4 — Enable the tools on any workflow that should use them**, by `name`:
@@ -644,7 +646,7 @@ ACME_API_KEY=sk_live_xxx
 name: Acme
 description: Tools for creating and reading Acme widgets.
 tools:
-  - ./create-widget.yml
+  - create-widget.yml
 ```
 
 **Step 3 — Define the tool** (`tools/acme/create-widget.yml`). One injected
@@ -676,7 +678,7 @@ deployed):
 
 ```yaml
 tools:
-  - ./tools/acme/tools.yml
+  - tools/acme/tools.yml
 ```
 
 **Step 5 — Enable the tool on a workflow**, by `name`:
@@ -755,13 +757,13 @@ categories:
     description: Server-side design, data access and API practices.  # optional
     index: 100                         # optional ordering; defaults to array position
     skills:
-      - ./backend/EP101-database-migrations.md   # paths relative to this manifest
-      - ./backend/EP102-api-versioning.md
+      - backend/EP101-database-migrations.md   # paths relative to this manifest
+      - backend/EP102-api-versioning.md
   - name: Frontend
     description: Client-side architecture and UI patterns.
     index: 200
     skills:
-      - ./frontend/EP201-component-design.md
+      - frontend/EP201-component-design.md
 ```
 
 ### 6.2 Skill file (markdown + frontmatter)
@@ -936,6 +938,15 @@ available-tools:
   - create_skill
   - create_schema_file
 
+# Pre-called tools (BRA216) — executed automatically at run startup before the
+# AI's first turn. Parameter values support Template Service tags such as
+# {{input.*}} (from the Execution API `variables` map). Omit entirely when unused.
+# input-tools:
+#   - variable: widget_information
+#     tool: get_widget_details
+#     parameters:
+#       widget_reference: "{{input.widget_reference}}"
+
 # Skills referenced by CODE.
 #  - injected-skills are inlined into the prompt at run time.
 #  - available-skills can be loaded on demand at runtime via skill tools.
@@ -987,6 +998,80 @@ Rules:
 - Deploy writes `tools` → `WorkflowTools.AvailabilityType = injected` and
   `available-tools` → `available`. Extract splits the join rows back into the
   two lists.
+- `input-tools` (optional, BRA216) declares tools to call automatically at run
+  startup. See **§8.0a**.
+
+### 8.0a Pre-called tools (`input-tools`, BRA216)
+
+Use `input-tools` when a workflow needs structured context fetched before the
+model's first turn — for example loading a record by a reference passed in the
+Execution API `variables` map. Full how-to (API + schema + worked example
+`WF-INPUT-VARIABLES`): **BRA409**. Run-body field: **BRA403**.
+
+```yaml
+input-tools:
+  - variable: widget_information
+    tool: get_widget_details
+    parameters:
+      widget_reference: "{{input.widget_reference}}"
+  - variable: entity_summary
+    tool: get_entity_details
+    parameters:
+      entity_id: "{{input.entity_id}}"
+```
+
+| Field | Required | Meaning |
+| ----- | -------- | ------- |
+| `variable` | yes | Name under which the result is injected |
+| `tool` | yes | Tool Router name (`Tools.Name` or system tool name) |
+| `parameters` | no | String map of argument values; supports `{{…}}` tags |
+
+**Runtime behaviour**
+
+1. After BRA215 `variables` are available as `{{input.*}}`, each entry runs in
+   declaration order.
+2. Parameter values are rendered via the Template Service, then dispatched
+   through `IToolRouter.RouteAsync`.
+3. Successful results are injected as a user-role context block:
+
+   ```xml
+   <pre_called_tool name="widget_information">…tool result…</pre_called_tool>
+   ```
+
+4. On failure (tool missing, dispatch error, or exception) the run **continues**.
+   A warning block is injected instead:
+
+   ```xml
+   <pre_called_tool name="widget_information" status="error">Tool call failed: …</pre_called_tool>
+   ```
+
+5. Results are capped at 200,000 characters (same limit as LLM-loop tool
+   results). Extract omits the `input-tools` key entirely when there are no
+   rows — never writes `input-tools: []`.
+
+**Worked example — API variables → pre-called tool**
+
+Caller:
+
+```json
+POST /workflows/WF-WIDGET/run/sync
+{
+  "variables": { "widget_reference": "WID-001" }
+}
+```
+
+Workflow frontmatter:
+
+```yaml
+input-tools:
+  - variable: widget_information
+    tool: get_widget_details
+    parameters:
+      widget_reference: "{{input.widget_reference}}"
+```
+
+The model sees `<pre_called_tool name="widget_information">…</pre_called_tool>`
+before its first turn, with no extra LLM tool call required to fetch the widget.
 
 ### 8.1 LLM execution settings (optional, Anthropic-only)
 
@@ -1143,7 +1228,7 @@ Required fields, by file type (everything else is optional):
 | Skill markdown           | frontmatter `name`, `code` + non-empty body; optional `tools` (tool names) |
 | `blueprint.yml`          | `name`; each category needs `name`; `scope` code if entity/unitofwork |
 | Blueprint entry markdown | frontmatter `name`, `category` + non-empty body                        |
-| Workflow markdown        | frontmatter `name`, `code` + non-empty body; optional `tools` / `available-tools` |
+| Workflow markdown        | frontmatter `name`, `code` + non-empty body; optional `tools` / `available-tools` / `input-tools` |
 
 ---
 
@@ -1157,8 +1242,8 @@ When creating or extending a brain:
 3. For each other capability, create its self-contained folder/file **and** add
    its path to the matching list in `brain-compose.yml` (unlisted files are
    ignored).
-4. Keep relative paths (`./…`) correct — they resolve against the manifest's own
-   folder.
+4. Keep relative paths correct (prefer `tools/…` over `./tools/…`) — they
+   resolve against the manifest's own folder.
 5. Ensure cross-references resolve: workflow `tools` / `available-tools` → tool
    `name`s; skill `tools` → tool `name`s that the hosting workflow also lists
    under `available-tools` when you want mid-run promotion; workflow

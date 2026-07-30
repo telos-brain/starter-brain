@@ -28,33 +28,33 @@ unitsofwork:
 
 # Tools are split into execution (runtime) and management (brain maintenance).
 tools:
-  - ./tools/execution/skills/tools.yml
-  - ./tools/execution/memory/tools.yml
-  - ./tools/execution/qa/tools.yml
-  - ./tools/execution/native/tools.yml
-  - ./tools/execution/inbox/tools.yml
-  - ./tools/management/schema/tools.yml
+  - tools/execution/skills/tools.yml
+  - tools/execution/memory/tools.yml
+  - tools/execution/qa/tools.yml
+  - tools/execution/native/tools.yml
+  - tools/execution/inbox/tools.yml
+  - tools/management/schema/tools.yml
 
 skills:
-  - ./skills/telos-brain/skillbook.yml
-  - ./skills/business/skillbook.yml
+  - skills/telos-brain/skillbook.yml
+  - skills/business/skillbook.yml
 
 blueprints:
-  - ./blueprints/memory/blueprint.yml
-  - ./blueprints/company/blueprint.yml
-  - ./blueprints/clients/blueprint.yml
+  - blueprints/memory/blueprint.yml
+  - blueprints/company/blueprint.yml
+  - blueprints/clients/blueprint.yml
 
 workflows:
-  - ./workflows/system-prompt.md
-  - ./workflows/chat.md
-  - ./workflows/ask-question.md
-  - ./workflows/create-frame-of-reference.md
-  - ./workflows/review-unit-of-work.md
-  - ./workflows/review-blueprint.md
-  - ./workflows/research.md
-  - ./workflows/eval.md
-  - ./workflows/Maintenance/brain-system.md
-  - ./workflows/Maintenance/triage.md
-  - ./workflows/Maintenance/update-skill.md
-  - ./workflows/Maintenance/update-workflow.md
-  - ./workflows/Maintenance/update-brain.md
+  - workflows/system-prompt.md
+  - workflows/chat.md
+  - workflows/ask-question.md
+  - workflows/create-frame-of-reference.md
+  - workflows/review-unit-of-work.md
+  - workflows/review-blueprint.md
+  - workflows/research.md
+  - workflows/eval.md
+  - workflows/Maintenance/brain-system.md
+  - workflows/Maintenance/triage.md
+  - workflows/Maintenance/update-skill.md
+  - workflows/Maintenance/update-workflow.md
+  - workflows/Maintenance/update-brain.md

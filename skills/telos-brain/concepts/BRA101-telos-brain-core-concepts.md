@@ -1,7 +1,7 @@
 ---
 name: Telos Brain Core Concepts
 code: BRA101
-version: 3
+version: 4
 description: The building blocks of a Telos Brain, how they relate, and the two
   authoring styles used to define them — the essential mental model before
   authoring or deploying a brain.
@@ -41,7 +41,7 @@ These are used deliberately and are not interchangeable:
 ## Key principles
 
 - **The compose file is the source of truth.** Anything not listed in `brain-compose.yml` is not deployed, even if the file exists on disk.
-- **All paths are relative** to the manifest that references them. Convention is to prefix them with `./`.
+- **All paths are relative** to the manifest that references them. Prefer paths without a `./` prefix (`tools/…`, not `./tools/…`).
 - **Deploy order is fixed:** skills → connectors → tools → workflows → memory (blueprints) → entity types → unit-of-work types. Cross-references (e.g. workflows referencing skill codes) must resolve correctly, so the referenced resource must already exist.
 - **The whole brain is parsed up front.** Any schema error fails the deploy before a single API call is made. Use `--dry-run` while authoring to validate without touching the API.
 

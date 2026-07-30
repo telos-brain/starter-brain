@@ -1,8 +1,8 @@
 ---
 name: Template Tag Taxonomy
 code: BRA204
-description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown.
-version: 11
+description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings.
+version: 12
 ---
 
 # Template Tag Taxonomy
@@ -331,27 +331,61 @@ error-markdown: |
 | --- | --- |
 | **Type** | Open-ended flat key/value bag |
 | **Sort** | N/A |
-| **Source** | Resolved parameters when this workflow is invoked as a **workflow tool** (or via `run_workflow`) |
+| **Source** | Merged from (1) Execution API `variables`, (2) workflow-tool / `run_workflow` parameters. See **BRA409**. |
 
 | Field | Description |
 | --- | --- |
-| `input.{paramName}` | Value of the tool parameter whose AI-facing `name` is `{paramName}` |
+| `input.{key}` | Value for that key from the merged bag |
+
+The `input` scope is a **single flat bag**. Values come from two sources that
+are merged at render time (tool / `run_workflow` parameters overlay API
+variables when the same key appears in both):
+
+| Source | How it is supplied | Persisted on `WorkflowRun`? |
+| --- | --- | --- |
+| Execution API `variables` | Optional string→string map on `POST …/run/sync` and `…/run/async` (BRA403) | Yes (JSON column) |
+| Workflow-tool / `run_workflow` parameters | Resolved args when this workflow is invoked as a child | No (request only; overlays variables) |
 
 Notes:
 
-- Declare parameters on the **workflow tool** YAML (`parameters:` under the tool
-  that has `workflow: code: …`). Each `name` becomes an `input` key.
-- Exposed (model-supplied) params, hardcoded `value:` params, and `entity:`-bound
-  params are included. `secret:` params are **never** forwarded into the child
-  prompt.
+- **API variables** — pass `{ "variables": { "widget_reference": "WID-001" } }`
+  on the run body. Use in Instructions as `{{input.widget_reference}}`, and in
+  workflow `input-tools` parameter mappings the same way (BRA201 §8.0a).
+- **Workflow-tool params** — declare parameters on the **workflow tool** YAML
+  (`parameters:` under the tool that has `workflow: code: …`). Each `name`
+  becomes an `input` key. Exposed (model-supplied) params, hardcoded `value:`
+  params, and `entity:`-bound params are included. `secret:` params are
+  **never** forwarded into the child prompt.
 - Field names are case-insensitive (`{{input.question}}` matches `question`).
-- When the run was not started with structured parameters, the scope is empty
-  (tags render blank).
-- The same values are still rendered as markdown on the child input message
-  (`## name\nvalue`) for backwards compatibility — prefer `{{input.*}}` in new
-  Instructions. See **BRA201** §5.2 (Workflow tool).
+- When neither source supplies data, the scope is empty (tags render blank).
+- Nested `run_workflow` / workflow-tool runs inherit the parent's API
+  variables automatically.
+- For workflow-tool children, the same values are still rendered as markdown on
+  the child input message (`## name\nvalue`) for backwards compatibility —
+  prefer `{{input.*}}` in new Instructions. See **BRA201** §5.2.
 
-**Example — tool definition:**
+**Example — Execution API variables:**
+
+```http
+POST /workflows/WF-INPUT-VARIABLES/run/sync
+Content-Type: application/json
+
+{
+  "variables": {
+    "topic": "Telos Brain",
+    "seed_question": "What is Telos Brain in one sentence?"
+  },
+  "inputMessage": "Produce the briefing."
+}
+```
+
+```markdown
+# Instructions
+
+Topic: {{input.topic}}
+```
+
+**Example — workflow-tool parameters:**
 
 ```yaml
 name: ask_question
@@ -364,14 +398,22 @@ parameters:
     required: true
 ```
 
-**Example — target workflow Instructions:**
-
 ```markdown
 # Instructions
 
 Answer this question directly and concisely:
 
 {{input.question}}
+```
+
+**Example — `input-tools` parameter mapping (uses the same scope):**
+
+```yaml
+input-tools:
+  - variable: seed_answer
+    tool: ask_question
+    parameters:
+      question: "{{input.seed_question}}"
 ```
 
 ---
@@ -589,7 +631,7 @@ Notes:
 | `skillBooks` | root → `.categories` → `.skills` | `skillBook.*`, `category.*`, `skill.*` |
 | `now` | — | `utcDate`, `utcTime`, `utcDayOfWeek`, `localDate`, `localTime`, `localDayOfWeek` |
 | `result` | — | `{anyKey}` (flat) |
-| `input` | — | `{paramName}` (flat; workflow-tool / `run_workflow` params) |
+| `input` | — | `{key}` (flat; Execution API `variables` + workflow-tool / `run_workflow` params) |
 | `blueprint` | `.categories` → `.entries`; `.entries` | `blueprint.name/description`; `category.name/description`; `entry.title/version/category` |
 | `inboxEntry` | — | `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
 | `inboxTasks` | root | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
@@ -614,6 +656,8 @@ Reference workflows in `workflows/`:
 | Learning Eval (Run) | `WF-EVAL-RUN` | `{{run.reference}}` + `{{run.telemetry}}`; `set_run_grading` + `create_inbox_entry` (BRA207 / BRA406) |
 | Inbox Entry Context | `WF-INBOX-ENTRY-CONTEXT` | `{{inboxEntry.*}}` / `{{task.*}}` scalars and `{{#inboxTasks}}` iteration for TRIGGERED inbox workflows; instructions-only input |
 | Ask Question | `WF-ASK-QUESTION` | `{{input.question}}` from the `ask_question` workflow-tool parameters |
+| Input Variables Demo | `WF-INPUT-VARIABLES` | Execution API `variables` → `{{input.*}}` plus `input-tools` pre-calling `ask_question` (BRA409) |
 
 Also see tool `response-markdown` / `error-markdown` on declared tools (e.g.
-salesmate `record_telemetry`) for the `result` scope.
+salesmate `record_telemetry`) for the `result` scope. Full variables /
+`input-tools` guide: **BRA409**.

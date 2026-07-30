@@ -1,7 +1,7 @@
 ---
 name: Designing Skill Books
 code: BRA208
-version: 2
+version: 3
 description: How to design a Skill Book's category structure and skill number
   ranges so the AI can place knowledge correctly. Use when creating a new
   skillbook, proposing or reviewing categories, writing category descriptions,
@@ -244,7 +244,7 @@ categories:
       client state) and from Delivery (cross-cutting process and release).
     index: 100
     skills:
-      - ./backend/EP101-database-migrations.md
+      - backend/EP101-database-migrations.md
   - name: Frontend
     description: >-
       Client-side architecture, component patterns, UI state, routing, and
