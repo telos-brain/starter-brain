@@ -1,7 +1,7 @@
 ---
 name: Unit of Work Context and Data System Tools
 code: BRA407
-version: 1
+version: 2
 description: The in-brain system tools for recording and reading Unit of Work
   telemetry — add_uow_context, add_uow_data, update_uow_data, list_uow_context,
   list_uow_data, get_uow_context and get_uow_data. All identity is by 8-character
@@ -44,7 +44,7 @@ so a workflow that keeps them under `available-tools` can promote them via
 | Tool | Purpose | Key parameters | Returns |
 |---|---|---|---|
 | **`add_uow_context`** | Append narrative context | `title`, `source`; optional `message`, `date`, `tags` | Confirmation with new **reference** |
-| **`add_uow_data`** | Append structured data | `source`, `type`, `body`; optional `date`, `tags` | Confirmation with new **reference** |
+| **`add_uow_data`** | Append structured data | `source`, `type`, `body`; optional `date`, `tags`, `effort` (seconds) | Confirmation with new **reference** |
 | **`update_uow_data`** | str_replace on Body | `uow_data_reference`, `str_replace_old`, `str_replace_new` | Confirmation |
 | **`list_uow_context`** | List context (summary) | *(none)* | CSV keyed by `Reference` |
 | **`list_uow_data`** | List data (summary) | *(none)* | CSV keyed by `Reference` |
@@ -79,6 +79,7 @@ add_uow_data
   type: quote_snapshot
   body: {"plan":"B","monthly":49}
   tags: quote
+  effort: 120
 → Unit of work data created with reference ef56gh78.
 ```
 
@@ -86,12 +87,12 @@ Later in the same run:
 
 ```
 list_uow_data
-→ Reference,Date,Source,Type,Body,Tags
-  ef56gh78,...,tool,quote_snapshot,"{""plan"":""B""...",quote
+→ Reference,Date,Source,Type,Body,Tags,Effort
+  ef56gh78,...,tool,quote_snapshot,"{""plan"":""B""...",quote,120
 
 get_uow_data
   uow_data_reference: ef56gh78
-→ full markdown including Tags and Body
+→ full markdown including Tags, Effort and Body
 
 update_uow_data
   uow_data_reference: ef56gh78

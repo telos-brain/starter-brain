@@ -1,7 +1,7 @@
 ---
 name: Connectors
 code: BRA209
-version: 2
+version: 1
 description: How to author connector YAML files for external services (OAuth 2,
   API key, or none). Covers file layout, brain-compose registration, parameter
   declarations vs secret storage, deploy behaviour, and worked examples.
@@ -58,12 +58,12 @@ skills / workflows):
 
 ```yaml
 connectors:
-  - connectors/example-oauth2.yml
-  - connectors/example-api-key.yml
-  - connectors/example-none.yml
+  - ./connectors/example-oauth2.yml
+  - ./connectors/example-api-key.yml
+  - ./connectors/example-none.yml
 ```
 
-Paths are relative to the compose file. Prefer paths without a `./` prefix.
+Paths are relative to the compose file. Convention: prefix with `./`.
 
 Deploy order places **connectors before tools**, so tools can reference
 connector names via a top-level `connector:` field (BRA199). Connectors are

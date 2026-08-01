@@ -5,7 +5,7 @@ description: >-
   Autonomously extracts transferable skill knowledge from an inbox entry and
   creates or updates skills (and rarely categories) via schema tools. Source
   material comes from {{inboxEntry.body}}; skill book structure is injected.
-version: 8
+version: 9
 model: anthropic/claude-sonnet-4-6
 
 # Tasks are usually created by WF-TRIAGE (add_inbox_task). Declaring an inbox
@@ -32,6 +32,9 @@ tools:
   - get_schema_file
   - update_schema_file
   - create_skill
+
+injected-skills:
+  - BRA105
 
 available-skills:
   - BRA103

@@ -7,7 +7,7 @@ description: >-
   self-management, and research asks to the matching workflows, and creates
   review_blueprint tasks for clear category matches — without repeating the
   entry body into maintenance task instructions.
-version: 7
+version: 8
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -25,6 +25,9 @@ max-runs-per-hour: 50
 tools:
   - add_inbox_task
   - update_inbox_entry
+
+injected-skills:
+  - BRA105
 
 available-skills:
   - BRA103

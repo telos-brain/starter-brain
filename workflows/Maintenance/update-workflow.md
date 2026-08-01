@@ -5,7 +5,7 @@ description: >-
   Autonomously applies learnings to workflow instructions and tool definitions
   (create or update). Triggered for WORKFLOW_UPDATE and TOOL_UPDATE at high
   learning mode.
-version: 5
+version: 6
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
@@ -32,6 +32,9 @@ tools:
   - update_schema_file
   - create_schema_file
   - update_inbox_entry
+
+injected-skills:
+  - BRA105
 
 available-skills:
   - BRA201

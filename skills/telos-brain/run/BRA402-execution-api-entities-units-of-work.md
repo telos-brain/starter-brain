@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Entities & Units of Work"
 code: BRA402
-version: 4
+version: 6
 description: How to create and manage entities and units of work via the
   Execution API — including appending context and data logs, and completing a
   unit of work to trigger the learning eval.
@@ -103,13 +103,22 @@ Two append-only logs hang off each unit of work:
 
 Both logs are insert-only — there is no update or delete path.
 
+A unit of work can also hold **variables** — key/value pairs keyed by the variable
+keys its type declares in the brain schema (see BRA201 §4.1). These work exactly
+like entity variables, but scope the value to a single piece of work (e.g. the
+external `jobId` created for this job) so a tool parameter bound with
+`unitofwork:` can inject it automatically at dispatch (BRA201 §5.3).
+
 ### `POST /units-of-work` — create a unit of work
 
 ```json
 {
   "entityId": "3f0c...",
   "unitOfWorkTypeCode": "proposal",
-  "title": "Q3 proposal for Acme"
+  "title": "Q3 proposal for Acme",
+  "variables": [
+    { "key": "jobId", "value": "job-98765" }
+  ]
 }
 ```
 
@@ -118,8 +127,30 @@ Both logs are insert-only — there is no update or delete path.
 | `entityId` | yes | Must belong to the brain. `404` otherwise. |
 | `unitOfWorkTypeCode` | yes | Must match a type in the brain schema. `400` if unknown. |
 | `title` | yes | |
+| `variables` | no | Array of `{ key, value }` pairs. Keys should match a variable key declared on the unit of work's type. |
 
-Initial status is `Open`. Response `201 Created` — returns the full unit-of-work object.
+Initial status is `Open`. Response `201 Created` — returns the full unit-of-work object including `variables` (the stored key/value pairs).
+
+### `GET /units-of-work/{id}/variables` — read a unit of work's variables
+
+Response `200 OK` — array of `{ key, value }` pairs, or `404 Not Found`.
+
+### `PUT /units-of-work/{id}/variables` — set a unit of work's variables
+
+Creates or updates the supplied keys; keys not listed are left untouched (an
+upsert, not a wholesale replace). Use it to set variables after creation, or to
+change them later — for example once the harness has created the external record.
+
+```json
+{
+  "variables": [
+    { "key": "jobId", "value": "job-98765" },
+    { "key": "batchCode", "value": "B-2026-07" }
+  ]
+}
+```
+
+Response `200 OK` — the unit of work's full set of variables after the update, or `404 Not Found`.
 
 ### `POST /units-of-work/{id}/context` — append context
 
@@ -150,7 +181,9 @@ Optimised for high-frequency writes. Returns `201 Created` with **no body**.
   "date": "2026-07-09T07:06:30Z",
   "source": "tool:crm_lookup",
   "type": "tool_response",
-  "body": "{ ... }"
+  "body": "{ ... }",
+  "tags": "trace,retry",
+  "effort": 300
 }
 ```
 
@@ -160,6 +193,8 @@ Optimised for high-frequency writes. Returns `201 Created` with **no body**.
 | `source` | yes | |
 | `type` | yes | |
 | `body` | yes | Unbounded string; typically JSON. |
+| `tags` | no | Optional comma-separated tags. |
+| `effort` | no | Optional effort in seconds (integer). Stored as-is; omit for `null`. |
 
 Response `201 Created` (no body), or `404 Not Found`.
 

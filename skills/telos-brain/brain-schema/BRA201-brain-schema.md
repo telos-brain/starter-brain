@@ -42,9 +42,7 @@ Two authoring styles are used, deliberately:
   markdown body is the content itself.
 
 All referenced paths inside a manifest are **relative to that manifest's own
-folder**. Prefer paths without a `./` prefix (`tools/…`, not `./tools/…`) —
-`NormalisePath` drops `.` segments, so both resolve the same, but the preferred
-form omits `./`.
+folder**. Convention is to prefix them with `./`.
 
 ---
 
@@ -155,24 +153,28 @@ unitsofwork:                     # also accepted as `unitsOfWork`
   - name: Ticket                 # REQUIRED
     code: ticket                 # REQUIRED
     scope: entity:application    # optional
+    # variables: optional per-unit-of-work variables (see §4.1)
+    variables:
+      - key: jobId               # REQUIRED (the variable key)
+        description: External job ID for this ticket.   # optional
 
 # Each of the following is a LIST OF PATHS to self-contained definitions.
 connectors:
-  - connectors/example-oauth2.yml
+  - ./connectors/example-oauth2.yml
 
 tools:
-  - tools/tickets/tools.yml
+  - ./tools/tickets/tools.yml
 
 skills:
-  - skills/eng/skillbook.yml
-  - skills/ops/skillbook.yml
+  - ./skills/eng/skillbook.yml
+  - ./skills/ops/skillbook.yml
 
 blueprints:
-  - blueprints/product-brain/blueprint.yml
-  - blueprints/application/blueprint.yml
+  - ./blueprints/product-brain/blueprint.yml
+  - ./blueprints/application/blueprint.yml
 
 workflows:
-  - workflows/review-blueprint.md
+  - ./workflows/review-blueprint.md
 ```
 
 Rules:
@@ -189,7 +191,7 @@ Rules:
   relative paths. Anything **not listed here is not deployed**, even if the file
   exists on disk.
 
-### 4.1 Entity variables (per-entity key/value pairs)
+### 4.1 Entity and unit-of-work variables (per-instance key/value pairs)
 
 An entity type can declare **variables** — named slots that each *instance* of
 that type can fill with a scalar value (e.g. an external `organisationId`, an
@@ -218,6 +220,30 @@ Rules:
 - The point of declaring a variable is so a **tool parameter can bind to it** and
   have the current entity's value injected automatically at dispatch — see the
   `entity:` parameter field in §5.3.
+
+A **unit-of-work type** declares variables in exactly the same way, for data that
+belongs to a single piece of work rather than to the entity behind it (e.g. the
+external `jobId` the harness created for this ticket):
+
+```yaml
+unitsofwork:
+  - name: Ticket
+    code: ticket
+    scope: entity:customer
+    variables:
+      - key: jobId                                # REQUIRED (the variable key)
+        description: The external job ID for this ticket.   # optional
+      - key: batchCode
+        description: The processing batch this ticket belongs to.
+```
+
+The same rules apply — keys are unique per unit-of-work type, deploying is
+upsert-always, and values are set per unit-of-work instance via the Execution API
+(BRA402). A tool parameter binds to one with the `unitofwork:` field (§5.3).
+
+Choose by lifetime: put a value on the **entity** when it is stable across every
+piece of work for that record; put it on the **unit of work** when it is specific
+to this job. A tool can bind to both at once.
 
 ### 4.2 Checkpoint strategy
 
@@ -336,7 +362,7 @@ Tools are organised into **groups**. The compose file points to a group manifest
 name: Tickets                          # REQUIRED
 description: Tools for reading and updating tickets.   # REQUIRED
 tools:
-  - add-ticket-comment.yml           # paths relative to this manifest
+  - ./add-ticket-comment.yml           # paths relative to this manifest
 ```
 
 ### 5.2 Tool definition (one file per tool)
@@ -451,8 +477,8 @@ Native tools are authored like any other tool — as a tool group with one file 
 name: Native tools
 description: Provider-native (built-in) LLM capabilities such as web access.
 tools:
-  - web-search.yml
-  - web-fetch.yml
+  - ./web-search.yml
+  - ./web-fetch.yml
 ```
 
 **Step 2 — Create one file per native tool.** Each declares only `name`, `description`, and the `native` block — no `parameters`.
@@ -483,7 +509,7 @@ native:
 
 ```yaml
 tools:
-  - tools/native/tools.yml
+  - ./tools/native/tools.yml
 ```
 
 **Step 4 — Enable the tools on any workflow that should use them**, by `name`:
@@ -628,6 +654,30 @@ arguments. `workflow` tools expose it as `{{input.<name>}}` (and the legacy
 markdown input). The binding is ignored by `native` tools (which take no
 parameters).
 
+#### Binding a parameter to a unit-of-work variable
+
+A parameter can equally pull its value from the **current unit of work's** stored
+data. Declare a `unitofwork:` field naming a variable key that the unit of work's
+type declares in `brain-compose.yml` (§4.1):
+
+```yaml
+parameters:
+  - name: job_id
+    description: The external job id for the current unit of work.
+    param: jobId                       # underlying key the endpoint expects
+    unitofwork: jobId                  # inject the current unit of work's value for this variable
+```
+
+- `unitofwork:` names a **unit-of-work variable key**. At dispatch the router
+  looks up the value for that key on the run's current unit of work (the unit of
+  work the workflow run is scoped to) and injects it under `param`.
+- Semantics match `entity:` exactly: the parameter is **hidden from the LLM**,
+  `header:` still chooses placement, and **if the current unit of work has no
+  value for the key** (or the run has no unit of work in scope) the parameter is
+  **omitted** from the request rather than sent blank.
+- A single tool may mix `entity:`- and `unitofwork:`-bound parameters; each
+  resolves against its own scope.
+
 #### End-to-end example: an authenticated API tool that uses a variable
 
 Putting §5.1–§5.3 together — a complete, authenticated API tool from scratch.
@@ -646,7 +696,7 @@ ACME_API_KEY=sk_live_xxx
 name: Acme
 description: Tools for creating and reading Acme widgets.
 tools:
-  - create-widget.yml
+  - ./create-widget.yml
 ```
 
 **Step 3 — Define the tool** (`tools/acme/create-widget.yml`). One injected
@@ -678,7 +728,7 @@ deployed):
 
 ```yaml
 tools:
-  - tools/acme/tools.yml
+  - ./tools/acme/tools.yml
 ```
 
 **Step 5 — Enable the tool on a workflow**, by `name`:
@@ -757,13 +807,13 @@ categories:
     description: Server-side design, data access and API practices.  # optional
     index: 100                         # optional ordering; defaults to array position
     skills:
-      - backend/EP101-database-migrations.md   # paths relative to this manifest
-      - backend/EP102-api-versioning.md
+      - ./backend/EP101-database-migrations.md   # paths relative to this manifest
+      - ./backend/EP102-api-versioning.md
   - name: Frontend
     description: Client-side architecture and UI patterns.
     index: 200
     skills:
-      - frontend/EP201-component-design.md
+      - ./frontend/EP201-component-design.md
 ```
 
 ### 6.2 Skill file (markdown + frontmatter)
@@ -1242,8 +1292,8 @@ When creating or extending a brain:
 3. For each other capability, create its self-contained folder/file **and** add
    its path to the matching list in `brain-compose.yml` (unlisted files are
    ignored).
-4. Keep relative paths correct (prefer `tools/…` over `./tools/…`) — they
-   resolve against the manifest's own folder.
+4. Keep relative paths (`./…`) correct — they resolve against the manifest's own
+   folder.
 5. Ensure cross-references resolve: workflow `tools` / `available-tools` → tool
    `name`s; skill `tools` → tool `name`s that the hosting workflow also lists
    under `available-tools` when you want mid-run promotion; workflow
