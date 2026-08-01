@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 33
+version: 34
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -42,7 +42,7 @@ Two authoring styles are used, deliberately:
   markdown body is the content itself.
 
 All referenced paths inside a manifest are **relative to that manifest's own
-folder**. Convention is to prefix them with `./`.
+folder** (no `./` prefix needed).
 
 ---
 
@@ -160,21 +160,21 @@ unitsofwork:                     # also accepted as `unitsOfWork`
 
 # Each of the following is a LIST OF PATHS to self-contained definitions.
 connectors:
-  - ./connectors/example-oauth2.yml
+  - connectors/example-oauth2.yml
 
 tools:
-  - ./tools/tickets/tools.yml
+  - tools/tickets/tools.yml
 
 skills:
-  - ./skills/eng/skillbook.yml
-  - ./skills/ops/skillbook.yml
+  - skills/eng/skillbook.yml
+  - skills/ops/skillbook.yml
 
 blueprints:
-  - ./blueprints/product-brain/blueprint.yml
-  - ./blueprints/application/blueprint.yml
+  - blueprints/product-brain/blueprint.yml
+  - blueprints/application/blueprint.yml
 
 workflows:
-  - ./workflows/review-blueprint.md
+  - workflows/review-blueprint.md
 ```
 
 Rules:
@@ -362,7 +362,7 @@ Tools are organised into **groups**. The compose file points to a group manifest
 name: Tickets                          # REQUIRED
 description: Tools for reading and updating tickets.   # REQUIRED
 tools:
-  - ./add-ticket-comment.yml           # paths relative to this manifest
+  - add-ticket-comment.yml           # paths relative to this manifest
 ```
 
 ### 5.2 Tool definition (one file per tool)
@@ -477,8 +477,8 @@ Native tools are authored like any other tool — as a tool group with one file 
 name: Native tools
 description: Provider-native (built-in) LLM capabilities such as web access.
 tools:
-  - ./web-search.yml
-  - ./web-fetch.yml
+  - web-search.yml
+  - web-fetch.yml
 ```
 
 **Step 2 — Create one file per native tool.** Each declares only `name`, `description`, and the `native` block — no `parameters`.
@@ -509,7 +509,7 @@ native:
 
 ```yaml
 tools:
-  - ./tools/native/tools.yml
+  - tools/native/tools.yml
 ```
 
 **Step 4 — Enable the tools on any workflow that should use them**, by `name`:
@@ -696,7 +696,7 @@ ACME_API_KEY=sk_live_xxx
 name: Acme
 description: Tools for creating and reading Acme widgets.
 tools:
-  - ./create-widget.yml
+  - create-widget.yml
 ```
 
 **Step 3 — Define the tool** (`tools/acme/create-widget.yml`). One injected
@@ -728,7 +728,7 @@ deployed):
 
 ```yaml
 tools:
-  - ./tools/acme/tools.yml
+  - tools/acme/tools.yml
 ```
 
 **Step 5 — Enable the tool on a workflow**, by `name`:
@@ -807,13 +807,13 @@ categories:
     description: Server-side design, data access and API practices.  # optional
     index: 100                         # optional ordering; defaults to array position
     skills:
-      - ./backend/EP101-database-migrations.md   # paths relative to this manifest
-      - ./backend/EP102-api-versioning.md
+      - backend/EP101-database-migrations.md   # paths relative to this manifest
+      - backend/EP102-api-versioning.md
   - name: Frontend
     description: Client-side architecture and UI patterns.
     index: 200
     skills:
-      - ./frontend/EP201-component-design.md
+      - frontend/EP201-component-design.md
 ```
 
 ### 6.2 Skill file (markdown + frontmatter)
@@ -1292,8 +1292,7 @@ When creating or extending a brain:
 3. For each other capability, create its self-contained folder/file **and** add
    its path to the matching list in `brain-compose.yml` (unlisted files are
    ignored).
-4. Keep relative paths (`./…`) correct — they resolve against the manifest's own
-   folder.
+4. Keep relative paths correct — they resolve against the manifest's own folder.
 5. Ensure cross-references resolve: workflow `tools` / `available-tools` → tool
    `name`s; skill `tools` → tool `name`s that the hosting workflow also lists
    under `available-tools` when you want mid-run promotion; workflow

@@ -5,7 +5,7 @@ description: >-
   Autonomously applies learnings to workflow instructions and tool definitions
   (create or update). Triggered for WORKFLOW_UPDATE and TOOL_UPDATE at high
   learning mode.
-version: 6
+version: 7
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED

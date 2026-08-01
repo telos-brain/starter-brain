@@ -7,7 +7,7 @@ description: >-
   self-management, and research asks to the matching workflows, and creates
   review_blueprint tasks for clear category matches — without repeating the
   entry body into maintenance task instructions.
-version: 8
+version: 9
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED

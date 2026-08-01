@@ -10,7 +10,7 @@ description: High-level principles for organising a Telos Brain — skills,
 # Brain Principles
 
 - **Organise, don't accumulate.** Structure matters as much as content. Prefer
-  high-quality, well-organised information. When you add text, remove something
+  high-quality, well-organised information. When you add text, consider if you need to remove something
   or split the skill.
 - **Progressive disclosure.** Skills have codes and live in categories. Keep
   each skill short; split when one skill covers too much. Load depth on demand.

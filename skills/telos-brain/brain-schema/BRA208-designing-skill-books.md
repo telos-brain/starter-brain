@@ -244,7 +244,7 @@ categories:
       client state) and from Delivery (cross-cutting process and release).
     index: 100
     skills:
-      - ./backend/EP101-database-migrations.md
+      - backend/EP101-database-migrations.md
   - name: Frontend
     description: >-
       Client-side architecture, component patterns, UI state, routing, and

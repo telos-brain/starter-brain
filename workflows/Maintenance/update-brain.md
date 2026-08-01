@@ -5,7 +5,7 @@ description: >-
   Autonomously self-heals and self-manages the brain: subagents (TOOL workflows
   exposed as workflow tools), wiring, and other structural schema fixes outside
   skill-craft and simple workflow/tool edits. High learning mode only.
-version: 6
+version: 7
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
