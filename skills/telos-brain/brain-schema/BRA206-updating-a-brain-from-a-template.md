@@ -67,7 +67,7 @@ endpoints (`/skills`, `/workflows`, `/tools`, `/memory`, `/schema`):
       "action": "VersionConflict",
       "incomingVersion": 1,
       "storedVersion": 4,
-      "message": "Workflow 'WF-CHAT' not updated: incoming version 1 is not greater than stored version 4."
+      "message": "Workflow 'WF-CHAT' not updated: incoming version 1 is less than stored version 4."
     },
     {
       "resourceType": "Tool",
@@ -115,8 +115,8 @@ redeploy):
 | Condition | Outcome |
 |---|---|
 | Resource absent on destination | **Created** (always) |
-| Source version **>** destination version | **Updated** |
-| Source version **≤** destination version | **VersionConflict** — destination left untouched |
+| Source version **≥** destination version | **Updated** |
+| Source version **<** destination version | **VersionConflict** — destination left untouched |
 
 ### Versioned resources
 
@@ -192,10 +192,9 @@ curl -X POST "$TELOS_API_URL/brains/salesmate-staging/update-from/salesmate" \
 ```
 
 Inspect the DeploySummary: `Created` / `Updated` rows were applied;
-`VersionConflict` rows mean staging already had an equal or newer version and
-was left alone. Destination `.env` / environment variables are unchanged — keep
-managing those via deploy or `POST /brains/{instance}/environment-variables`
-(BRA202).
+`VersionConflict` rows mean staging already had a newer version and was left
+alone. Destination `.env` / environment variables are unchanged — keep managing
+those via deploy or `POST /brains/{instance}/environment-variables` (BRA202).
 
 ---
 

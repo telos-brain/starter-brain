@@ -32,8 +32,8 @@ For all template tags, see **BRA204**.
 
 ## 1. Manual workflow-run eval (recommended starting point)
 
-Use this when you want an admin to click **Run eval** on a completed run in the
-brain UI, rather than grading every run automatically.
+Use this when you want an admin to click **Run eval** on a Completed or Failed
+run in the brain UI, rather than grading every run automatically.
 
 ### 1.1 Frontmatter checklist
 
@@ -137,7 +137,8 @@ Persists the quality score on the **subject** WorkflowRun. Declare under
 
 1. Deploy the brain schema (CLI or Management API) so the workflow and tools are
    uploaded. Bump `version` when changing an existing eval.
-2. Open a **Completed** workflow run in the admin UI (`/brains/{instance}/runs/{runId}`).
+2. Open a **Completed** or **Failed** workflow run in the admin UI
+   (`/brains/{instance}/runs/{runId}`).
 3. Click **Run eval** (visible when at least one `workflowrun:complete` workflow
    with manual / null `trigger-mode` exists).
 4. When the eval finishes: learnings appear in the inbox; the run shows a

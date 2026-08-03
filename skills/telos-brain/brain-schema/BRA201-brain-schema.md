@@ -1238,9 +1238,9 @@ Notes:
 ## 9. Versioning rules (important)
 
 The Management API versions every resource with a **single integer** and enforces
-strict precedence: an incoming version must be **greater than** the stored one,
-otherwise the upload is a **VersionConflict** and is skipped (not failed). The
-same rule applies to CLI redeploy, the per-type upload endpoints, and
+precedence: an incoming version must be **greater than or equal to** the stored
+one, otherwise the upload is a **VersionConflict** and is skipped (not failed).
+The same rule applies to CLI redeploy, the per-type upload endpoints, and
 update-from-template (**BRA206**).
 
 The file format is friendly about how you express versions; the CLI normalises
@@ -1254,9 +1254,9 @@ them all to the **leading integer** (the "major"):
 | *(omitted)*   | `1`         |
 | `2.5`         | `2`         |
 
-Implication: **to ship a change, bump the leading integer** (e.g. `1.x` → `2`).
-Editing content while leaving the major unchanged will be treated as "not newer"
-and skipped on redeploy.
+Implication: **equal majors redeploy and overwrite**; only a lower incoming major
+is skipped. Bump the leading integer (e.g. `1.x` → `2`) when you want a clear
+newer release marker, or when destination already holds a higher version.
 
 ---
 

@@ -147,7 +147,7 @@ and compose entry, then `brain deploy` (or edit an existing connector with
 `update_schema_file`). See **BRA209**.
 
 Omit `version` to default to 1. Version conflicts return a clear error when the
-incoming version is not strictly greater than the stored version.
+incoming version is less than the stored version.
 
 On failure, the tool's `error-markdown` (see
 `tools/brain-schema/create-schema-file.yml`) names the skills that define each
