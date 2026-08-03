@@ -1,10 +1,11 @@
 ---
 name: Connectors
 code: BRA209
-version: 2
+version: 3
 description: How to author connector YAML files for external services (OAuth 2,
   API key, or none). Covers file layout, brain-compose registration, parameter
-  declarations vs secret storage, deploy behaviour, and worked examples.
+  declarations vs secret storage, url vs url-env for environment-specific base
+  URLs, deploy behaviour, and worked examples.
 tools:
   - list_schema_files
   - search_schema_files
@@ -78,7 +79,8 @@ Plain YAML (no markdown frontmatter). One connector per file. Path convention:
 
 ```yaml
 name: my-connector                 # REQUIRED — unique per brain; used as the deploy key
-url: https://api.example.com       # REQUIRED — base URL of the external service
+url: https://api.example.com       # XOR with url-env — static HTTPS base URL
+# url-env: ACME_API_URL            # XOR with url — brain env var name for the base URL
 auth-type: oauth2                  # REQUIRED — oauth2 | api-key | none
 scope: brain                       # optional — defaults to brain; only brain is valid today
 parameters:                         # optional — omit the key entirely when empty
@@ -93,7 +95,8 @@ parameters:                         # optional — omit the key entirely when em
 | Field | Required | Notes |
 |---|---|---|
 | `name` | yes | Unique per brain (`UQ_Connectors_BrainId_Name`). Stable identifier for schema paths and APIs. |
-| `url` | yes | Base URL (REST root or MCP endpoint). |
+| `url` | one of | Static HTTPS base URL (REST root or MCP endpoint). **Exactly one** of `url` or `url-env`. |
+| `url-env` | one of | Name of a brain environment variable (from `.env`) whose value is the HTTPS base URL. Resolved at tool/OAuth dispatch — same schema, different domains per brain. |
 | `auth-type` | yes | Exactly one of: `oauth2`, `api-key`, `none`. |
 | `scope` | no | Defaults to `brain`. Entity-scoped connectors are out of scope for now. |
 | `api-key-header` | no | For `api-key` auth only (BRA199). Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
@@ -160,7 +163,37 @@ scope: brain
 
 No `parameters` key — empty lists are omitted.
 
-### 4.4 Referencing a connector from a tool (BRA199 / BRA200)
+### 4.4 Environment-specific base URL — `url-env`
+
+When the same schema must hit different hosts in test vs production, declare
+`url-env` instead of a literal `url`, and put the HTTPS value in each brain's
+`.env` (uploaded on deploy — **BRA202**):
+
+```yaml
+# connectors/acme.yml
+name: acme
+url-env: ACME_API_URL
+auth-type: api-key
+scope: brain
+api-key-header: X-Api-Key
+parameters:
+  - name: api-key
+    description: API key for Acme.
+```
+
+```bash
+# .env on the test brain
+ACME_API_URL=https://api.test.example.com
+
+# .env on the production brain
+ACME_API_URL=https://api.example.com
+```
+
+At dispatch the platform resolves `ACME_API_URL`, validates it as HTTPS, then
+combines it with the tool's relative `api.path`. Missing or non-HTTPS values
+fail the tool call with a clear error. Do **not** set both `url` and `url-env`.
+
+### 4.5 Referencing a connector from a tool (BRA199 / BRA200)
 
 API and MCP tools may omit a connector (inline URL / server) or point at one:
 
@@ -221,11 +254,13 @@ Schema system tools (**BRA203**) treat connectors as first-class schema files:
 
 ## 7. Authoring checklist
 
-1. Create `connectors/{name}.yml` with `name`, `url`, `auth-type`.
+1. Create `connectors/{name}.yml` with `name`, exactly one of `url` / `url-env`,
+   and `auth-type`.
 2. Add declared `parameters` (name + description only) when the connector needs
    credentials; omit the key when it does not.
 3. List the path under `connectors:` in `brain-compose.yml`.
-4. Put secret **values** in `.env` (or the secrets API) — never in the YAML.
+4. Put secret **values** and any `url-env` URL values in `.env` (or the secrets
+   API) — never in the YAML.
 5. Use British English in descriptions.
 6. Dry-run deploy, then deploy.
 

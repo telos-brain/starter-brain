@@ -1,12 +1,13 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 6
+version: 7
 description: How a brain's .env variables are uploaded, encrypted and stored; the
   well-known "system" keys the platform recognises (LLM provider keys, the brain
   API key); how to inject a stored secret into an api tool's outbound request —
-  as an HTTP header, a query parameter or a JSON body field; and how connector
-  credential values relate to the same store.
+  as an HTTP header, a query parameter or a JSON body field; how connector
+  credential values relate to the same store; and how connector url-env resolves
+  a base URL from this store.
 ---
 
 # Environment Variables, Secrets & API Keys
@@ -243,7 +244,7 @@ from the model.
 
 ---
 
-## 4. Connector credentials
+## 4. Connector credentials and base URLs
 
 **Connectors** (BRA209) declare required auth inputs in YAML (`parameters` with
 `name` / `description` only). The **values** for those inputs — OAuth client id /
@@ -255,6 +256,12 @@ same encrypted store. They are never written into the connector YAML.
   which uses connector-scoped keys such as `CONNECTOR_{connectorId}_CLIENT_ID`).
 - OAuth **access / refresh tokens** are runtime state (`ConnectorTokens`), not
   environment variables — do not put bearer tokens in `.env` for that purpose.
+
+A connector may also take its **base URL** from this store via YAML `url-env:`
+(instead of a static `url:`). Put the HTTPS URL in `.env` under that variable
+name; at tool/OAuth dispatch the platform resolves it the same way as other
+brain environment variables. Use this when one schema is deployed to test and
+production brains with different hosts. See **BRA209** §4.4.
 
 See **BRA209** for the connector file format and examples.
 
@@ -270,6 +277,7 @@ See **BRA209** for the connector file format and examples.
    it as a header, or omit `header:` to inject it into the query string (GET) or
    JSON body (POST). Never paste the key into the tool file.
 5. For **connectors**, declare parameter names in `connectors/*.yml` and store
-   values here — never in the connector file (BRA209).
+   values here — never in the connector file (BRA209). When using `url-env`, put
+   the HTTPS base URL in `.env` under that variable name.
 6. Redeploy to rotate a secret — the value is upserted (replaced) against the
    brain and re-encrypted.

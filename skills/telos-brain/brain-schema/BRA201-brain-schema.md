@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 34
+version: 35
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -764,7 +764,8 @@ file lists the paths to deploy. Full authoring guide and worked examples:
 
 ```yaml
 name: my-connector                 # REQUIRED — unique per brain
-url: https://api.example.com       # REQUIRED — base URL
+url: https://api.example.com       # XOR with url-env — static HTTPS base URL
+# url-env: ACME_API_URL            # XOR with url — brain env var for the base URL
 auth-type: oauth2                  # REQUIRED — oauth2 | api-key | none
 scope: brain                       # optional — defaults to brain (only value today)
 parameters:                         # optional — omit the key entirely when empty
@@ -778,11 +779,13 @@ Rules:
 
 - Plain YAML — **no** markdown frontmatter delimiters (same style as tool files).
 - `name` is unique per brain and is the stable path/code (`connectors/{name}.yml`).
+- Exactly one of `url` (static HTTPS) or `url-env` (brain environment variable
+  name whose value is the HTTPS base URL — **BRA202** / **BRA209**).
 - `parameters` declare credential **names** only. Secret **values** belong in
   brain environment variables (`.env` / BRA202) — never in the YAML.
 - OAuth access/refresh tokens are runtime state (`ConnectorTokens`), not schema.
-- Upsert-always on deploy (no `version` field): Name / Url / AuthType / Scope /
-  parameters are replaced on every deploy.
+- Upsert-always on deploy (no `version` field): Name / Url / UrlEnv / AuthType /
+  Scope / parameters are replaced on every deploy.
 - Register paths under `connectors:` in `brain-compose.yml` (unlisted = not
   deployed).
 
