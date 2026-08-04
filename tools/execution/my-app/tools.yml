@@ -1,0 +1,5 @@
+name: My App
+description: >-
+  Example tools that call a My App HTTP API via the my-app connector.
+tools:
+  - example-api-tool.yml

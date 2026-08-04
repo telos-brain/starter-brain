@@ -26,6 +26,13 @@ unitsofwork:
     name: Jobs
     scope: entity:clients
 
+# Connectors are named integrations with external services (REST/MCP). Each file
+# under connectors/ declares URL, auth type, scope and required auth parameters.
+# Secret values are not stored here — they go in .env / BrainEnvironmentVariables
+# (BRA202 / BRA209). Unlisted connector files are not deployed.
+connectors:
+  - connectors/my-app.yml
+
 # Tools are split into execution (runtime) and management (brain maintenance).
 tools:
   - tools/execution/skills/tools.yml
@@ -33,6 +40,7 @@ tools:
   - tools/execution/qa/tools.yml
   - tools/execution/native/tools.yml
   - tools/execution/inbox/tools.yml
+  - tools/execution/my-app/tools.yml
   - tools/management/schema/tools.yml
 
 skills:

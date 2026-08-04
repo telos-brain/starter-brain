@@ -1,0 +1,7 @@
+# Example My App connector (BRA209).
+# Base URL from MY_APP_API_URL (url-env). Credential MY_APP_API_KEY is injected
+# by tools that use this connector (see example_api_tool — BRA202 secret:).
+name: my-app
+url-env: MY_APP_API_URL
+auth-type: none
+scope: brain

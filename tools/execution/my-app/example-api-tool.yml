@@ -1,0 +1,15 @@
+name: example_api_tool
+version: 1
+description: >-
+  Example API tool that calls My App at /api/tools/example-api via the my-app
+  connector. Base URL from MY_APP_API_URL; authenticates with MY_APP_API_KEY.
+api:
+  method: POST
+  path: /api/tools/example-api
+  connector: my-app
+parameters:
+  - name: authorization
+    description: My App API key, injected as the Authorization bearer token.
+    header: Authorization
+    secret: MY_APP_API_KEY
+    value: "Bearer {secret}"
