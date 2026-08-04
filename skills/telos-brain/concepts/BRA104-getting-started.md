@@ -1,7 +1,7 @@
 ---
 name: Getting Started
 code: BRA104
-version: 3
+version: 4
 description: Interactive onboarding interview to configure a brain schema from
   scratch — entity type, unit of work type, blueprint categories, and skill
   categories. Use after brain init, before the first deploy.
@@ -22,6 +22,8 @@ apply to the schema files.
 
 - **BRA201** — brain schema structure (`brain-compose.yml`, entities, units of
   work, blueprints, skillbooks)
+- **BRA210** — LLM providers and example `model` codes for workflows
+  (`anthropic/…`, `openai/…`, `xai/…`)
 - **BRA208** — skill-book category design and numeric ranges
 - **BRA102** — company brain model (brain-scoped vs entity-scoped memory)
 

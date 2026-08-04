@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 35
+version: 36
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -970,9 +970,11 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # trigger:
 #   - inbox:SKILL_UPDATE
 #   - inbox:WORKFLOW_UPDATE:medium
-# model: anthropic\claude-sonnet-4-6   # optional metadata
+# model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
+# model: openai/gpt-4o                 # OpenAI
+# model: xai/grok-4.5                  # xAI / Grok
 
-# Injected tools — included in the Claude tool declarations for every turn.
+# Injected tools — included in the LLM tool declarations for every turn.
 # Referenced by tool NAME (the tool's `name`).
 tools:
   - find_available_skills
@@ -1126,13 +1128,25 @@ input-tools:
 The model sees `<pre_called_tool name="widget_information">…</pre_called_tool>`
 before its first turn, with no extra LLM tool call required to fetch the widget.
 
-### 8.1 LLM execution settings (optional, Anthropic-only)
+### 8.0b Choosing a model (`model`, see **BRA210**)
 
-A workflow may declare fine-grained control over how the Claude conversant runs
-it. All five fields are **optional** and **kebab-case**; omit any of them to keep
-its default. Omitting all five reproduces the historic behaviour exactly, so
-existing workflows need no changes. They only affect the Anthropic (Claude)
-provider.
+Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
+`openai/gpt-4o`, `xai/grok-4.5`). Supported providers, example model codes, and
+credential mapping are listed in **BRA210**. Bare model names (no prefix)
+default to Anthropic. Omit `model` for the platform default
+(`anthropic` / `claude-sonnet-4-5`).
+
+### 8.1 LLM execution settings (optional)
+
+A workflow may declare fine-grained control over how the conversant runs it.
+All fields below are **optional** and **kebab-case**; omit any of them to keep
+its default. Omitting all of them reproduces the historic behaviour exactly, so
+existing workflows need no changes.
+
+`max-turns` and `output-tokens` apply to every supported provider. `caching`,
+`thinking`, `thinking-budget`, `thinking-effort`, and `auto-compaction` are
+**Claude-oriented** — they are validated on deploy when present, but OpenAI and
+xAI ignore them at run time (see **BRA210** §5).
 
 ```markdown
 ---

@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 7
+version: 8
 description: How a brain's .env variables are uploaded, encrypted and stored; the
   well-known "system" keys the platform recognises (LLM provider keys, the brain
   API key); how to inject a stored secret into an api tool's outbound request —
@@ -76,6 +76,7 @@ convention** and used automatically:
 | ----------------------- | ------------ | --------------------------------------------------------------------------------------------- |
 | `ANTHROPIC_API_KEY`     | uploaded     | LLM provider key for **Anthropic / Claude**. Resolved automatically for any run whose model is `anthropic/…` (or unprefixed — Anthropic is the default provider). |
 | `OPENAI_API_KEY`        | uploaded     | LLM provider key for **OpenAI**. Resolved for runs whose model is `openai/…`.                 |
+| `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (BRA240).       |
 | `TIMEZONE`              | uploaded     | Optional IANA timezone id (e.g. `Pacific/Auckland`) used by `{{now.local*}}` template tags. When unset or unrecognised, local time falls back to UTC. |
 | `TELOS_ORG_API_KEY`     | **local**    | Organisation deploy credential the CLI authenticates with. Never uploaded to the brain.       |
 | `TELOS_API_URL`         | **local**    | Management API base URL for the CLI. Never uploaded to the brain.                             |
@@ -87,12 +88,18 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 
 - `anthropic/claude-sonnet-4-5` → looks up **`ANTHROPIC_API_KEY`**
 - `openai/gpt-…` → looks up **`OPENAI_API_KEY`**
+- `xai/grok-4.5` → looks up **`XAI_API_KEY`**
 - a workflow with **no** `model` (or a bare model name with no provider prefix)
   falls back to the default provider **anthropic**, i.e. still **`ANTHROPIC_API_KEY`**.
 
 Always name the Claude key **`ANTHROPIC_API_KEY`** — that is the one and only
-name the platform looks for. If a workflow's model resolves to a provider whose
-`<PROVIDER>_API_KEY` variable is not set for the brain, the run cannot start.
+name the platform looks for for Anthropic. Use **`OPENAI_API_KEY`** for OpenAI
+and **`XAI_API_KEY`** for Grok. If a workflow's model resolves to a provider
+whose `<PROVIDER>_API_KEY` variable is not set for the brain, the run cannot
+start.
+
+For the full list of supported providers, example workflow `model` codes, and
+which ConversantSettings each provider honours, see **BRA210**.
 
 ---
 
