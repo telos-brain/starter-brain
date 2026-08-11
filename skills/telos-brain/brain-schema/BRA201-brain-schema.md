@@ -113,9 +113,11 @@ Key facts:
 - To pull newer template configuration into a previously cloned instance without
   overwriting destination resources that are already ahead, use update-from —
   see **BRA206** (same version-precedence rule as §9).
-- Credentials load from `.env` next to the compose file (`TELOS_ORG_API_KEY`,
-  optional `TELOS_API_URL`). Real environment variables override `.env`, so CI
-  secrets always win.
+- Credentials and destination load from `.env` or `.env.<env>` next to the
+  compose file (`TELOS_BRAIN_ORG_API_KEY`, `TELOS_BRAIN_API_URL`; legacy
+  `TELOS_ORG_API_KEY` / `TELOS_API_URL` still accepted). Use
+  `brain deploy --env <local|dev|stage|prod>` to select a named file. Real
+  environment variables override `.env`, so CI secrets always win.
 - The **whole brain is parsed up front**, so any schema error fails the deploy
   before a single API call is made. Use `--dry-run` while authoring.
 - Deploy order is fixed: **skills → connectors → tools → workflows → memory
@@ -964,7 +966,7 @@ name: Review Blueprint                 # REQUIRED (workflow title)
 code: WF-REVIEW                        # REQUIRED (unique workflow code)
 description: Reviews a blueprint submission and posts findings to the ticket.  # optional
 version: 1.1                           # optional (see §9)
-type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM (default RUNNABLE)
+type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM | SIMULATION (default RUNNABLE)
 # trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list (BRA121)
 # trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier (BRA122): low|medium|high
 # trigger:
@@ -1023,8 +1025,8 @@ Rules:
 
 - `name` and `code` are required; the markdown **body must not be empty** (it's
   the instructions).
-- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `SYSTEM`;
-  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when `trigger` matches, `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt.
+- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `SYSTEM`, `SIMULATION`;
+  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when `trigger` matches, `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the ToolRouter resolves the active workflow of this type (not by code) when intercepting Api/Mcp tools on a simulation run.
 - Well-known `trigger` values include `inbox:<RoutingType>` / `inbox:*` (inbox
   learning loop), `unitofwork:complete` (unit-of-work learning eval), and
   `workflowrun:complete` (workflow-run learning eval, BRA091).
@@ -1143,10 +1145,11 @@ All fields below are **optional** and **kebab-case**; omit any of them to keep
 its default. Omitting all of them reproduces the historic behaviour exactly, so
 existing workflows need no changes.
 
-`max-turns` and `output-tokens` apply to every supported provider. `caching`,
-`thinking`, `thinking-budget`, `thinking-effort`, and `auto-compaction` are
-**Claude-oriented** — they are validated on deploy when present, but OpenAI and
-xAI ignore them at run time (see **BRA210** §5).
+`max-turns` and `output-tokens` apply to every supported provider. `caching`
+applies on providers that support prompt caching (Anthropic, xAI); OpenAI
+ignores it. `thinking`, `thinking-budget`, `thinking-effort`, and
+`auto-compaction` are **Claude-oriented** — validated on deploy when present,
+but ignored at run time on OpenAI / xAI (see **BRA210** §5).
 
 ```markdown
 ---
@@ -1157,7 +1160,7 @@ model: anthropic/claude-sonnet-4-6
 
 auto-compaction: 100000        # off (default) | input-token trigger for server-side context compaction (API min 50000)
 output-tokens: 2048, 4096, 16384  # 4096 (default) | ordered per-attempt output caps (Claude max_tokens); each value is the next retry when a turn stops at the cap
-caching: automatic             # (default: hand-crafted per-block markers) | none (suppress all) | automatic (let the API place the breakpoint)
+caching: automatic             # (default: hand-crafted per-block markers) | none (suppress all) | automatic (provider automatic prompt cache)
 max-turns: 50                  # 10 (default) | tool-use loop cap in turns
 thinking: adaptive             # none (default) | adaptive (model decides) | extended (manual budget) | effort (adaptive + explicit effort)
 thinking-budget: 24000         # per-mode default | thinking token budget (extended budget_tokens, or adaptive/effort headroom over the output cap)

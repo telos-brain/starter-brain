@@ -1,0 +1,25 @@
+name: get_sample_tool_results
+version: 1
+description: >-
+  Returns historical tool call/response pairs for a tool name from the
+  simulation source Brain, as XML <tool_call> blocks. Used by the SIMULATION
+  workflow to synthesise a plausible simulated tool response.
+system:
+  tool: get_sample_tool_results
+parameters:
+  - name: tool_name
+    param: tool_name
+    description: Required. The name of the tool to look up historical calls for.
+    type: string
+    required: true
+  - name: parameters
+    param: parameters
+    description: >-
+      Required. JSON object representing the parameter signature of the tool
+      call being simulated.
+    type: string
+    required: true
+  - name: count
+    param: count
+    description: Optional. Maximum number of historical pairs to return (default 5).
+    type: string

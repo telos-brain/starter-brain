@@ -1,7 +1,7 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 1
+version: 2
 description: Supported AI providers for workflow runs, the provider/model string
   format, example model codes, credential variable names, and which ConversantSettings
   apply per provider.
@@ -50,7 +50,7 @@ run cannot start.
 | --------------- | ---------- | ------------------- | ----- |
 | `anthropic` (alias `claude`) | Claude | `ANTHROPIC_API_KEY` | Default when `model` is omitted or unprefixed |
 | `openai` | OpenAI Chat Completions | `OPENAI_API_KEY` | Also used for OpenAI embedding models when configured |
-| `xai` | OpenAI-compatible Chat Completions at `api.x.ai` | `XAI_API_KEY` | Grok models |
+| `xai` | OpenAI-compatible Chat Completions at `api.x.ai` | `XAI_API_KEY` | Grok models; response `reasoning_content` mapped to Thinking |
 
 Any other prefix is rejected at run time (`NotSupportedException`).
 
@@ -121,12 +121,21 @@ Optional LLM execution fields on the workflow (`max-turns`, `output-tokens`,
 | ------- | --------- | ------ | --- |
 | `max-turns` | Applied | Applied | Applied |
 | `output-tokens` (retry caps) | Applied (`max_tokens` / `max_tokens` stop) | Applied (`max_tokens` / `finish_reason=length`) | Applied (same as OpenAI) |
-| `caching` | Applied | Ignored | Ignored |
-| `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored | Ignored |
+| `caching` | Applied | Ignored | Applied |
+| `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored (request) | Ignored (request) |
 | `auto-compaction` | Applied | Ignored | Ignored |
 
-Unsupported fields are accepted on deploy and silently ignored at run time for
-non-Claude providers — they do not fail the run.
+Unsupported fields are accepted on deploy and silently ignored at run time where
+the table shows Ignored — they do not fail the run. Each provider applies
+supported settings in its own native form (e.g. `caching: automatic` uses that
+provider's automatic prompt-cache mechanism).
+
+**Response-side reasoning (xAI / OpenAI-compatible):** Grok reasoning models often
+return chain-of-thought in `message.reasoning_content` (especially on tool-call
+turns where `content` is empty). The OpenAI-compatible conversant persists that
+field as `WorkflowMessage.Thinking` so the run UI can show it alongside tool
+cards. Workflow `thinking*` frontmatter still does not send Anthropic-style
+thinking request parameters to OpenAI / xAI.
 
 ---
 

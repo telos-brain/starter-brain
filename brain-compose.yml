@@ -40,6 +40,7 @@ tools:
   - tools/execution/qa/tools.yml
   - tools/execution/native/tools.yml
   - tools/execution/inbox/tools.yml
+  - tools/execution/simulation/tools.yml
   - tools/execution/my-app/tools.yml
   - tools/management/schema/tools.yml
 
@@ -61,6 +62,7 @@ workflows:
   - workflows/review-blueprint.md
   - workflows/research.md
   - workflows/eval.md
+  - workflows/wf-sim.md
   - workflows/Maintenance/brain-system.md
   - workflows/Maintenance/triage.md
   - workflows/Maintenance/update-skill.md

@@ -36,9 +36,9 @@ The rule is simple:
 - **Every variable declared in `.env` is uploaded** as a brain environment
   variable — LLM provider keys, third-party API keys, anything.
 - **Except CLI/deploy configuration**, which is everything prefixed `TELOS_`
-  (e.g. `TELOS_ORG_API_KEY`, `TELOS_API_URL`). The `TELOS_` prefix is reserved
-  for the CLI; those values are consumed locally to talk to the Management API
-  and are **never** uploaded to the brain.
+  (e.g. `TELOS_BRAIN_ORG_API_KEY`, `TELOS_BRAIN_API_URL`). The `TELOS_` prefix is
+  reserved for the CLI; those values are consumed locally to talk to the
+  Management API and are **never** uploaded to the brain.
 - A variable with a **blank value is skipped** (you can't store an empty secret).
 - A real environment variable always **overrides** the checked-out `.env` value,
   so CI secrets win over a committed file. Only the variables **declared in the
@@ -78,8 +78,9 @@ convention** and used automatically:
 | `OPENAI_API_KEY`        | uploaded     | LLM provider key for **OpenAI**. Resolved for runs whose model is `openai/…`.                 |
 | `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (BRA240).       |
 | `TIMEZONE`              | uploaded     | Optional IANA timezone id (e.g. `Pacific/Auckland`) used by `{{now.local*}}` template tags. When unset or unrecognised, local time falls back to UTC. |
-| `TELOS_ORG_API_KEY`     | **local**    | Organisation deploy credential the CLI authenticates with. Never uploaded to the brain.       |
-| `TELOS_API_URL`         | **local**    | Management API base URL for the CLI. Never uploaded to the brain.                             |
+| `TELOS_BRAIN_ORG_API_KEY` | **local**  | Organisation deploy credential the CLI authenticates with. Never uploaded to the brain. Legacy: `TELOS_ORG_API_KEY`. |
+| `TELOS_BRAIN_API_URL`   | **local**    | Management API base URL (deploy destination) for the CLI. Never uploaded to the brain. Legacy: `TELOS_API_URL`. |
+| `TELOS_BRAIN_TOKEN`     | **local**    | Optional Clerk bearer token for the CLI. Never uploaded to the brain. Legacy: `TELOS_TOKEN`. |
 
 ### LLM provider keys use a standard variable name
 
