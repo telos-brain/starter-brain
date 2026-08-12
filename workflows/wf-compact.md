@@ -1,9 +1,9 @@
 ---
 name: Compact Context
 code: WF-COMPACT
-version: 1
+version: 2
 type: COMPACTION
-description: Summarises older conversation turns so OpenAI/xAI runs can continue within the context window.
+description: Summarises older conversation turns so a run can continue within the context window.
 model: anthropic/claude-haiku-4-5
 
 # No tools — this workflow only reads the transcript passed as the user message

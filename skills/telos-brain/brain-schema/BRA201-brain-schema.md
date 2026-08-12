@@ -966,7 +966,7 @@ name: Review Blueprint                 # REQUIRED (workflow title)
 code: WF-REVIEW                        # REQUIRED (unique workflow code)
 description: Reviews a blueprint submission and posts findings to the ticket.  # optional
 version: 1.1                           # optional (see §9)
-type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM | SIMULATION (default RUNNABLE)
+type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM | SIMULATION | COMPACTION (default RUNNABLE)
 # trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list (BRA121)
 # trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier (BRA122): low|medium|high
 # trigger:
@@ -1025,8 +1025,8 @@ Rules:
 
 - `name` and `code` are required; the markdown **body must not be empty** (it's
   the instructions).
-- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `SYSTEM`, `SIMULATION`;
-  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when `trigger` matches, `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the ToolRouter resolves the active workflow of this type (not by code) when intercepting Api/Mcp tools on a simulation run.
+- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `SYSTEM`, `SIMULATION`, `COMPACTION`;
+  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when `trigger` matches, `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the ToolRouter resolves the active workflow of this type (not by code) when intercepting Api/Mcp tools on a simulation run. `COMPACTION` = client-side context summariser for auto-compaction (Chat Completions providers) and the `compact_context` system tool on every provider (BRA263); at most one active per brain.
 - Well-known `trigger` values include `inbox:<RoutingType>` / `inbox:*` (inbox
   learning loop), `unitofwork:complete` (unit-of-work learning eval), and
   `workflowrun:complete` (workflow-run learning eval, BRA091).
@@ -1147,9 +1147,12 @@ existing workflows need no changes.
 
 `max-turns` and `output-tokens` apply to every supported provider. `caching`
 applies on providers that support prompt caching (Anthropic, xAI); OpenAI
-ignores it. `thinking`, `thinking-budget`, `thinking-effort`, and
-`auto-compaction` are **Claude-oriented** — validated on deploy when present,
-but ignored at run time on OpenAI / xAI (see **BRA210** §5).
+ignores it. `thinking`, `thinking-budget`, and `thinking-effort` are
+**Claude-oriented** — validated on deploy when present, but ignored at run time
+on OpenAI / xAI (see **BRA210** §5). `auto-compaction` applies on every
+provider: Claude uses server-side `compact_20260112`; OpenAI / xAI run the
+brain's `COMPACTION` workflow client-side when the prompt-token threshold is
+reached (BRA263).
 
 ```markdown
 ---
@@ -1158,7 +1161,7 @@ code: WF-CHAT
 type: RUNNABLE
 model: anthropic/claude-sonnet-4-6
 
-auto-compaction: 100000        # off (default) | input-token trigger for server-side context compaction (API min 50000)
+auto-compaction: 100000        # off (default) | input-token trigger (Claude server-side; OpenAI/xAI client-side via COMPACTION workflow)
 output-tokens: 2048, 4096, 16384  # 4096 (default) | ordered per-attempt output caps (Claude max_tokens); each value is the next retry when a turn stops at the cap
 caching: automatic             # (default: hand-crafted per-block markers) | none (suppress all) | automatic (provider automatic prompt cache)
 max-turns: 50                  # 10 (default) | tool-use loop cap in turns
@@ -1172,7 +1175,7 @@ max-runs-per-hour: 50          # 50 (default) | max executions of this workflow 
 
 | Field | Default when omitted | Accepted values |
 | ----- | -------------------- | --------------- |
-| `auto-compaction` | off (no compaction) | a positive integer (input-token trigger; the API enforces a 50000 minimum) |
+| `auto-compaction` | off (no compaction) | a positive integer (input-token trigger; Claude API enforces a 50000 minimum; OpenAI/xAI use the same threshold client-side) |
 | `output-tokens` | `4096` (a single attempt) | a positive integer, or an ordered comma-separated list of positive integers (e.g. `2048, 4096, 16384`) |
 | `caching` | hand-crafted per-block markers | `none` \| `automatic` |
 | `max-turns` | `10` | a positive integer |

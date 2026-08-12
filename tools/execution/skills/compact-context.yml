@@ -1,14 +1,23 @@
+# Tool definition: self-contained description of a single brain tool.
+# The owning group is defined by the tools.yml in this folder.
 name: compact_context
-version: 1
+version: 1.1
 description: >-
   Compacts the conversation context by summarising older turns via the brain's
   COMPACTION workflow (WF-COMPACT). Use when the dialogue is long and earlier
-  detail is no longer needed in full. Requires no parameters. 
+  detail is no longer needed in full. Requires no parameters. Older turns are
+  replaced with a summary while recent turns are preserved; failure leaves the
+  context unchanged.
+
+# This is a system tool: it is executed by an in-brain system tool rather than an
+# external API or MCP server. Parameters map to the system tool's own params.
 system:
   tool: compact_context
+
 # No parameters — the harness supplies run scope; the tool summarises the
 # current WorkflowRun's message history.
 parameters: []
+
 on-error: |
   Confirm the brain has an active COMPACTION workflow (e.g. WF-COMPACT) before
   retrying. Compaction is fail-open: if summarisation fails, continue with the

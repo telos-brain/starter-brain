@@ -27,7 +27,8 @@ tools:
   - ask_question
 
 # Management / maintenance tools kept in the searchable pool for on-demand use.
-# compact_context triggers client-side context compaction (BRA263) via WF-COMPACT.
+# compact_context triggers context compaction (BRA263) via WF-COMPACT on any
+# provider; auto-compaction on Claude remains server-side when configured.
 available-tools:
   - find_available_tools
   - compact_context

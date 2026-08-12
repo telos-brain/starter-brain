@@ -123,7 +123,7 @@ Optional LLM execution fields on the workflow (`max-turns`, `output-tokens`,
 | `output-tokens` (retry caps) | Applied (`max_tokens` / `max_tokens` stop) | Applied (`max_tokens` / `finish_reason=length`) | Applied (same as OpenAI) |
 | `caching` | Applied | Ignored | Applied |
 | `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored (request) | Ignored (request) |
-| `auto-compaction` | Applied | Ignored | Ignored |
+| `auto-compaction` | Applied (server-side) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) |
 
 Unsupported fields are accepted on deploy and silently ignored at run time where
 the table shows Ignored — they do not fail the run. Each provider applies
