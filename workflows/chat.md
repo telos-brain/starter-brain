@@ -27,8 +27,10 @@ tools:
   - ask_question
 
 # Management / maintenance tools kept in the searchable pool for on-demand use.
+# compact_context triggers client-side context compaction (BRA263) via WF-COMPACT.
 available-tools:
   - find_available_tools
+  - compact_context
   - list_blueprint_entries
   - add_blueprint_entry
   - update_blueprint_entry
