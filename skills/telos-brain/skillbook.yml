@@ -1,7 +1,7 @@
 name: Telos Brain
 code: BRA
 prefix: BRA
-version: 33
+version: 34
 categories:
   - name: Concepts
     description: "The foundational theory of Telos Brain: what it is, how it works,
@@ -23,8 +23,8 @@ categories:
       versioning, environment variables and secret/API-key handling, LLM
       providers and model codes for workflows, connectors to external services,
       cloning brain instances, updating a brain from a template, learning-eval
-      workflows, skillbook category design and skill ranges, and schema design
-      best practices.
+      workflows, skillbook category design and skill ranges, auto-building a
+      schema from an existing application, and schema design best practices.
     index: 200
     skills:
       - ./brain-schema/BRA201-brain-schema.md
@@ -37,6 +37,7 @@ categories:
       - ./brain-schema/BRA208-designing-skill-books.md
       - ./brain-schema/BRA209-connectors.md
       - ./brain-schema/BRA210-llm-providers-and-models.md
+      - ./brain-schema/BRA211-auto-building-a-brain.md
   - name: Run
     description: Using the Telos Brain API and MCP to run and interact with a Brain
       — authentication, endpoints, request and response patterns, MCP

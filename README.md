@@ -9,17 +9,14 @@ npm install -g @telos.ready/brain
 brain init
 ```
 
-## 2. Run the Getting Started skill interview
+## 2. Building the schema
 
-**Requires human input.** An AI agent must not skip or auto-answer this step.
+The starter includes the Telos Brain skill book and learning/maintenance workflows. There are two ways to turn that into *your* brain. Complete this **before** deploy. Category quality directly determines learning quality — generic categories produce generic learnings.
 
-Load and run the **Getting Started** skill (**BRA104**) from the Telos Brain skill book:
+1. **Auto-build from an existing application** — in Cursor or Claude Code, load skill **BRA211** (`skills/telos-brain/brain-schema/BRA211-auto-building-a-brain.md`) and follow it. That skill is fully contained (researches the app, writes the schema, and wires the Execute API). Do not copy that process into this README.
+2. **Guided interview** — load skill **BRA104** (`skills/telos-brain/concepts/BRA104-getting-started.md`). **Requires human input** — an AI agent must not skip or auto-answer. It asks one decision at a time (entity, unit of work, blueprint categories, skill categories) and produces a configuration summary to apply.
 
-`skills/telos-brain/concepts/BRA104-getting-started.md`
-
-The skill interviews you for entity settings, unit of work settings, blueprint categories, and skill categories, then produces a configuration summary to apply to the schema (e.g. `brain-compose.yml`, blueprint manifests, skillbook).
-
-Complete this **before** deploy. Category quality directly determines learning quality — generic categories produce generic learnings.
+Use BRA211 when the host application already exists. Use BRA104 for a greenfield brain.
 
 ## 3. Deploy
 
@@ -31,6 +28,7 @@ ANTHROPIC_API_KEY=your-anthropic-api-key
 VOYAGE_API_KEY=your-voyage-api-key
 ```
 
+- `TELOS_ORG_API_KEY` — https://go.telosbrain.com (sign up for free and create an API key)
 - `ANTHROPIC_API_KEY` — https://console.anthropic.com
 - `VOYAGE_API_KEY` — https://dash.voyageai.com (required; this brain defaults to `voyage-3-lite`)
 
@@ -46,9 +44,7 @@ Do not delete `brain.lock` after first deploy — subsequent deploys read the br
 
 ## 4. Train the brain
 
-**Option A — AI agent:** Ask Claude Code / Cursor to build out the schema from your business context (blueprint entries, skills, workflows).
-
-**Option B — Inbox:** Upload documents, transcripts, or emails via the Brain admin UI or API inbox. Processing follows the brain's learning mode.
+After the schema exists, upload documents, transcripts, or emails via the Brain admin UI or API inbox. Processing follows the brain's learning mode.
 
 **Learning mode:** `brain-compose.yml` defaults to `learning-mode: high`. Recommended: start at `high`, review daily checkpoints for the first 5 days on the Grading graph, then set `low` when learning quality is acceptable.
 
@@ -82,3 +78,9 @@ Gitignore (do not commit):
 - `dist/`
 
 Commit `.env.example` with placeholder values only. Never store the Brain API key in the repo.
+
+## Support
+
+Copyright Telos IP Limited 2026
+www.telosbrain.com
+support@telosbrain.com

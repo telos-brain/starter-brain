@@ -1,10 +1,11 @@
 ---
 name: Getting Started
 code: BRA104
-version: 4
+version: 5
 description: Interactive onboarding interview to configure a brain schema from
   scratch — entity type, unit of work type, blueprint categories, and skill
-  categories. Use after brain init, before the first deploy.
+  categories. Use after brain init, before the first deploy. If the host
+  application already exists, use BRA211 (auto-build) instead.
 ---
 
 # Getting Started
@@ -17,6 +18,9 @@ decisions as a static checklist.
 **When to use:** after `brain init` has cloned the starter brain, and **before**
 `brain deploy`. The goal is a configuration summary the agent (or user) can
 apply to the schema files.
+
+If you are building from an **existing application** rather than interviewing
+the user, stop and load **BRA211** (auto-build) instead.
 
 **Background (do not re-explain — load if needed):**
 
