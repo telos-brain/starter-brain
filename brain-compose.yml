@@ -14,6 +14,15 @@ learning-mode: high
 # Checkpoints: weekly schedule plus a snapshot before each deploy.
 checkpoint-strategy: Daily,BeforeDeploy
 
+# Shared outbound host allowlist for async run callbacks and declared-tool
+# webhooks (BRA201 §4.3). Defaults cover local harnesses: Brain-in-Docker
+# reaches the host app via host.docker.internal (BRA106). Add production
+# harness hosts here before deploying tools against them.
+allowed-callback-domains:
+  - host.docker.internal
+  - localhost
+  - 127.0.0.1
+
 # Entities: top-level things the brain reasons about (multi-tenancy anchor).
 entities:
   - code: clients
