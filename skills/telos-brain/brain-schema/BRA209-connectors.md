@@ -1,7 +1,7 @@
 ---
 name: Connectors
 code: BRA209
-version: 3
+version: 4
 description: How to author connector YAML files for external services (OAuth 2,
   API key, or none). Covers file layout, brain-compose registration, parameter
   declarations vs secret storage, url vs url-env for environment-specific base
@@ -95,8 +95,8 @@ parameters:                         # optional — omit the key entirely when em
 | Field | Required | Notes |
 |---|---|---|
 | `name` | yes | Unique per brain (`UQ_Connectors_BrainId_Name`). Stable identifier for schema paths and APIs. |
-| `url` | one of | Static HTTPS base URL (REST root or MCP endpoint). **Exactly one** of `url` or `url-env`. |
-| `url-env` | one of | Name of a brain environment variable (from `.env`) whose value is the HTTPS base URL. Resolved at tool/OAuth dispatch — same schema, different domains per brain. |
+| `url` | one of | Static HTTPS base URL (REST root or MCP endpoint). HTTP allowed only for localhost / `127.0.0.1` / `host.docker.internal` (**BRA106**). **Exactly one** of `url` or `url-env`. |
+| `url-env` | one of | Name of a brain environment variable (from `.env`) whose value is the base URL (HTTPS, or HTTP for those local hosts). Resolved at tool/OAuth dispatch — same schema, different domains per brain. |
 | `auth-type` | yes | Exactly one of: `oauth2`, `api-key`, `none`. |
 | `scope` | no | Defaults to `brain`. Entity-scoped connectors are out of scope for now. |
 | `api-key-header` | no | For `api-key` auth only (BRA199). Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
@@ -166,7 +166,7 @@ No `parameters` key — empty lists are omitted.
 ### 4.4 Environment-specific base URL — `url-env`
 
 When the same schema must hit different hosts in test vs production, declare
-`url-env` instead of a literal `url`, and put the HTTPS value in each brain's
+`url-env` instead of a literal `url`, and put the URL value in each brain's
 `.env` (uploaded on deploy — **BRA202**):
 
 ```yaml
@@ -189,9 +189,16 @@ ACME_API_URL=https://api.test.example.com
 ACME_API_URL=https://api.example.com
 ```
 
-At dispatch the platform resolves `ACME_API_URL`, validates it as HTTPS, then
-combines it with the tool's relative `api.path`. Missing or non-HTTPS values
-fail the tool call with a clear error. Do **not** set both `url` and `url-env`.
+At dispatch the platform resolves `ACME_API_URL`, validates it as an HTTPS URL
+(HTTP is allowed only for `localhost`, `127.0.0.1`, and `host.docker.internal`
+— see **BRA106**), then combines it with the tool's relative `api.path`.
+Missing or invalid values fail the tool call with a clear error. Do **not**
+set both `url` and `url-env`.
+
+When the Brain runs in Docker and the API is on the developer machine, put
+`http://host.docker.internal:<PORT>` in `.env.local`. `localhost` inside the
+container is the Brain container, not the host. Full local-stack instructions
+are in **BRA106**.
 
 ### 4.5 Referencing a connector from a tool (BRA199 / BRA200)
 

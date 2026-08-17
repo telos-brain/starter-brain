@@ -1,11 +1,12 @@
 ---
 name: Getting Started
 code: BRA104
-version: 5
+version: 6
 description: Interactive onboarding interview to configure a brain schema from
   scratch — entity type, unit of work type, blueprint categories, and skill
   categories. Use after brain init, before the first deploy. If the host
-  application already exists, use BRA211 (auto-build) instead.
+  application already exists, use BRA211 (auto-build) instead. For running the
+  local Docker stack, use BRA106.
 ---
 
 # Getting Started
@@ -17,13 +18,15 @@ decisions as a static checklist.
 
 **When to use:** after `brain init` has cloned the starter brain, and **before**
 `brain deploy`. The goal is a configuration summary the agent (or user) can
-apply to the schema files.
+apply to the schema files. To start the local Docker stack and point connectors
+at a host app, load **BRA106**.
 
 If you are building from an **existing application** rather than interviewing
 the user, stop and load **BRA211** (auto-build) instead.
 
 **Background (do not re-explain — load if needed):**
 
+- **BRA106** — local Docker stack (`brain start` / deploy / host.docker.internal)
 - **BRA201** — brain schema structure (`brain-compose.yml`, entities, units of
   work, blueprints, skillbooks)
 - **BRA210** — LLM providers and example `model` codes for workflows
@@ -222,6 +225,7 @@ Then:
    business `skillbook.yml`). If the entity code is not `clients`, rename or
    adjust the entity blueprint path/`scope.code` to match.
 2. Remind the user the next onboarding step is **`brain deploy`** (do not run
-   it unless they ask).
+   it unless they ask). For a local stack that is **`brain deploy --env local`**
+   after **BRA106** (`brain start` + keys in `.env.local`).
 3. For using the brain after deploy, point them to the **Run** category
    (**BRA401** — authentication conventions — is the usual starting point).

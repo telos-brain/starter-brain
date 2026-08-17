@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 8
+version: 9
 description: How a brain's .env variables are uploaded, encrypted and stored; the
   well-known "system" keys the platform recognises (LLM provider keys, the brain
   API key); how to inject a stored secret into an api tool's outbound request —
@@ -266,10 +266,12 @@ same encrypted store. They are never written into the connector YAML.
   environment variables — do not put bearer tokens in `.env` for that purpose.
 
 A connector may also take its **base URL** from this store via YAML `url-env:`
-(instead of a static `url:`). Put the HTTPS URL in `.env` under that variable
-name; at tool/OAuth dispatch the platform resolves it the same way as other
-brain environment variables. Use this when one schema is deployed to test and
-production brains with different hosts. See **BRA209** §4.4.
+(instead of a static `url:`). Put the URL in `.env` under that variable name;
+at tool/OAuth dispatch the platform resolves it the same way as other brain
+environment variables. Values must be HTTPS, except HTTP is allowed for
+`localhost`, `127.0.0.1`, and `host.docker.internal` (Brain-in-Docker → host
+API — **BRA106**). Use `url-env` when one schema is deployed to local, test,
+and production brains with different hosts. See **BRA209** §4.4.
 
 See **BRA209** for the connector file format and examples.
 
@@ -286,6 +288,7 @@ See **BRA209** for the connector file format and examples.
    JSON body (POST). Never paste the key into the tool file.
 5. For **connectors**, declare parameter names in `connectors/*.yml` and store
    values here — never in the connector file (BRA209). When using `url-env`, put
-   the HTTPS base URL in `.env` under that variable name.
+   the base URL in `.env` under that variable name (HTTPS, or HTTP for local
+   harness hosts — **BRA106**).
 6. Redeploy to rotate a secret — the value is upserted (replaced) against the
    brain and re-encrypted.

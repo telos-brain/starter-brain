@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 3
+version: 4
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -11,8 +11,8 @@ description: How to deep-clone a brain instance via the Management API —
 
 A brain clone creates a **new instance** in the same organisation that carries a
 complete copy of the source brain's **configuration layer** (schema, skills,
-tools, workflows, memory, type definitions, and encrypted environment
-variables). Runtime data is not copied. The clone gets a **fresh API key**,
+tools, connectors, workflows, memory, type definitions, and encrypted
+environment variables). Runtime data is not copied. The clone gets a **fresh API key**,
 returned once in the create response — the source key is never reused.
 
 Use cloning to spin up staging, development, or test instances from a known-good
@@ -97,6 +97,7 @@ CLI deploy version-precedence rules and semantic search keep working on the clon
 | Layer | Copied |
 |---|---|
 | **Brain header** | Display `Name`, `Description`, `EmbeddingModel` (unchanged — do not reset; changing it would invalidate copied embeddings). New `InstanceName`, new `ApiKey`, status `Active`. |
+| **Connectors** | Connectors (name, URL / url-env, auth type, OAuth endpoints, api-key header) → ConnectorParameters. Names are preserved so tools' `connector:` field still resolves. Connector-scoped env-var keys (`CONNECTOR_{id}_*`) are remapped to the new connector IDs. |
 | **Tools** | ToolGroups → Tools (incl. embeddings) → ToolParameters |
 | **Workflows** | Workflows (all LLM settings, skill-code lists, versions) → WorkflowTools re-linked to the **new** Tool IDs |
 | **Skills** | SkillBooks → SkillCategories → Skills (incl. embeddings and `ToolCodes`) |
@@ -112,6 +113,7 @@ Runtime / operational data stays on the source brain only:
 - Entities, EntityVariables
 - UnitsOfWork, UnitOfWorkContexts, UnitOfWorkData
 - InboxEntries, InboxTasks
+- ConnectorTokens (OAuth access / refresh tokens — the clone must reconnect)
 
 The clone is a clean configuration twin — not a copy of live jobs, chat history,
 or inbox state.
@@ -134,7 +136,9 @@ When the request includes `environmentVariables`:
 1. Start from **all** live env vars on the source brain.
 2. For each key in the request, **encrypt** the plaintext value and **override**
    that key on the clone.
-3. Source keys not mentioned in the request are carried across unchanged.
+3. Source keys not mentioned in the request are carried across unchanged,
+   except connector-scoped keys (`CONNECTOR_{id}_*`), which are rewritten onto
+   the clone's new connector IDs so api-key secrets still resolve.
 4. Request keys that do not exist on the source are **added** on the clone.
 
 This supports “promotion with credential swap”: clone production config into
