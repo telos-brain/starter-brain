@@ -23,18 +23,20 @@ Use BRA211 when the host application already exists. Use BRA104 for a greenfield
 Copy `.env.example` to `.env` and set at least:
 
 ```
-TELOS_ORG_API_KEY=your-org-api-key
+TELOS_BRAIN_ORG_API_KEY=your-org-api-key
 ANTHROPIC_API_KEY=your-anthropic-api-key
 VOYAGE_API_KEY=your-voyage-api-key
 ```
 
-- `TELOS_ORG_API_KEY` — https://go.telosbrain.com (sign up for free and create an API key)
+- `TELOS_BRAIN_ORG_API_KEY` — https://go.telosbrain.com (sign up for free and create an API key)
 - `ANTHROPIC_API_KEY` — https://console.anthropic.com
 - `VOYAGE_API_KEY` — https://dash.voyageai.com (required; this brain defaults to `voyage-3-lite`)
 
 ```bash
-brain deploy --instance mybrain
+brain deploy --env [local|dev|stage|prod]
 ```
+
+Optional: `--instance <name>` to name the brain instance. Deploy reads `.env` for the variables the brain should use.
 
 **Capture the Brain API key from stdout immediately.** On first deploy the CLI prints a plaintext Brain API key **once only**. Store it securely (password manager / secrets manager). Do **not** commit it to source control.
 
