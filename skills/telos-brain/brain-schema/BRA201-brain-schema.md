@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 40
+version: 41
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -791,6 +791,7 @@ name: my-connector                 # REQUIRED — unique per brain
 url: https://api.example.com       # XOR with url-env — static HTTPS base URL
 # url-env: ACME_API_URL            # XOR with url — brain env var for the base URL
 auth-type: oauth2                  # REQUIRED — oauth2 | api-key | none
+# type: elevenlabs                 # optional — platform identity (e.g. elevenlabs)
 scope: brain                       # optional — defaults to brain (only value today)
 parameters:                         # optional — omit the key entirely when empty
   - name: client-id
@@ -809,8 +810,12 @@ Rules:
 - `parameters` declare credential **names** only. Secret **values** belong in
   brain environment variables (`.env` / BRA202) — never in the YAML.
 - OAuth access/refresh tokens are runtime state (the OAuth flow), not schema.
+- Optional `type` is a free-text platform identity (first convention value:
+  `elevenlabs`). Omit when unused. Distinct from `auth-type`. Used by the
+  ElevenLabs deployment handler to find the brain's ElevenLabs connector
+  (**BRA209**).
 - Upsert-always on deploy (no `version` field): Name / Url / UrlEnv / AuthType /
-  Scope / parameters are replaced on every deploy.
+  Type / Scope / parameters are replaced on every deploy.
 - Register paths under `connectors:` in `brain-compose.yml` (unlisted = not
   deployed).
 
@@ -997,6 +1002,8 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
 # model: openai/gpt-4o                 # OpenAI
 # model: xai/grok-4.5                  # xAI / Grok
+# deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
+# elevenlabs-agent-id: agt_xxx         # optional; written back after first ElevenLabs create — omit on first deploy
 
 # Injected tools — included in the LLM tool declarations for every turn.
 # Referenced by tool NAME (the tool's `name`).
@@ -1274,6 +1281,44 @@ Notes:
   `Completed`, at which point it becomes eligible for evaluation. An open session
   is not evaluated.
 
+### 8.3 External agent deployment (optional)
+
+A workflow may declare itself as a **deployable external agent**. These fields
+are **optional** and **kebab-case**. Omit both keys for a normal Brain-only
+workflow. Full connector authoring: **BRA209**.
+
+```markdown
+---
+name: Voice agent
+code: WF-VOICE
+type: RUNNABLE
+deployment-type: elevenlabs_conversational_ai
+# elevenlabs-agent-id: agt_xxx   # omit on first deploy; extract after create
+---
+```
+
+| Field | Default when omitted | Accepted values |
+| ----- | -------------------- | --------------- |
+| `deployment-type` | none (Brain-only) | free text; first convention value is `elevenlabs_conversational_ai` |
+| `elevenlabs-agent-id` | none | the `agent_id` returned by ElevenLabs after first create |
+
+Notes:
+
+- `deployment-type` is a discriminator, not a check-constrained enum. Presence
+  of `elevenlabs_conversational_ai` is what the ElevenLabs deployment handler
+  matches on.
+- The brain must have **one** connector with `type: elevenlabs` (BRA209). The
+  handler reads `CONNECTOR_{connectorId}_CLIENT_SECRET` as the `xi-api-key`.
+- On first deploy, omit `elevenlabs-agent-id`. The handler `POST`s
+  `/v1/convai/agents/create` and writes the returned id back on the workflow.
+  Run `brain extract` afterwards so the id is in the YAML; later deploys
+  `PATCH` the existing agent.
+- A later YAML deploy that omits `elevenlabs-agent-id` will clear the stored
+  id (absent optional fields persist as null).
+- Injected skill codes are resolved to full markdown at deploy time and
+  appended to `workflow.Instructions` — ElevenLabs has no Telos skill codes.
+- Omit both keys entirely when unused — never write `null` or empty string.
+
 ---
 
 ## 9. Versioning rules (important)
@@ -1309,7 +1354,7 @@ Required fields, by file type (everything else is optional):
 | ------------------------ | --------------------------------------------------------------------- |
 | `brain-compose.yml`      | `name`                                                                 |
 | — entity                 | `name`, `code`; each `variables` item needs `key`                      |
-| Connector YAML           | `name`, `url`, `auth-type` (`oauth2` \| `api-key` \| `none`); each parameter needs `name` + `description` |
+| Connector YAML           | `name`, `url` or `url-env`, `auth-type` (`oauth2` \| `api-key` \| `none`); optional `type` (e.g. `elevenlabs`); each parameter needs `name` + `description` |
 | Tool group `tools.yml`   | `name`, `description`                                                  |
 | Tool definition          | `name`, `description`, exactly one of `api`/`mcp`/`system`/`workflow`/`native` |
 | — `api` block            | `path`                                                                 |
@@ -1322,7 +1367,7 @@ Required fields, by file type (everything else is optional):
 | Skill markdown           | frontmatter `name`, `code` + non-empty body; optional `tools` (tool names) |
 | `blueprint.yml`          | `name`; each category needs `name`; `scope` code if entity/unitofwork |
 | Blueprint entry markdown | frontmatter `name`, `category` + non-empty body                        |
-| Workflow markdown        | frontmatter `name`, `code` + non-empty body; optional `tools` / `available-tools` / `input-tools` |
+| Workflow markdown        | frontmatter `name`, `code` + non-empty body; optional `tools` / `available-tools` / `input-tools` / `deployment-type` / `elevenlabs-agent-id` |
 
 ---
 
