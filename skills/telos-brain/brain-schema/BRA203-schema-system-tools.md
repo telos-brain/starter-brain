@@ -1,7 +1,7 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 4
+version: 5
 description: The in-brain system tools that let a running brain inspect, edit,
   and create its own configuration-as-code schema — list_schema_files,
   search_schema_files, get_schema_file, update_schema_file, create_skill and
@@ -30,8 +30,7 @@ learning-review workflow applies an approved learning back into the brain.
 
 These are ordinary `system` tools (see BRA201 §5.2): they are declared with a
 `system:` block and added to a workflow's tool lists like any other tool. They
-are executed in-process by the tool router — no webhook URL, MCP server or API
-key is involved.
+run inside the brain — no webhook URL, MCP server or API key is involved.
 
 This skill declares those tools in its own frontmatter `tools:` list
 (BRA201 §6.3). When a workflow keeps them under `available-tools` and the agent

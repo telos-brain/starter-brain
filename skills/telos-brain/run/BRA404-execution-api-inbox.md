@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Inbox Entries & Tasks"
 code: BRA404
-version: 6
+version: 8
 description: How to create, list, read and update inbox entries and their tasks
   via the Execution API — the learning-signal intake surface. Covers the entry and
   task lifecycles, inbox trigger matching (entry create vs task auto-run), learning
@@ -22,7 +22,7 @@ the brain might learn from or act on — eval results, meeting transcripts, agen
 traces, or external events. A harness application posts signals here and can then
 list, read and manage them remotely, in addition to the brain UI.
 
-Learning-eval workflows (BRA207) should prefer the in-process
+Learning-eval workflows (BRA207) should prefer the
 `create_inbox_entry` **system tool** (BRA405). External harnesses can still
 `POST` here once per extracted learning. Entries start as `PENDING` for human
 review before any skill, workflow, or system change is applied.
@@ -61,12 +61,12 @@ on the task row. Inbox work uses them in two distinct stages:
 | Stage | When | What is matched | Outcome |
 | --- | --- | --- | --- |
 | **Entry create** | `POST /inbox` / `create_inbox_entry` with status `PENDING` | Each `TRIGGERED` workflow's `inbox:…` pattern against the **entry's `routingType`** and the brain's **`learning-mode`** | Matching workflows each get a new `InboxTask` (`PENDING`, linked to that workflow) |
-| **Task auto-run** | Hangfire processor picks up a `PENDING` task that has a linked workflow | That **task's linked workflow** only — does it have an inbox trigger whose learning-mode qualifier is satisfied? | Yes → `PENDING → RUNNING` and the workflow runs. No → `PENDING → AWAITING_APPROVAL` |
+| **Task auto-run** | A `PENDING` task that has a linked workflow is picked up | That **task's linked workflow** only — does it have an inbox trigger whose learning-mode qualifier is satisfied? | Yes → `PENDING → RUNNING` and the workflow runs. No → `PENDING → AWAITING_APPROVAL` |
 
 ### Stage 1 — which tasks get created
 
 Pattern shape: `inbox:<RoutingType>` or `inbox:*`, optionally with a learning-mode
-qualifier (BRA122):
+qualifier:
 
 ```text
 inbox:SKILL_UPDATE
@@ -77,7 +77,7 @@ inbox:WORKFLOW_UPDATE:medium
 
 - `inbox:*` matches any routing type (including null).
 - `inbox:<RoutingType>` requires an exact match on the entry's `routingType`.
-- Multiple patterns on one workflow are OR'd (BRA121): a scalar, comma-separated
+- Multiple patterns on one workflow are OR'd: a scalar, comma-separated
   list, or YAML list in frontmatter.
 - Qualifier hierarchy: `off < low < medium < high`. A qualified trigger fires
   when the brain's `learning-mode` **meets or exceeds** the qualifier.

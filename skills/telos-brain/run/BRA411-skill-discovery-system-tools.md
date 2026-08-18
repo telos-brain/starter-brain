@@ -1,7 +1,7 @@
 ---
 name: Skill Discovery System Tools
 code: BRA411
-version: 1
+version: 2
 description: The in-brain system tools for discovering and loading skills —
   list_skills, find_available_skills and get_skill. list_skills returns the
   full SkillBook catalogue as CSV (code, name, description);
@@ -71,7 +71,7 @@ BRA201,Brain Schema,Designing and structuring brain schemas…
 | `name` | `Skills.Title` |
 | `description` | `Skills.Description` (empty string when unset) |
 
-Only **active** skills (`IsDeleted = 0`) are returned, ordered by `code`.
+Only **active** skills are returned, ordered by `code`.
 Embeddings are **not** required — skills without vectors still appear.
 
 ### Errors (plain English)

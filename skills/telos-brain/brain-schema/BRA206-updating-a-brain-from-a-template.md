@@ -1,7 +1,7 @@
 ---
 name: Updating a Brain from a Template
 code: BRA206
-version: 1
+version: 2
 description: How to update an existing brain's configuration from a source
   (template) brain via the Management API — POST
   /brains/{targetInstance}/update-from/{sourceInstance} — including version
@@ -120,20 +120,20 @@ redeploy):
 
 ### Versioned resources
 
-| Layer | Key | Notes |
+| Layer | Matched by | Notes |
 |---|---|---|
-| SkillBooks | `(BrainId, Code)` | Categories reconciled even when the book itself conflicts (skills are independently versioned) |
-| Skills | `(BrainId, Code)` | Embeddings copied or nullified — see §4 |
-| ToolGroups | `(BrainId, Name)` | Upserted by name (not independently versioned) |
-| Tools | `(BrainId, Name)` | ToolParameters replaced wholesale when the tool is Created/Updated |
-| Workflows | `(BrainId, Code)` | WorkflowTools replaced wholesale when the workflow is Created/Updated; Tool IDs re-linked by **tool name** on the destination |
-| Blueprints | `(BrainId, Code)` | Categories, entries, chunks, and chunk embeddings replaced wholesale when the blueprint is Created/Updated |
+| Skill books | `code` | Categories reconciled even when the book itself conflicts (skills are independently versioned) |
+| Skills | `code` | Embeddings copied or nullified — see §4 |
+| Tool groups | `name` | Upserted by name (not independently versioned) |
+| Tools | `name` | Parameters replaced wholesale when the tool is Created/Updated |
+| Workflows | `code` | Tool lists replaced wholesale when the workflow is Created/Updated; tools re-linked by **name** on the destination |
+| Blueprints | `code` | Categories, entries, chunks, and embeddings replaced wholesale when the blueprint is Created/Updated |
 
 ### Versionless resources (upsert-always)
 
-`EntityType`, `EntityVariableKey`, and `UnitOfWorkType` have no version field.
-They are always created or refreshed (`IsDeleted` reset to `false`). They never
-produce `VersionConflict`. Versions in the summary are reported as `0`.
+Entity types, entity variable keys, and unit-of-work types have no version field.
+They are always created or refreshed. They never produce `VersionConflict`.
+Versions in the summary are reported as `0`.
 
 ---
 
@@ -141,19 +141,19 @@ produce `VersionConflict`. Versions in the summary are reported as `0`.
 
 ### Synced (configuration layer only)
 
-- Tools: ToolGroups → Tools → ToolParameters
-- Workflows → WorkflowTools (re-linked to destination Tool IDs by name)
-- Skills: SkillBooks → SkillCategories → Skills
-- Memory: Blueprints → BlueprintCategories → BlueprintEntries → EntryChunks → ChunkEmbeddings
-- Schema types: EntityTypes → EntityVariableKeys; UnitOfWorkTypes
+- Tools (groups, tools, and parameters)
+- Workflows (tool lists re-linked by name on the destination)
+- Skills (books, categories, and skills)
+- Memory (blueprints, categories, entries, chunks, and embeddings)
+- Schema types (entity types and variable keys; unit-of-work types)
 
 ### Not touched
 
 | Layer | Why |
 |---|---|
-| **BrainEnvironmentVariables** | Not versioned; destination secrets stay as-is (unlike clone, which copies/merges them — BRA205) |
-| **Brain header** | `InstanceName`, `ApiKey`, `EmbeddingModel`, display name — left unchanged on the destination |
-| **Runtime data** | WorkflowRuns, Entities, UnitsOfWork, InboxEntries, InboxTasks, etc. |
+| **Environment variables** | Not versioned; destination secrets stay as-is (unlike clone, which copies/merges them — BRA205) |
+| **Brain header** | Instance name, API key, embedding model, display name — left unchanged on the destination |
+| **Runtime data** | Workflow runs, entities, units of work, inbox entries and tasks, etc. |
 
 ### Transactionality
 

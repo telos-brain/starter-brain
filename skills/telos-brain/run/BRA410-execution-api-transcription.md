@@ -1,7 +1,7 @@
 ---
 name: "Execution API: File Transcription"
 code: BRA410
-version: 1
+version: 2
 description: How to extract text from uploaded files via the Execution API
   POST /transcription endpoint — supported types, request shape, response
   envelope, error conditions, and how image transcription resolves its vision
@@ -20,9 +20,8 @@ plain text from images or documents before posting to the inbox, appending unit-
 of-work context, or feeding a workflow.
 
 The Management API exposes a separate admin-console path
-(`POST /brains/{instance}/transcribe`, Clerk-authenticated) that shares the same
-`ITranscriptionService`. This skill documents the **Execution API** contract
-only.
+(`POST /brains/{instance}/transcribe`, Clerk-authenticated). This skill
+documents the **Execution API** contract only.
 
 ---
 
@@ -83,7 +82,7 @@ Any other extension returns `400` with an unsupported-type error.
 For image uploads the service resolves a vision provider in this order:
 
 1. **Brain `transcriptionModel`** (set in Brain Settings or via
-   `transcription-model` in `brain-compose.yml` — see BRA201 / BRA131) when a
+   `transcription-model` in `brain-compose.yml` — see **BRA201**) when a
    matching provider API key is available
 2. Else **`ANTHROPIC_API_KEY`** → default Claude vision model
 3. Else **`OPENAI_API_KEY`** → default OpenAI vision model

@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings.
-version: 12
+version: 15
 ---
 
 # Template Tag Taxonomy
@@ -177,7 +177,7 @@ Notes:
 
 ---
 
-### 3.2a `run` (BRA091)
+### 3.2a `run`
 
 | | |
 | --- | --- |
@@ -187,7 +187,7 @@ Notes:
 
 | Field | Description |
 | --- | --- |
-| `run.reference` | Subject run's 8-character AI-facing reference (`WorkflowRuns.Reference`) for `set_run_grading` (BRA406) |
+| `run.reference` | Subject run's 8-character AI-facing reference for `set_run_grading` (BRA406) |
 | `run.telemetry` | OTEL GenAI telemetry for the subject run as indented JSON (same shape as `GET /runs/{id}/telemetry`, compacted for eval prompts) |
 
 Notes:
@@ -305,12 +305,17 @@ Local: {{now.localDayOfWeek}} {{now.localDate}} {{now.localTime}}
 | Field | Description |
 | --- | --- |
 | `result.{anyKey}` | Top-level key from the JSON response body |
+| `result.error` | On `error-markdown` only: raw tool error text, unless the JSON body already has an `error` key |
 
 Notes:
 
 - The result scope is **flat**. Nested JSON objects/arrays are stringified.
 - If the tool body is not valid JSON, the scope is `{ result: "<raw content>" }`
   — use `{{result.result}}` to print the whole body.
+- On the **error-markdown** path, `{{result.error}}` is also synthesised from the
+  raw tool content unless the JSON body already has an `error` key. Prefer
+  `{{result.error}}` in `error-markdown`; `{{result.result}}` still works for
+  non-JSON error bodies.
 - Field names are unknown at parse time; consult the tool's response payload.
 
 **Example — tool response-markdown:**
@@ -320,7 +325,7 @@ response-markdown: |
   Status: {{result.status}}
   Id: {{result.id}}
 error-markdown: |
-  Failed: {{result.result}}
+  Failed: {{result.error}}
 ```
 
 ---
@@ -343,14 +348,16 @@ variables when the same key appears in both):
 
 | Source | How it is supplied | Persisted on `WorkflowRun`? |
 | --- | --- | --- |
-| Execution API `variables` | Optional string→string map on `POST …/run/sync` and `…/run/async` (BRA403) | Yes (JSON column) |
+| Execution API `variables` | Optional string→string map on `POST …/run/sync` and `…/run/async` (BRA403) | Yes |
 | Workflow-tool / `run_workflow` parameters | Resolved args when this workflow is invoked as a child | No (request only; overlays variables) |
 
 Notes:
 
 - **API variables** — pass `{ "variables": { "widget_reference": "WID-001" } }`
-  on the run body. Use in Instructions as `{{input.widget_reference}}`, and in
-  workflow `input-tools` parameter mappings the same way (BRA201 §8.0a).
+  on the run body. Use in Instructions as `{{input.widget_reference}}`, in
+  workflow `input-tools` parameter mappings the same way (BRA201 §8.0a), and on
+  a tool parameter as `input: widget_reference` to inject it hidden from the
+  model (BRA201 §5.3).
 - **Workflow-tool params** — declare parameters on the **workflow tool** YAML
   (`parameters:` under the tool that has `workflow: code: …`). Each `name`
   becomes an `input` key. Exposed (model-supplied) params, hardcoded `value:`
@@ -498,8 +505,8 @@ Notes:
 
 Notes:
 
-- Populated when a `TRIGGERED` workflow runs from an inbox task (Hangfire
-  processor, `update_inbox_task` approval, or Execution API approve). Non-inbox
+- Populated when a `TRIGGERED` workflow runs from an inbox task (auto-run,
+  `update_inbox_task` approval, or Execution API approve). Non-inbox
   runs leave this scope blank.
 - **Do not** expect the entry body in the workflow input message. The task
   `Action` / input is **instructions-only**; entry content must be pulled in via
@@ -579,7 +586,7 @@ Notes:
 
 Notes:
 
-- Populated for the **triggering** inbox task only (Hangfire processor,
+- Populated for the **triggering** inbox task only (auto-run,
   `update_inbox_task` approval, or Execution API approve). Sibling tasks remain
   available via `{{#inboxTasks}}`.
 - Field names match the short-form item fields inside `{{#inboxTasks}}`, but are

@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 9
+version: 10
 description: How a brain's .env variables are uploaded, encrypted and stored; the
   well-known "system" keys the platform recognises (LLM provider keys, the brain
   API key); how to inject a stored secret into an api tool's outbound request —
@@ -76,7 +76,7 @@ convention** and used automatically:
 | ----------------------- | ------------ | --------------------------------------------------------------------------------------------- |
 | `ANTHROPIC_API_KEY`     | uploaded     | LLM provider key for **Anthropic / Claude**. Resolved automatically for any run whose model is `anthropic/…` (or unprefixed — Anthropic is the default provider). |
 | `OPENAI_API_KEY`        | uploaded     | LLM provider key for **OpenAI**. Resolved for runs whose model is `openai/…`.                 |
-| `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (BRA240).       |
+| `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (**BRA210**).       |
 | `TIMEZONE`              | uploaded     | Optional IANA timezone id (e.g. `Pacific/Auckland`) used by `{{now.local*}}` template tags. When unset or unrecognised, local time falls back to UTC. |
 | `TELOS_BRAIN_ORG_API_KEY` | **local**  | Organisation deploy credential the CLI authenticates with. Never uploaded to the brain. Legacy: `TELOS_ORG_API_KEY`. |
 | `TELOS_BRAIN_API_URL`   | **local**    | Management API base URL (deploy destination) for the CLI. Never uploaded to the brain. Legacy: `TELOS_API_URL`. |
@@ -130,7 +130,7 @@ A parameter that declares `secret:` (or `header:`, or a hardcoded `value:`) is
 transport configuration.
 
 **Only `api:` tools inject secrets.** `system:`, `workflow:` and `native:` tools
-run in-process or on the model and never make an authenticated outbound HTTP
+run inside the brain or on the model and never make an authenticated outbound HTTP
 call, so `secret:`/`header:` have no effect there.
 
 **Resolution order.** Each parameter value is resolved in this priority: (1) the
@@ -188,7 +188,7 @@ fails auth, which surfaces as a clear tool error.
 ### 3.2 Calling the brain's own Execution API
 
 The same mechanism lets a workflow call **this brain's own** Execution API when
-an HTTP round-trip is genuinely required. Prefer an in-process **system tool**
+an HTTP round-trip is genuinely required. Prefer a **system tool**
 when one exists (e.g. `create_inbox_entry` — see BRA405 / BRA207) so no API key
 or host URL is needed.
 
@@ -262,7 +262,7 @@ same encrypted store. They are never written into the connector YAML.
 - Declare the parameter names on the connector file (schema).
 - Put the values in `.env` (or upsert via the Management API secrets endpoint,
   which uses connector-scoped keys such as `CONNECTOR_{connectorId}_CLIENT_ID`).
-- OAuth **access / refresh tokens** are runtime state (`ConnectorTokens`), not
+- OAuth **access / refresh tokens** are runtime state (the OAuth flow), not
   environment variables — do not put bearer tokens in `.env` for that purpose.
 
 A connector may also take its **base URL** from this store via YAML `url-env:`

@@ -1,7 +1,7 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 6
+version: 8
 description: The in-brain system tools for operating the learning-signal inbox
   — create_inbox_entry, list_inbox_entries, get_inbox_entry, update_inbox_entry,
   list_inbox_tasks, add_inbox_task and update_inbox_task. All identity is by
@@ -25,9 +25,9 @@ tools:
 BRA404 covers the **Execution API** HTTP surface for inbox intake (paths still
 use Guids). This skill covers the complementary **AI-facing system tools**: a
 running brain creating, listing, reading and updating its own inbox entries and
-tasks **in-process** — no webhook URL or API key.
+tasks — no webhook URL or API key.
 
-**Identity rule (BRA084):** every tool parameter and every list/detail field that
+**Identity rule:** every tool parameter and every list/detail field that
 identifies an entry or task uses an **8-character lowercase alphanumeric
 reference** (`[a-z0-9]{8}`). Do **not** pass UUIDs. Linked workflows are named by
 **`workflow_code`**, not `workflow_id`.
@@ -86,9 +86,9 @@ Deprecated / invalid for these tools: `id`, `inbox_entry_id`, `workflow_id`,
 
 ## `create_inbox_entry`
 
-Creates an inbox entry in-process via `IInboxService` (same path as
-`POST /inbox`). Prefer this over a declared HTTP tool that `POST`s to a host
-URL — no outbound network call, no API key, no localhost.
+Creates an inbox entry the same way as `POST /inbox`, without an outbound HTTP
+call. Prefer this over a declared HTTP tool that `POST`s to a host URL — no
+API key, no localhost.
 
 Required: `title`, `body`, `routing_type` (`SKILL_UPDATE`, `WORKFLOW_UPDATE`,
 `TOOL_UPDATE`, `MEMORY_UPDATE`, `SYSTEM_CHANGE`, or a brain-defined value).
@@ -110,7 +110,7 @@ stage 2).
 | --- | --- |
 | Management / Execution API, email, Granola, etc. | `1` |
 | `create_inbox_entry` from a run **not** linked to an inbox entry | `1` |
-| `create_inbox_entry` from a run whose `InboxEntryId` is set (workflow triggered from an inbox entry/task) | parent entry `Depth + 1` |
+| `create_inbox_entry` from a workflow triggered by an inbox entry or task | parent entry `Depth + 1` |
 
 So a top-level inbox signal is depth 1; a learning created by a workflow that
 ran from that entry is depth 2; and so on.
@@ -136,7 +136,7 @@ and a task list (each task by **reference**, with `workflow` as a **code**).
 ## `update_inbox_entry`
 
 Requires `inbox_entry_reference` and at least one of `status` or `routing_type`.
-Entry lifecycle is `PENDING → PROCESSED → COMPLETED` (BRA113). Terminal
+Entry lifecycle is `PENDING → PROCESSED → COMPLETED`. Terminal
 `COMPLETED` cannot be overwritten.
 
 ## `list_inbox_tasks`
@@ -154,7 +154,7 @@ reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204), and
 `assign_task_to_user` in **BRA408**; omit or pass null to leave unassigned).
 Creates status `PENDING` and returns the new task's **reference**.
 
-**Auto-run:** the Hangfire processor decides from the **workflow named by
+**Auto-run:** the engine decides from the **workflow named by
 `workflow_code`**, not from the entry's routing type. If that workflow has an
 `inbox:…` trigger whose learning-mode qualifier is satisfied, the task moves
 `PENDING → RUNNING` and runs. Otherwise it moves to `AWAITING_APPROVAL` for

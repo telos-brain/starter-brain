@@ -1,7 +1,7 @@
 ---
 name: "Workflow run variables & pre-called input-tools"
 code: BRA409
-version: 1
+version: 3
 description: How harness apps pass string variables into a workflow run via the
   Execution API, how those values surface as {{input.*}} template tags, and how
   workflows declare input-tools to call tools automatically at startup using
@@ -104,8 +104,8 @@ Content-Type: application/json
 }
 ```
 
-Async jobs read variables from the persisted `WorkflowRun` row — you do not need
-to put them on the Hangfire payload yourself.
+On the async path the same `variables` object is stored on the run before
+execution starts — pass them on the request body only.
 
 ---
 
@@ -156,14 +156,14 @@ input-tools:
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `variable` | yes | Injection name — becomes the `name` attribute on the result block |
-| `tool` | yes | Tool Router name (`Tools.Name` or system tool name) |
+| `tool` | yes | Declared tool name or system tool name |
 | `parameters` | no | String map; values may include `{{…}}` tags (including `{{input.*}}`) |
 
 ### Runtime sequence
 
 1. API `variables` are loaded into the template `input` scope.
 2. Each `input-tools` entry runs in declaration order.
-3. Parameter values are template-rendered, then dispatched via `IToolRouter`.
+3. Parameter values are template-rendered, then the named tool is called.
 4. Results are injected as a user-role context message **before** the first
    Claude turn:
 

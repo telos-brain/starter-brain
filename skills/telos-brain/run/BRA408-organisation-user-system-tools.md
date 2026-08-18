@@ -1,7 +1,7 @@
 ---
 name: Organisation User System Tools
 code: BRA408
-version: 1
+version: 2
 description: The in-brain system tools for discovering Organisation members and
   assigning InboxTasks — list_users and assign_task_to_user. Scoped to the
   Brain's Organisation via harness-injected BrainId. list_users returns CSV of
@@ -70,7 +70,7 @@ Bob Jones,bob@example.com,
 | `email` | `Members.EmailAddress` |
 | `role` | `Memberships.RoleDescription` — free-text **org-scoped** profile for agents; empty string when unset. **Not** the access-control role (`Admin` / `Member`) |
 
-Only **active** memberships (`IsDeleted = 0`) are returned.
+Only **active** memberships are returned.
 
 ### When to use
 

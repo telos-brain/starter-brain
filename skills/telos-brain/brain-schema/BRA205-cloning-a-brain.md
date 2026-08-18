@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 4
+version: 5
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -97,38 +97,37 @@ CLI deploy version-precedence rules and semantic search keep working on the clon
 | Layer | Copied |
 |---|---|
 | **Brain header** | Display `Name`, `Description`, `EmbeddingModel` (unchanged — do not reset; changing it would invalidate copied embeddings). New `InstanceName`, new `ApiKey`, status `Active`. |
-| **Connectors** | Connectors (name, URL / url-env, auth type, OAuth endpoints, api-key header) → ConnectorParameters. Names are preserved so tools' `connector:` field still resolves. Connector-scoped env-var keys (`CONNECTOR_{id}_*`) are remapped to the new connector IDs. |
-| **Tools** | ToolGroups → Tools (incl. embeddings) → ToolParameters |
-| **Workflows** | Workflows (all LLM settings, skill-code lists, versions) → WorkflowTools re-linked to the **new** Tool IDs |
-| **Skills** | SkillBooks → SkillCategories → Skills (incl. embeddings and `ToolCodes`) |
-| **Memory** | Blueprints → BlueprintCategories → BlueprintEntries → EntryChunks → ChunkEmbeddings |
-| **Schema types** | EntityTypes → EntityVariableKeys; UnitOfWorkTypes |
-| **Secrets** | BrainEnvironmentVariables (ciphertext copied when encryption uses the global key — see §3) |
+| **Connectors** | Connector definitions (name, URL / url-env, auth type, OAuth endpoints, api-key header, declared parameters). Names are preserved so tools' `connector:` field still resolves. Connector-scoped env-var keys (`CONNECTOR_{id}_*`) are remapped to the new connector IDs. |
+| **Tools** | Tool groups, tools (including embeddings), and parameters |
+| **Workflows** | Workflows (all LLM settings, skill-code lists, versions) with tools re-linked by **name** on the clone |
+| **Skills** | Skill books, categories, and skills (including embeddings and tool-code lists) |
+| **Memory** | Blueprints, categories, entries, chunks, and embeddings |
+| **Schema types** | Entity types and their variable keys; unit-of-work types |
+| **Secrets** | Encrypted environment variables (ciphertext copied when encryption uses the global key — see §3) |
 
 ### What is **not** cloned
 
 Runtime / operational data stays on the source brain only:
 
-- WorkflowRuns, WorkflowMessages
-- Entities, EntityVariables
-- UnitsOfWork, UnitOfWorkContexts, UnitOfWorkData
-- InboxEntries, InboxTasks
-- ConnectorTokens (OAuth access / refresh tokens — the clone must reconnect)
+- Workflow runs and messages
+- Entities and their variables
+- Units of work and their context / data
+- Inbox entries and tasks
+- OAuth access / refresh tokens (the clone must reconnect)
 
 The clone is a clean configuration twin — not a copy of live jobs, chat history,
 or inbox state.
 
 ### Transactionality
 
-The whole clone runs in a **single database transaction**. A failure rolls back
-completely; partial clones do not persist.
+The whole clone is **all-or-nothing**. A failure leaves no partial clone.
 
 ---
 
 ## 3. Environment-variable merge
 
 Environment variables are encrypted at rest with the platform's global AES-256-GCM
-key (`Encryption:Key`) — the same mechanism described in BRA202. Because the key
+key — the same mechanism described in BRA202. Because the key
 is not per-brain, source ciphertext can be copied directly onto the clone.
 
 When the request includes `environmentVariables`:

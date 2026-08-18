@@ -1,7 +1,7 @@
 ---
 name: Connectors
 code: BRA209
-version: 4
+version: 5
 description: How to author connector YAML files for external services (OAuth 2,
   API key, or none). Covers file layout, brain-compose registration, parameter
   declarations vs secret storage, url vs url-env for environment-specific base
@@ -32,11 +32,11 @@ schema edit tools are in **BRA203**.
 |---|---|---|
 | **Connector YAML** | `connectors/{name}.yml` | Name, URL, auth type, scope, **declared** auth parameters |
 | **Parameter values** (client id, API key, …) | Brain environment variables (from `.env` / Management API) | Encrypted secrets — **never** in the YAML |
-| **OAuth access / refresh tokens** | `ConnectorTokens` table (runtime) | Acquired via OAuth flow; not authored in the schema |
+| **OAuth access / refresh tokens** | Runtime (OAuth flow) | Acquired via OAuth; not authored in the schema |
 
 Connectors are **configuration**. Tokens are **runtime state**. Mixing them
-(e.g. stuffing tokens into `BrainEnvironmentVariables` as free-form keys) is
-rejected by design — see BRA196 / OAuth lifecycle docs.
+(e.g. stuffing tokens into environment variables as free-form keys) is
+rejected by design — keep tokens in the OAuth flow, not in schema files.
 
 ---
 
@@ -67,7 +67,7 @@ connectors:
 Paths are relative to the compose file (no `./` prefix needed).
 
 Deploy order places **connectors before tools**, so tools can reference
-connector names via a top-level `connector:` field (BRA199). Connectors are
+connector names via a top-level `connector:` field. Connectors are
 optional — omit the key when unused.
 
 ---
@@ -99,7 +99,7 @@ parameters:                         # optional — omit the key entirely when em
 | `url-env` | one of | Name of a brain environment variable (from `.env`) whose value is the base URL (HTTPS, or HTTP for those local hosts). Resolved at tool/OAuth dispatch — same schema, different domains per brain. |
 | `auth-type` | yes | Exactly one of: `oauth2`, `api-key`, `none`. |
 | `scope` | no | Defaults to `brain`. Entity-scoped connectors are out of scope for now. |
-| `api-key-header` | no | For `api-key` auth only (BRA199). Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
+| `api-key-header` | no | For `api-key` auth only. Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
 | `parameters` | no | List of `{ name, description }`. Omit the key when there are none — do **not** emit `parameters: []`. |
 
 ### Auth types
@@ -200,7 +200,7 @@ When the Brain runs in Docker and the API is on the developer machine, put
 container is the Brain container, not the host. Full local-stack instructions
 are in **BRA106**.
 
-### 4.5 Referencing a connector from a tool (BRA199 / BRA200)
+### 4.5 Referencing a connector from a tool
 
 API and MCP tools may omit a connector (inline URL / server) or point at one:
 
@@ -252,7 +252,7 @@ Schema system tools (**BRA203**) treat connectors as first-class schema files:
 |---|---|
 | `list_schema_files` / `search_schema_files` | Yes — type token `connector`, path `connectors/{name}.yml` |
 | `get_schema_file` | Yes — returns canonical YAML |
-| `update_schema_file` | Yes — exact-one-match string replace, then upsert via `IConnectorService` |
+| `update_schema_file` | Yes — exact-one-match string replace, then the connector definition is saved |
 | `create_schema_file` | **Not yet** for `connectors/…` — create via deploy (add file + compose entry) |
 
 `brain-compose.yml` remains read-only via `update_schema_file`.

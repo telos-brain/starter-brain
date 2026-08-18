@@ -1,17 +1,18 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 12
+version: 14
 description: How to list a brain's workflows (with pending inbox-task counts),
-  run them synchronously (SSE streaming) or asynchronously (fire-and-forget
-  with callback), pass optional run variables for {{input.*}} template tags
-  and pre-called input-tools (BRA409), hold a multi-turn chat session against
-  a single run, and retrieve run telemetry and unit-of-work telemetry via the
-  Execution API — including model, thinking mode and turn totals on run
-  telemetry. Documents when a run settles Failed (max-turns exhausted, final
-  max_tokens with no retries). Also notes when a Completed run becomes
-  eligible for learning evals (BRA207). Documents SSRF rules for async
-  callbackUrl (allowed-callback-domains).
+  run them as a chat session (SSE plus GET /runs/{id}/latest) or asynchronously
+  (fire-and-forget with callback), pass optional run variables for {{input.*}}
+  template tags and pre-called input-tools (BRA409), hold a multi-turn chat
+  session against a single run, and retrieve run telemetry and unit-of-work
+  telemetry via the Execution API — including model, thinking mode and turn
+  totals on run telemetry. Documents when a run settles Failed (max-turns
+  exhausted, final max_tokens with no retries). A dropped SSE connection does
+  not fail the run — poll GET /runs/{id}/latest for the outcome. Also notes
+  when a Completed run becomes eligible for learning evals (BRA207). Documents
+  SSRF rules for async callbackUrl (allowed-callback-domains).
 ---
 
 # Execution API: Workflow Execution & Telemetry
@@ -86,8 +87,7 @@ and async endpoints accept the same optional `variables` object.
 
 **What happens**
 
-1. The map is persisted on the `WorkflowRun` as JSON before execution starts
-   (so Hangfire async jobs can read it from the database).
+1. The map is persisted on the `WorkflowRun` as JSON before execution starts.
 2. Template tags `{{input.<key>}}` resolve to those values in workflow
    Instructions, system prompts, tool response markdown, and `input-tools`
    parameter mappings (see **BRA201** §8.0a / **BRA409**).
@@ -142,11 +142,11 @@ Wire the same keys in the workflow schema:
 
 Full authoring guide: **BRA409**. Template taxonomy: **BRA204** §3.6.
 
-### `POST /workflows/{code}/run/sync` — synchronous (SSE)
+### `POST /workflows/{code}/run/sync` — chat session (SSE)
 
-Streams the result in real time as **Server-Sent Events**, mirroring the Claude streaming wire format. The run is created at status `Running` (never `Queued`).
+Starts a chat session and streams the reply as **Server-Sent Events**. A successful turn is **left open** at status `AwaitingInput` (see [Chat Sessions](#chat-sessions)). The stream begins with a `run_started` event carrying the run id you continue or close the session with.
 
-Rather than terminating, a successful sync run is **left open** as a chat session at status `AwaitingInput`, so you can continue the same conversation turn by turn (see [Chat Sessions](#chat-sessions)). It transitions to `Failed` on error or client disconnect. The stream begins with a `run_started` event carrying the run id you continue or close the session with.
+Closing the SSE connection does **not** cancel or fail the turn. If the stream ends without a `done` event, poll [`GET /runs/{id}/latest`](#get-runsidlatest--latest-reply) until `isTurnComplete` is true, then read `reply` (or `error`). The run settles `Failed` only when execution itself fails.
 
 Response headers:
 
@@ -177,7 +177,7 @@ data: {"type": "done"}
 
 ### `POST /workflows/{code}/run/async` — asynchronous (fire-and-forget)
 
-Creates the run at status `Queued`, enqueues a background job, and returns immediately.
+Creates the run at status `Queued` and returns immediately. Execution continues after the response.
 
 Response `202 Accepted`:
 
@@ -233,9 +233,9 @@ A synchronous run is a **chat session**: it is the *same* run for the whole conv
 **Lifecycle.** A session moves through:
 
 ```
-Running  →  AwaitingInput  ⇄  Running (next turn)  →  Completed
-                    │
-                    └──────────→  Completed (explicit close, or inactivity timeout)
+Queued → Running  →  AwaitingInput  ⇄  Running (next turn)  →  Completed
+                           │
+                           └──────────→  Completed (explicit close, or inactivity timeout)
 ```
 
 After each successful turn the run settles at `AwaitingInput` (open) with an `expiresDateUtc`. It is closed to `Completed` when you call `complete`, or automatically when its inactivity timeout passes (see [Session timeout](#session-timeout)). A run is only evaluated once it reaches a terminal status, so an open session is not evaluated until it closes.
@@ -244,7 +244,7 @@ After each successful turn the run settles at `AwaitingInput` (open) with an `ex
 
 ### `POST /runs/{runId}/messages` — continue a session
 
-Posts the next user message to an open session and streams the turn as SSE, in the identical wire format to `/workflows/{code}/run/sync` (including a leading `run_started`). The run reuses its own entity / unit-of-work scope; the only per-turn input is the message.
+Posts the next user message to an open session and streams the turn as SSE, in the identical wire format to `/workflows/{code}/run/sync` (including a leading `run_started`). Closing the stream does not cancel the turn — poll `GET /runs/{id}/latest` if you do not receive `done`. The run reuses its own entity / unit-of-work scope; the only per-turn input is the message.
 
 ```json
 {
@@ -265,7 +265,7 @@ A turn started here re-arms the session's `expiresDateUtc` from the moment it fi
 ### `POST /runs/{runId}/complete` — close a session
 
 Closes an open session, transitioning it to `Completed` so it becomes eligible for
-learning evaluation (BRA207 / BRA091). If the brain has a `workflowrun:complete`
+learning evaluation (BRA207). If the brain has a `workflowrun:complete`
 workflow with `trigger-mode: automatic`, an eval is enqueued. If only
 `trigger-mode: manual` (or omitted) is configured, use the admin UI **Run eval**
 button on the run detail page (or `POST /brains/{instance}/runs/{runId}/eval` on
@@ -289,6 +289,36 @@ An open session that is neither continued nor closed is swept to `Completed` onc
 ---
 
 ## Telemetry
+
+### `GET /runs/{id}/latest` — latest reply
+
+Returns the current run status and the latest user-visible assistant reply. Use this instead of (or after) the SSE stream: when the stream ends without `done`, when reconnecting, or when you do not want to hold a long-lived connection.
+
+Response `200 OK`:
+
+```json
+{
+  "runId": "44291...",
+  "status": "AwaitingInput",
+  "isTurnComplete": true,
+  "reply": "Here is the calendar.",
+  "isError": false,
+  "stopReason": "end_turn",
+  "error": null,
+  "updatedAt": "2026-08-17T23:34:46Z"
+}
+```
+
+| Field | Notes |
+|---|---|
+| `status` | `Queued` \| `Running` \| `AwaitingInput` \| `Completed` \| `Failed` |
+| `isTurnComplete` | `false` while `Queued` or `Running` |
+| `reply` | Latest user-visible assistant text (excludes tool-call rows). May be a partial truncated attempt while the turn is still running. |
+| `isError` | `true` when `status` is `Failed` |
+| `stopReason` | Provider stop reason on that assistant row, when present |
+| `error` | Persisted attempt error, when present |
+
+Returns `404 Not Found` if the run does not belong to the brain.
 
 ### `GET /runs/{id}/telemetry` — run telemetry (OTEL)
 
@@ -387,9 +417,10 @@ Returns `404 Not Found` if the unit of work does not belong to the brain.
 
 | Method | Path | Purpose | Success |
 |---|---|---|---|
-| `POST` | `/workflows/{code}/run/sync` | Run workflow, stream SSE, open a chat session | `200` (stream) |
-| `POST` | `/workflows/{code}/run/async` | Queue workflow run | `202` |
-| `POST` | `/runs/{id}/messages` | Continue an open chat session (stream SSE) | `200` (stream) |
+| `POST` | `/workflows/{code}/run/sync` | Start a chat session and stream the reply | `200` (stream) |
+| `POST` | `/workflows/{code}/run/async` | Start a one-shot run and return immediately | `202` |
+| `POST` | `/runs/{id}/messages` | Continue an open chat session and stream the reply | `200` (stream) |
 | `POST` | `/runs/{id}/complete` | Close an open chat session | `200` |
+| `GET` | `/runs/{id}/latest` | Poll latest assistant reply and status | `200` |
 | `GET` | `/runs/{id}/telemetry` | Run telemetry (OTEL GenAI) | `200` |
 | `GET` | `/units-of-work/{id}/telemetry` | Merged context/data telemetry | `200` |

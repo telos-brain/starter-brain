@@ -1,12 +1,11 @@
 ---
 name: Learning Eval Workflows
 code: BRA207
-version: 3
+version: 5
 description: How to author TRIGGERED learning-eval workflows that grade a
   completed unit of work or workflow run, inject telemetry via template tags,
   persist a 0–100 score with set_run_grading, and create inbox learnings with
-  create_inbox_entry — including manual Run eval and automatic enqueue modes
-  (BRA091 / BRA112).
+  create_inbox_entry — including manual Run eval and automatic trigger modes.
 ---
 
 # Learning Eval Workflows
@@ -67,9 +66,9 @@ tools:
 | Field | Required value | Why |
 | --- | --- | --- |
 | `type` | `TRIGGERED` | Eval is event-driven, not a chat session |
-| `trigger` | `workflowrun:complete` | Matches the run-eval Hangfire path (BRA091) |
+| `trigger` | `workflowrun:complete` | Fires when a workflow run completes |
 | `trigger-mode` | `manual` (or omit — null is treated as manual) | Shows **Run eval** on the run detail page; does **not** auto-enqueue |
-| `tools` | must include `create_inbox_entry` and `set_run_grading` | System tools (BRA405 / BRA406) — in-process |
+| `tools` | must include `create_inbox_entry` and `set_run_grading` | System tools (BRA405 / BRA406) |
 | `max-runs-per-hour` | elevated (e.g. `500`) | Avoids throttling under batch review |
 
 ### 1.2 Instructions body
@@ -113,7 +112,7 @@ Canonical reference workflow: **`WF-EVAL-RUN`** in `workflows/WF-EVAL-RUN.md`.
 
 #### `create_inbox_entry` (BRA405)
 
-**In-process** via `IInboxService` — no outbound HTTP. Declare under
+Runs inside the brain — no outbound HTTP. Declare under
 `tools/inbox/create-inbox-entry.yml`.
 
 | Parameter | Notes |
@@ -181,15 +180,15 @@ Still supported and independent of run evals:
 code: WF-EVAL
 type: TRIGGERED
 trigger: unitofwork:complete
-# trigger-mode is not used by the UoW Hangfire path today
+# trigger-mode is not used when a unit of work completes
 ---
 ```
 
 Instructions use unit-of-work logs, not OTEL. `set_run_grading` applies to
-**WorkflowRuns** — use it on the run-eval path (`WF-EVAL-RUN`), not the UoW
+**workflow runs** — use it on the run-eval path (`WF-EVAL-RUN`), not the UoW
 convention path, unless you also have a subject run reference.
 
-Enqueued when `POST /units-of-work/{id}/complete` succeeds. The engine looks up
+Starts when `POST /units-of-work/{id}/complete` succeeds. The engine looks up
 workflow code **`WF-EVAL`** by convention. Prefer a separate code
 (`WF-EVAL-RUN`) for run evals so the two paths do not collide.
 
@@ -207,7 +206,7 @@ Unresolvable tags render blank (BRA204 silent-blank contract). Always put the
 telemetry blocks in the Instructions, not only in the short trigger message.
 
 **Important:** `runId` inside `{{run.telemetry}}` is a **shortened Guid**, not
-`WorkflowRuns.Reference`. Always use `{{run.reference}}` for `set_run_grading`.
+the 8-character run reference. Always use `{{run.reference}}` for `set_run_grading`.
 
 ---
 
