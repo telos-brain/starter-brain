@@ -1,12 +1,13 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 14
+version: 15
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them as a chat session (SSE plus GET /runs/{id}/latest) or asynchronously
   (fire-and-forget with callback), pass optional run variables for {{input.*}}
   template tags and pre-called input-tools (BRA409), hold a multi-turn chat
-  session against a single run, and retrieve run telemetry and unit-of-work
+  session against a single run, stop an in-flight turn without closing the
+  session (POST /runs/{id}/stop), and retrieve run telemetry and unit-of-work
   telemetry via the Execution API — including model, thinking mode and turn
   totals on run telemetry. Documents when a run settles Failed (max-turns
   exhausted, final max_tokens with no retries). A dropped SSE connection does
@@ -262,6 +263,29 @@ Validated before the stream commits, so these are real HTTP statuses:
 
 A turn started here re-arms the session's `expiresDateUtc` from the moment it finishes, so an actively used session never times out.
 
+### `POST /runs/{runId}/stop` — stop an in-flight turn
+
+Stops the current turn if it is `Queued` or `Running` and leaves the session **open** (`AwaitingInput`) so you can send another message. This is not the same as `complete`: the run is not closed and is not evaluated.
+
+Response `200 OK`:
+
+```json
+{
+  "runId": "44291...",
+  "status": "AwaitingInput"
+}
+```
+
+| Status | When |
+|---|---|
+| `200 OK` | The turn was stopped, or the run was already `AwaitingInput` (idempotent). |
+| `404 Not Found` | No run with that id belongs to the brain. |
+| `409 Conflict` | The run is already `Completed` or `Failed`. |
+
+Stopping cancels work that has not finished. Any assistant text already written stays on the run (poll `GET /runs/{id}/latest`). The session timeout is re-armed from the moment of the stop. A connected SSE stream ends once the turn leaves `Queued` / `Running`. A poll immediately after `stop` may still show `Queued` or `Running` until the worker observes the signal.
+
+To close the session after stopping, call `POST /runs/{runId}/complete`.
+
 ### `POST /runs/{runId}/complete` — close a session
 
 Closes an open session, transitioning it to `Completed` so it becomes eligible for
@@ -280,7 +304,7 @@ Response `200 OK`:
 }
 ```
 
-Idempotent: closing an already-`Completed` session also returns `200`. Returns `404 Not Found` when no such run belongs to the brain, and `409 Conflict` when the run cannot be closed in its current state (e.g. a turn is still in progress).
+Idempotent: closing an already-`Completed` session also returns `200`. Returns `404 Not Found` when no such run belongs to the brain, and `409 Conflict` when the run cannot be closed in its current state (e.g. a turn is still in progress — call `stop` first if you need to close immediately).
 
 ### Session timeout
 
@@ -420,6 +444,7 @@ Returns `404 Not Found` if the unit of work does not belong to the brain.
 | `POST` | `/workflows/{code}/run/sync` | Start a chat session and stream the reply | `200` (stream) |
 | `POST` | `/workflows/{code}/run/async` | Start a one-shot run and return immediately | `202` |
 | `POST` | `/runs/{id}/messages` | Continue an open chat session and stream the reply | `200` (stream) |
+| `POST` | `/runs/{id}/stop` | Stop an in-flight turn and leave the session open | `200` |
 | `POST` | `/runs/{id}/complete` | Close an open chat session | `200` |
 | `GET` | `/runs/{id}/latest` | Poll latest assistant reply and status | `200` |
 | `GET` | `/runs/{id}/telemetry` | Run telemetry (OTEL GenAI) | `200` |

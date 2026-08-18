@@ -1,7 +1,7 @@
 ---
 name: Learning Eval Workflows
 code: BRA207
-version: 5
+version: 6
 description: How to author TRIGGERED learning-eval workflows that grade a
   completed unit of work or workflow run, inject telemetry via template tags,
   persist a 0–100 score with set_run_grading, and create inbox learnings with
@@ -31,8 +31,8 @@ For all template tags, see **BRA204**.
 
 ## 1. Manual workflow-run eval (recommended starting point)
 
-Use this when you want an admin to click **Run eval** on a Completed or Failed
-run in the brain UI, rather than grading every run automatically.
+Use this when you want an admin to click **Run eval** on a Completed, Failed,
+or AwaitingInput run in the brain UI, rather than grading every run automatically.
 
 ### 1.1 Frontmatter checklist
 
