@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 5
+version: 6
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -97,9 +97,9 @@ CLI deploy version-precedence rules and semantic search keep working on the clon
 | Layer | Copied |
 |---|---|
 | **Brain header** | Display `Name`, `Description`, `EmbeddingModel` (unchanged — do not reset; changing it would invalidate copied embeddings). New `InstanceName`, new `ApiKey`, status `Active`. |
-| **Connectors** | Connector definitions (name, URL / url-env, auth type, OAuth endpoints, api-key header, declared parameters). Names are preserved so tools' `connector:` field still resolves. Connector-scoped env-var keys (`CONNECTOR_{id}_*`) are remapped to the new connector IDs. |
+| **Connectors** | Connector definitions (name, URL / url-env, auth type, platform `type`, OAuth endpoints, api-key header, declared parameters including each parameter's `secret:` env-var name). Names are preserved so tools' `connector:` field still resolves. Connector-scoped env-var keys (`CONNECTOR_{id}_*`) are remapped to the new connector IDs. Named keys such as `ELEVENLABS_API_KEY` copy as-is. |
 | **Tools** | Tool groups, tools (including embeddings), and parameters |
-| **Workflows** | Workflows (all LLM settings, skill-code lists, versions) with tools re-linked by **name** on the clone |
+| **Workflows** | Workflows (all LLM settings, skill-code lists, versions, `deployment-type`, schema `FilePath`) with injected/available tools re-linked and `input-tools` copied. `elevenlabs-agent-id` is **not** copied — the clone creates its own agent on first deploy. |
 | **Skills** | Skill books, categories, and skills (including embeddings and tool-code lists) |
 | **Memory** | Blueprints, categories, entries, chunks, and embeddings |
 | **Schema types** | Entity types and their variable keys; unit-of-work types |
@@ -114,6 +114,7 @@ Runtime / operational data stays on the source brain only:
 - Units of work and their context / data
 - Inbox entries and tasks
 - OAuth access / refresh tokens (the clone must reconnect)
+- ElevenLabs agent ids (`elevenlabs-agent-id`) — the clone must deploy its own agent
 
 The clone is a clean configuration twin — not a copy of live jobs, chat history,
 or inbox state.

@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 41
+version: 43
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -61,6 +61,8 @@ brain-schema/
   connectors/
     example-oauth2.yml           # one connector definition per file (BRA209)
     example-api-key.yml
+    example-none.yml
+    example-caller-jwt.yml
 
   tools/
     tickets/
@@ -790,7 +792,7 @@ file lists the paths to deploy. Full authoring guide and worked examples:
 name: my-connector                 # REQUIRED — unique per brain
 url: https://api.example.com       # XOR with url-env — static HTTPS base URL
 # url-env: ACME_API_URL            # XOR with url — brain env var for the base URL
-auth-type: oauth2                  # REQUIRED — oauth2 | api-key | none
+auth-type: oauth2                  # REQUIRED — oauth2 | api-key | none | caller-jwt
 # type: elevenlabs                 # optional — platform identity (e.g. elevenlabs)
 scope: brain                       # optional — defaults to brain (only value today)
 parameters:                         # optional — omit the key entirely when empty
@@ -807,15 +809,20 @@ Rules:
 - Exactly one of `url` (static HTTPS) or `url-env` (brain environment variable
   name whose value is the base URL — **BRA202** / **BRA209**). HTTP is allowed
   only for `localhost`, `127.0.0.1`, and `host.docker.internal` (**BRA106**).
-- `parameters` declare credential **names** only. Secret **values** belong in
-  brain environment variables (`.env` / BRA202) — never in the YAML.
+- `parameters` declare credential **names** (and optional `secret:` env-var
+  bindings for api-key auth). Secret **values** belong in brain environment
+  variables (`.env` / BRA202) — never in the YAML.
 - OAuth access/refresh tokens are runtime state (the OAuth flow), not schema.
 - Optional `type` is a free-text platform identity (first convention value:
   `elevenlabs`). Omit when unused. Distinct from `auth-type`. Used by the
   ElevenLabs deployment handler to find the brain's ElevenLabs connector
   (**BRA209**).
+- Optional `secret:` on an **api-key** parameter names the brain environment
+  variable that holds the API key (same field as tool parameters). When omitted,
+  api-key auth reads `CONNECTOR_{connectorId}_CLIENT_SECRET`. OAuth Connect does
+  not use `secret:` yet.
 - Upsert-always on deploy (no `version` field): Name / Url / UrlEnv / AuthType /
-  Type / Scope / parameters are replaced on every deploy.
+  Type / Scope / ApiKeyHeader / parameters are replaced on every deploy.
 - Register paths under `connectors:` in `brain-compose.yml` (unlisted = not
   deployed).
 
@@ -1308,7 +1315,8 @@ Notes:
   of `elevenlabs_conversational_ai` is what the ElevenLabs deployment handler
   matches on.
 - The brain must have **one** connector with `type: elevenlabs` (BRA209). The
-  handler reads `CONNECTOR_{connectorId}_CLIENT_SECRET` as the `xi-api-key`.
+  handler reads the `api-key` parameter's `secret:` when set, otherwise
+  `CONNECTOR_{connectorId}_CLIENT_SECRET`, as the `xi-api-key`.
 - On first deploy, omit `elevenlabs-agent-id`. The handler `POST`s
   `/v1/convai/agents/create` and writes the returned id back on the workflow.
   Run `brain extract` afterwards so the id is in the YAML; later deploys
@@ -1354,7 +1362,7 @@ Required fields, by file type (everything else is optional):
 | ------------------------ | --------------------------------------------------------------------- |
 | `brain-compose.yml`      | `name`                                                                 |
 | — entity                 | `name`, `code`; each `variables` item needs `key`                      |
-| Connector YAML           | `name`, `url` or `url-env`, `auth-type` (`oauth2` \| `api-key` \| `none`); optional `type` (e.g. `elevenlabs`); each parameter needs `name` + `description` |
+| Connector YAML           | `name`, `url` or `url-env`, `auth-type` (`oauth2` \| `api-key` \| `none` \| `caller-jwt`); optional `type` (e.g. `elevenlabs`); each parameter needs `name` + `description`; optional `secret` names the env var |
 | Tool group `tools.yml`   | `name`, `description`                                                  |
 | Tool definition          | `name`, `description`, exactly one of `api`/`mcp`/`system`/`workflow`/`native` |
 | — `api` block            | `path`                                                                 |

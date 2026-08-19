@@ -1,13 +1,13 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 10
+version: 12
 description: How a brain's .env variables are uploaded, encrypted and stored; the
   well-known "system" keys the platform recognises (LLM provider keys, the brain
   API key); how to inject a stored secret into an api tool's outbound request —
   as an HTTP header, a query parameter or a JSON body field; how connector
-  credential values relate to the same store; and how connector url-env resolves
-  a base URL from this store.
+  credential values relate to the same store; and how connector url-env and
+  parameter secret: bindings resolve named variables from this store.
 ---
 
 # Environment Variables, Secrets & API Keys
@@ -255,13 +255,16 @@ from the model.
 ## 4. Connector credentials and base URLs
 
 **Connectors** (BRA209) declare required auth inputs in YAML (`parameters` with
-`name` / `description` only). The **values** for those inputs — OAuth client id /
-secret, API keys, and similar — are stored as brain environment variables in this
-same encrypted store. They are never written into the connector YAML.
+`name` / `description`, and optional `secret:`). The **values** for those
+inputs — API keys, and similar — are stored as brain environment variables in
+this same encrypted store. They are never written into the connector YAML.
 
-- Declare the parameter names on the connector file (schema).
+- Declare the parameter names on the connector file (schema). For **api-key**
+  connectors, set `secret:` on the `api-key` parameter to the `.env` variable
+  name.
 - Put the values in `.env` (or upsert via the Management API secrets endpoint,
-  which uses connector-scoped keys such as `CONNECTOR_{connectorId}_CLIENT_ID`).
+  which uses connector-scoped keys such as `CONNECTOR_{connectorId}_CLIENT_ID`
+  for OAuth Connect).
 - OAuth **access / refresh tokens** are runtime state (the OAuth flow), not
   environment variables — do not put bearer tokens in `.env` for that purpose.
 
@@ -272,6 +275,13 @@ environment variables. Values must be HTTPS, except HTTP is allowed for
 `localhost`, `127.0.0.1`, and `host.docker.internal` (Brain-in-Docker → host
 API — **BRA106**). Use `url-env` when one schema is deployed to local, test,
 and production brains with different hosts. See **BRA209** §4.4.
+
+An **api-key** connector may take its **API key** from this store via YAML
+`secret:` on the `api-key` parameter (the same field as tool parameters). Put
+the key in `.env` under that variable name — e.g. `secret: ELEVENLABS_API_KEY`
+with `ELEVENLABS_API_KEY=xi-…` in `.env`. When `secret:` is omitted the
+platform still reads `CONNECTOR_{connectorId}_CLIENT_SECRET`. See **BRA209**
+§4.5.
 
 See **BRA209** for the connector file format and examples.
 
@@ -289,6 +299,7 @@ See **BRA209** for the connector file format and examples.
 5. For **connectors**, declare parameter names in `connectors/*.yml` and store
    values here — never in the connector file (BRA209). When using `url-env`, put
    the base URL in `.env` under that variable name (HTTPS, or HTTP for local
-   harness hosts — **BRA106**).
+   harness hosts — **BRA106**). When a connector parameter uses `secret:`, put
+   the API key (or OAuth client secret) in `.env` under that variable name.
 6. Redeploy to rotate a secret — the value is upserted (replaced) against the
    brain and re-encrypted.

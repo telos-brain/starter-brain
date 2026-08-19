@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 15
+version: 16
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -68,7 +68,8 @@ All fields are optional:
     "widget_reference": "WID-001",
     "current_date": "2026-07-30"
   },
-  "callbackUrl": "https://app.example.com/brain/callbacks/run-complete"
+  "callbackUrl": "https://app.example.com/brain/callbacks/run-complete",
+  "caller_jwt": "eyJhbGc..."
 }
 ```
 
@@ -79,6 +80,7 @@ All fields are optional:
 | `unitOfWorkId` | Optional runtime scope for template tags (e.g. `{{#unitOfWork.context}}`). Nothing is hard-coded into the prompt; workflows that need the logs declare those tags in Instructions. |
 | `variables` | Optional string→string map persisted on the `WorkflowRun` and exposed to templates as `{{input.<key>}}`. Omit or leave null for unchanged behaviour. Keys and values are plain strings (no type coercion). See [Run variables](#run-variables-input) and **BRA409**. |
 | `callbackUrl` | Honoured on the async path only. Must be `https` (or `http://localhost` / `http://127.0.0.1` in Development). Subject to the brain's shared outbound host allowlist — see [Async callback SSRF rules](#async-callback-ssrf-rules). |
+| `caller_jwt` | Optional opaque JWT forwarded as `Authorization: Bearer` on outbound calls for connectors with `auth-type: caller-jwt` (BRA274). Encrypted at rest on the `WorkflowRun`. Never logged or echoed. Nested `run_workflow` / workflow-tool child runs inherit it. Brain does not validate the token. Clerk JWTs often expire in ~60 seconds — on `/run/async`, tool dispatch may happen after expiry and the downstream API will 401. |
 
 ### Run variables (`variables` → `{{input.*}}`)
 
@@ -145,7 +147,7 @@ Full authoring guide: **BRA409**. Template taxonomy: **BRA204** §3.6.
 
 ### `POST /workflows/{code}/run/sync` — synchronous (SSE)
 
-Streams the result in real time as **Server-Sent Events**. The run is created at status `Running` (never `Queued`). Live progress events (`status`, `thinking`, `tool_call`, `tool_result`) are emitted while the loop works; the final reply follows as `text` deltas.
+Streams the result in real time as **Server-Sent Events**. The run is created at status `Running` (never `Queued`). Live progress events (`status`, `thinking`, `tool_call`, `tool_result`, and on Claude `text`) are emitted while the loop works. On non-streaming providers the final reply is still chunked as `text` deltas after the loop.
 
 Rather than terminating, a successful sync run is **left open** as a chat session at status `AwaitingInput`, so you can continue the same conversation turn by turn (see [Chat Sessions](#chat-sessions)). It transitions to `Failed` on error or client disconnect. The stream begins with a `run_started` event carrying the run id you continue or close the session with.
 
@@ -177,14 +179,14 @@ Progress events are emitted **while the turn is running** so a harness chat UI c
 |---|---|---|
 | `run_started` | Immediately, before work begins | `runId` |
 | `status` | Each time the model is about to be called | `phase` (`model`) |
-| `thinking` | After a model response that included reasoning | `delta` (full thinking for that call, not token-streamed) |
+| `thinking` | While the provider is generating reasoning | `delta` (token-level on Claude streaming; one blob on non-streaming providers) |
 | `tool_call` | Immediately before a tool is dispatched | `name`, `id`, `input` (JSON object when the arguments are JSON, otherwise a string) |
 | `tool_result` | After that tool returns | `name`, `id`, `ok`, `output` (JSON object when the result is JSON, otherwise a string) |
-| `text` | After the turn's final reply is assembled | `delta` (chunked reply text) |
+| `text` | While the provider is writing the reply (Claude streaming), or after the loop if the call was non-streaming | `delta` |
 | `error` | Terminal failure | `message` |
 | `done` | Always last | — |
 
-The reply `text` deltas are still assembled after the loop finishes (provider token-level streaming is a later refinement). Live progress is the `status` / `thinking` / `tool_call` / `tool_result` events during that wait.
+On Claude, `thinking` and `text` deltas are the provider's own tokens as they are generated. `tool_call` / `tool_result` still fire around tool dispatch. Non-streaming providers keep the previous behaviour (thinking as one blob after the call; reply text chunked at the end).
 
 On failure, a terminal error event precedes `done`:
 
