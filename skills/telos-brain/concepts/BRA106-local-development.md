@@ -59,6 +59,8 @@ brain stop --project-id <id>   # tear down that stack (Compose id from status)
 - Creates `.env.local` from `.env.example` when missing — sets
   `TELOS_BRAIN_API_URL` and the well-known local `TELOS_BRAIN_ORG_API_KEY`;
   never overwrites an existing file
+- Writes the local brain Execution API key to `BRAIN_API_KEY` in `.env.local`
+  when the key is available (first create, or reused from `brain.lock`)
 - Starts SQL + Brain server from `supporttelosready/telos-brain:latest`
 - Boots a synthetic local SuperAdmin and a well-known organisation API key
 - Opens the admin UI at `http://127.0.0.1:60061` (no sign-in)

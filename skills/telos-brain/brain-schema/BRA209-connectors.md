@@ -2,11 +2,11 @@
 name: Connectors
 code: BRA209
 version: 8
-description: How to author connector YAML files for external services (OAuth 2,
+description: "How to author connector YAML files for external services (OAuth 2,
   API key, none, or caller-jwt). Covers file layout, brain-compose registration, optional
   platform type (e.g. elevenlabs), parameter declarations vs secret storage,
   url vs url-env, parameter secret: bindings, deploy behaviour, and worked
-  examples.
+  examples."
 tools:
   - list_schema_files
   - search_schema_files

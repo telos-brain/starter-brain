@@ -2,12 +2,12 @@
 name: Environment Variables, Secrets & API Keys
 code: BRA202
 version: 12
-description: How a brain's .env variables are uploaded, encrypted and stored; the
-  well-known "system" keys the platform recognises (LLM provider keys, the brain
+description: "How a brain's .env variables are uploaded, encrypted and stored; the
+  well-known \"system\" keys the platform recognises (LLM provider keys, the brain
   API key); how to inject a stored secret into an api tool's outbound request —
   as an HTTP header, a query parameter or a JSON body field; how connector
   credential values relate to the same store; and how connector url-env and
-  parameter secret: bindings resolve named variables from this store.
+  parameter secret: bindings resolve named variables from this store."
 ---
 
 # Environment Variables, Secrets & API Keys
