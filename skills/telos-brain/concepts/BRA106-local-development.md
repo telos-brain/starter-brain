@@ -24,8 +24,8 @@ secrets, see **BRA202**. For connectors, see **BRA209**.
 
 - **Node.js 25+**
 - **Docker** (Desktop on Mac/Windows, or Engine + Compose on Linux)
-- **Git** and GitHub SSH access, if you scaffold with `brain init`
-  (`git@github.com:telos-brain/starter-brain.git`)
+- **Git** and GitHub HTTPS access, if you scaffold with `brain init`
+  (`https://github.com/telos-brain/starter-brain.git`)
 
 ---
 
@@ -321,8 +321,9 @@ brain start --image telos-brain:local
   an OpenAI embedding model) is blank. Fill it in `.env.local`.
 - **Port already allocated** — change `api_port` / `sql_port` in
   `brain.config.toml`, or pass `--port`, then `brain start` again.
-- **`brain init` fails** — GitHub SSH is not set up for the private starter
-  repo. Override with `--template <url>` if you have another remote.
+- **`brain init` fails** — GitHub HTTPS auth is not set up for the private
+  starter repo (try `gh auth login`). Override with `--template <url>` if
+  you have another remote.
 - **`--reset` wipes data** — the local SQL volume is deleted. Use it when you
   want a clean database, not for a routine stop.
 

@@ -1,7 +1,7 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 2
+version: 3
 description: Supported AI providers for workflow runs, the provider/model string
   format, example model codes, credential variable names, and which ConversantSettings
   apply per provider.
@@ -151,4 +151,5 @@ capabilities. Declared and system tools still work on every provider.
 
 - **BRA201** §8 — workflow frontmatter, including LLM execution settings
 - **BRA202** — `.env` upload and `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `XAI_API_KEY`
+- **BRA212** — managing LLM costs (caching, cheaper models, budgets, spend limits)
 - **BRA403** — run telemetry (`gen_ai.request.model`, token fields, cost)
