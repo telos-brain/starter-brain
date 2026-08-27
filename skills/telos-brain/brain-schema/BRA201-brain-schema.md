@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 46
+version: 47
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -192,7 +192,8 @@ Rules:
   `local_1/qwen3:8b` or `anthropic/claude-sonnet-4-6`). When set and the matching
   credential exists, every live run uses this model instead of the workflow
   frontmatter. Omit or blank → each workflow uses its own `model:`. If that is
-  also omitted, the run fails (no silent Anthropic/OpenAI default). A missing
+  also omitted, the run fails (no silent Anthropic/OpenAI/OpenRouter/Azure
+  default). A missing
   credential for this value falls back to the workflow model. The same default
   can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
   both are present). Simulation `modelOverride` (this run only) still wins;
@@ -1022,6 +1023,7 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # model: openai/gpt-4o                 # OpenAI
 # model: xai/grok-4.5                  # xAI / Grok
 # model: openrouter/anthropic/claude-sonnet-4.6  # OpenRouter catalogue id (BRA210)
+# model: azure/gpt-4o-prod             # Azure OpenAI deployment name (BRA210)
 # model: local_1/qwen3:8b              # local Ollama / llama.cpp (BRA210)
 # deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
 # elevenlabs-agent-id: agt_xxx         # optional; written back after first ElevenLabs create — omit on first deploy
@@ -1183,11 +1185,13 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
 `openai/gpt-4o`, `xai/grok-4.5`, `openrouter/anthropic/claude-sonnet-4.6`,
-`local_1/qwen3:8b`). Supported providers, example model codes, and
-credential mapping are listed in **BRA210**. Bare model names (no prefix)
-default to Anthropic. Omit `model` to use the brain default (`llm-model` /
-`DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails — leftover
-cloud keys are not used as a silent default.
+`azure/gpt-4o-prod`, `local_1/qwen3:8b`). For `azure/…` the remainder is the
+Azure **deployment name**, not the underlying model id. Supported providers,
+example model codes, and credential mapping are listed in **BRA210**. Bare
+model names (no prefix) default to Anthropic. Omit `model` to use the brain
+default (`llm-model` / `DEFAULT_LLM_MODEL` / Settings). If that is also unset,
+the run fails — leftover cloud keys (including Azure) are not used as a silent
+default.
 
 ### 8.1 LLM execution settings (optional)
 
@@ -1197,13 +1201,14 @@ its default. Omitting all of them reproduces the historic behaviour exactly, so
 existing workflows need no changes.
 
 `max-turns` and `output-tokens` apply to every supported provider. `caching`
-applies on providers that support prompt caching (Anthropic, xAI); OpenAI and
-OpenRouter ignore it. `thinking`, `thinking-budget`, and `thinking-effort` are
-**Claude-oriented** — validated on deploy when present, but ignored at run time
-on OpenAI / xAI / OpenRouter (see **BRA210** §6). `auto-compaction` applies on
-every provider: Claude uses server-side `compact_20260112`; OpenAI / xAI /
-OpenRouter / local runners run the brain's `COMPACTION` workflow client-side
-when the prompt-token threshold is reached.
+applies on providers that support prompt caching (Anthropic, xAI); OpenAI,
+OpenRouter, and Azure ignore it. `thinking`, `thinking-budget`, and
+`thinking-effort` are **Claude-oriented** — validated on deploy when present,
+but ignored at run time on OpenAI / xAI / OpenRouter / Azure (see **BRA210**
+§6). `auto-compaction` applies on every provider: Claude uses server-side
+`compact_20260112`; OpenAI / xAI / OpenRouter / Azure / local runners run the
+brain's `COMPACTION` workflow client-side when the prompt-token threshold is
+reached.
 
 ```markdown
 ---

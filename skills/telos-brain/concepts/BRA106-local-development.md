@@ -1,7 +1,7 @@
 ---
 name: Local Development
 code: BRA106
-version: 7
+version: 8
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
   host.docker.internal, and running workflows against a local LLM (Ollama or
@@ -116,6 +116,8 @@ Before the first `brain deploy --env local`, fill at least:
 | `OPENAI_API_KEY` | Needed for `openai/…` models, or if `embedding-model` is a `text-embedding-*` model. |
 | `XAI_API_KEY` | Needed for `xai/…` models. |
 | `OPENROUTER_API_KEY` | Needed for `openrouter/…` models (OpenRouter aggregator). |
+| `AZURE_OPENAI_API_KEY` | Needed for `azure/…` models. Must be paired with `AZURE_OPENAI_ENDPOINT` (not `AZURE_API_KEY`). |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource URL (e.g. `https://YOUR-RESOURCE.openai.azure.com`). Required for `azure/…`. |
 
 See **BRA202** and **BRA210** for the full key list. Local Ollama / llama.cpp
 runners use `LOCAL_LLM_N_BASE_URL` instead of a cloud API key — §8.

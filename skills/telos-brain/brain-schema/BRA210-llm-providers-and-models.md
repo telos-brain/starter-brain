@@ -1,11 +1,11 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 10
+version: 12
 description: Supported AI providers for workflow runs, the provider/model string
-  format, example model codes, credential variable names, OpenRouter, local
-  OpenAI-compatible runners (Ollama / llama.cpp), and which ConversantSettings
-  apply per provider.
+  format, example model codes, credential variable names, OpenRouter, Azure
+  OpenAI, local OpenAI-compatible runners (Ollama / llama.cpp), and which
+  ConversantSettings apply per provider.
 ---
 
 # LLM Providers and Models
@@ -38,6 +38,7 @@ model: provider/model-name
 | `openai/gpt-4o` | Uses the OpenAI conversant and `OPENAI_API_KEY` |
 | `xai/grok-4.5` | Uses the xAI (Grok) conversant and `XAI_API_KEY` |
 | `openrouter/anthropic/claude-sonnet-4.6` | Uses OpenRouter (`OPENROUTER_API_KEY`). Remainder is the OpenRouter model id |
+| `azure/gpt-4o-prod` | Uses Azure OpenAI (`AZURE_OPENAI_API_KEY` + `AZURE_OPENAI_ENDPOINT`). Remainder is the **deployment name** |
 | `local_1/qwen3:8b` | Uses runner 1 (`LOCAL_LLM_1_BASE_URL`). Remainder is the runner's model id |
 | `local_2/gemma4:e4b` | Uses runner 2 (`LOCAL_LLM_2_BASE_URL`) |
 | `claude-sonnet-4-6` (no prefix) | Treated as **anthropic** (default provider for unprefixed names) |
@@ -47,8 +48,10 @@ Both `/` and `\` are accepted as the separator. The provider prefix is
 case-insensitive (`OpenAI/gpt-4o` → `openai`). The alias `claude/…` folds to
 `anthropic`.
 
-Named cloud providers require `<PROVIDER>_API_KEY` on the brain. Local runners
-require `LOCAL_LLM_N_BASE_URL` instead (not `LOCAL_1_API_KEY`). If the matching
+Named cloud providers require `<PROVIDER>_API_KEY` on the brain. Azure OpenAI
+is the exception: it needs `AZURE_OPENAI_API_KEY` **and**
+`AZURE_OPENAI_ENDPOINT` (not `AZURE_API_KEY`). Local runners require
+`LOCAL_LLM_N_BASE_URL` instead (not `LOCAL_1_API_KEY`). If the matching
 variable is missing, the resolver tries the next candidate in the chain below.
 
 ### Resolution order
@@ -61,8 +64,8 @@ variable is missing, the resolver tries the next candidate in the chain below.
    and the matching env var exists. Compose `llm-model` wins over the env key
    at deploy time. A missing credential falls through to the workflow model.
 3. Workflow frontmatter `model:`.
-4. **Fail** — there is no silent Anthropic/OpenAI/OpenRouter platform default. A leftover
-   `ANTHROPIC_API_KEY` (or OpenAI / xAI / OpenRouter key) is not used just because it is
+4. **Fail** — there is no silent Anthropic/OpenAI/OpenRouter/Azure platform default. A leftover
+   `ANTHROPIC_API_KEY` (or OpenAI / xAI / OpenRouter / Azure key) is not used just because it is
    present; overnight / heartbeat runs must not spend cloud tokens by accident.
 
 If none of those candidates have a credential, the run does not start and the
@@ -81,6 +84,7 @@ each YAML file. Deploy warns (does not 409) when executable workflows have no
 | `openai` | OpenAI Chat Completions | `OPENAI_API_KEY` | Also used for OpenAI embedding models when configured |
 | `xai` | OpenAI-compatible Chat Completions at `api.x.ai` | `XAI_API_KEY` | Grok models; response `reasoning_content` mapped to Thinking |
 | `openrouter` | OpenAI-compatible Chat Completions at `openrouter.ai/api` | `OPENROUTER_API_KEY` | Aggregator. Remainder after the first `/` is the OpenRouter model id (`anthropic/claude-sonnet-4.6`, `openai/gpt-4o`, …). Settings lists a capped catalogue from `/v1/models` when the key is present. |
+| `azure` | Azure OpenAI Chat Completions | `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` (optional `AZURE_OPENAI_API_VERSION`) | The remainder after the first `/` is the Azure **deployment name**, not the underlying model name. V1 is API key auth only (Managed Identity deferred). Do not seed `LlmPrices` — Azure bills the customer's Azure subscription; `CostCents` is null (UI `—`). Platform credits still apply via `RunSeconds`. See §3a. |
 | `local_N` (e.g. `local_1`) | Local OpenAI-compatible | `LOCAL_LLM_N_BASE_URL` (required), `LOCAL_LLM_N_API_KEY` (optional) | Ollama, llama.cpp, or any OpenAI-compatible local server. See §3. |
 
 Any other prefix is rejected at run time (`NotSupportedException`).
@@ -113,6 +117,36 @@ need a redeploy — Settings lists models from the runner live.
 Do not seed `LlmPrices` rows for local runners. `CostCents` is null (UI `—`).
 Local runners do not replace embeddings — deploy still needs `VOYAGE_API_KEY`
 or `OPENAI_API_KEY`.
+
+---
+
+## 3a. Azure OpenAI
+
+Azure OpenAI cannot be reached by pointing the OpenAI Chat Completions path at
+a custom base URL. The Azure REST API uses:
+
+```
+POST {AZURE_OPENAI_ENDPOINT}/openai/deployments/{deployment}/chat/completions?api-version=2024-10-21
+api-key: {AZURE_OPENAI_API_KEY}
+```
+
+The `model` field in workflow YAML is the customer's **deployment name**
+(e.g. `azure/gpt-4o-prod`). That name is chosen in Azure and may not match the
+underlying model (`gpt-4o`). Telos Brain treats it opaquely.
+
+```env
+AZURE_OPENAI_API_KEY=your_azure_openai_api_key
+AZURE_OPENAI_ENDPOINT=https://YOUR-RESOURCE.openai.azure.com
+# Optional. Defaults to 2024-10-21 when omitted.
+# AZURE_OPENAI_API_VERSION=2024-10-21
+```
+
+V1 supports API key auth only. Managed Identity / Microsoft Entra ID is not
+wired yet.
+
+Do not seed `LlmPrices` rows for `azure`. Azure bills the customer's Azure
+subscription directly. `CostCents` is null (UI `—`). Platform credits are still
+charged from `RunSeconds × CentsPerMinute` — Azure runs are not free.
 
 ---
 
@@ -177,6 +211,16 @@ billed amount, `CostCents` is the sum of those amounts. Otherwise cost uses
 OpenAI price rows — the provider key will not match. `openrouter/auto` has no
 fixed list price; until Auto Router is supported, pin a model.
 
+### Azure OpenAI
+
+| `model` value | Typical use |
+| ------------- | ----------- |
+| `azure/gpt-4o-prod` | Customer's Azure deployment named `gpt-4o-prod` |
+| `azure/my-deployment-name` | Any deployment name from the Azure resource |
+
+Use the deployment name from the Azure portal / AI Foundry, not the underlying
+model id.
+
 ### Local runners
 
 | `model` value | Typical use |
@@ -203,6 +247,9 @@ model: xai/grok-4.5
 # OpenRouter (remainder is the OpenRouter model id)
 model: openrouter/anthropic/claude-sonnet-4.6
 
+# Azure OpenAI (remainder is the deployment name)
+model: azure/gpt-4o-prod
+
 # Local Ollama / llama.cpp (runner 1)
 model: local_1/qwen3:8b
 ```
@@ -219,13 +266,13 @@ model: claude-haiku-4-5
 Optional LLM execution fields on the workflow (`max-turns`, `output-tokens`,
 `caching`, `thinking`, …) are documented in **BRA201** §8.1.
 
-| Setting | Anthropic | OpenAI | xAI | OpenRouter | Local |
-| ------- | --------- | ------ | --- | ---------- | ----- |
-| `max-turns` | Applied | Applied | Applied | Applied | Applied |
-| `output-tokens` (retry caps) | Applied (`max_tokens` / `max_tokens` stop) | Applied (`max_tokens` / `finish_reason=length`) | Applied (same as OpenAI) | Applied (same as OpenAI) | Applied (same as OpenAI) |
-| `caching` | Applied | Ignored | Applied | Ignored | Ignored |
-| `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored (request) | Ignored (request) | Ignored (request) | Ignored (request) |
-| `auto-compaction` | Applied (server-side) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) |
+| Setting | Anthropic | OpenAI | xAI | OpenRouter | Azure | Local |
+| ------- | --------- | ------ | --- | ---------- | ----- | ----- |
+| `max-turns` | Applied | Applied | Applied | Applied | Applied | Applied |
+| `output-tokens` (retry caps) | Applied (`max_tokens` / `max_tokens` stop) | Applied (`max_tokens` / `finish_reason=length`) | Applied (same as OpenAI) | Applied (same as OpenAI) | Applied (same as OpenAI) | Applied (same as OpenAI) |
+| `caching` | Applied | Ignored | Applied | Ignored | Ignored | Ignored |
+| `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored (request) | Ignored (request) | Ignored (request) | Ignored (request) | Ignored (request) |
+| `auto-compaction` | Applied (server-side) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) |
 
 Unsupported fields are accepted on deploy and silently ignored at run time where
 the table shows Ignored — they do not fail the run. Each provider applies
@@ -244,7 +291,7 @@ thinking request parameters to OpenAI / xAI / OpenRouter.
 ## 7. Native tools
 
 Provider-native tools such as `web_search` and `web_fetch` are Anthropic-shaped
-today. On OpenAI / xAI / OpenRouter / local-runner runs they are skipped rather than sent as
+today. On OpenAI / xAI / OpenRouter / Azure / local-runner runs they are skipped rather than sent as
 unknown capabilities. Declared and system tools still work on every provider.
 
 ---

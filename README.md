@@ -37,8 +37,9 @@ Starter workflows pin `anthropic/claude-sonnet-4-6` (compaction uses Haiku) so a
 Optional:
 
 - `OPENAI_API_KEY` / `XAI_API_KEY` / `OPENROUTER_API_KEY` — for `openai/…`, `xai/…`, or `openrouter/…` models
+- `AZURE_OPENAI_API_KEY` / `AZURE_OPENAI_ENDPOINT` — for `azure/…` models (remainder is the Azure deployment name; BRA210)
 - `LOCAL_LLM_1_BASE_URL` — Ollama / llama.cpp (`model: local_1/<id>`; BRA106 §8)
-- `DEFAULT_LLM_MODEL` — e.g. `local_1/qwen3:8b`, `openrouter/anthropic/claude-sonnet-4.6`, or `anthropic/claude-sonnet-4-6`
+- `DEFAULT_LLM_MODEL` — e.g. `local_1/qwen3:8b`, `openrouter/anthropic/claude-sonnet-4.6`, `azure/gpt-4o-prod`, or `anthropic/claude-sonnet-4-6`
 
 ```bash
 brain deploy --env [local|dev|stage|prod]
