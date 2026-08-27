@@ -50,6 +50,14 @@ Optional: `--instance <name>` to name the brain instance. Deploy reads `.env` fo
 
 Do not delete `brain.lock` after first deploy — subsequent deploys read the brain ID from it.
 
+**Changing models or local LLMs.** After you add or edit `DEFAULT_LLM_MODEL`, `LOCAL_LLM_*`, a provider API key, compose `llm-model`, or a workflow `model:` pin, redeploy so the brain stores the new values:
+
+```bash
+brain deploy --env [local|dev|stage|prod]
+```
+
+Settings **Default LLM model** applies immediately (no deploy). Persist the same value as `DEFAULT_LLM_MODEL` in `.env` (or `llm-model` in compose) so the next deploy does not clear it. Local Ollama from Brain-in-Docker must use `http://host.docker.internal:11434/v1`, not `localhost` — **BRA106** §8.
+
 **Redeploy tip:** run `brain snapshot` before redeploying during iterative development to pull live version numbers to disk and avoid HTTP 409 conflicts.
 
 ## 4. Train the brain
