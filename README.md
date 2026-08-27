@@ -29,8 +29,16 @@ VOYAGE_API_KEY=your-voyage-api-key
 ```
 
 - `TELOS_BRAIN_ORG_API_KEY` — https://go.telosbrain.com (sign up for free and create an API key)
-- `ANTHROPIC_API_KEY` — https://console.anthropic.com
+- `ANTHROPIC_API_KEY` — https://console.anthropic.com (needed for the starter workflow `model:` pins)
 - `VOYAGE_API_KEY` — https://dash.voyageai.com (required; this brain defaults to `voyage-3-lite`)
+
+Starter workflows pin `anthropic/claude-sonnet-4-6` (compaction uses Haiku) so a brain with only `ANTHROPIC_API_KEY` still runs. To point **every** workflow at one provider/model without editing YAML, set **Default LLM model** in Settings, `DEFAULT_LLM_MODEL` in `.env`, or `llm-model` in `brain-compose.yml` (BRA210). A reachable brain default overrides the workflow pins. Leave those unset to keep each workflow's own `model:`.
+
+Optional:
+
+- `OPENAI_API_KEY` / `XAI_API_KEY` / `OPENROUTER_API_KEY` — for `openai/…`, `xai/…`, or `openrouter/…` models
+- `LOCAL_LLM_1_BASE_URL` — Ollama / llama.cpp (`model: local_1/<id>`; BRA106 §8)
+- `DEFAULT_LLM_MODEL` — e.g. `local_1/qwen3:8b`, `openrouter/anthropic/claude-sonnet-4.6`, or `anthropic/claude-sonnet-4-6`
 
 ```bash
 brain deploy --env [local|dev|stage|prod]
@@ -41,6 +49,14 @@ Optional: `--instance <name>` to name the brain instance. Deploy reads `.env` fo
 **Capture the Brain API key from stdout immediately.** On first deploy the CLI prints a plaintext Brain API key **once only**. Store it securely (password manager / secrets manager). Do **not** commit it to source control.
 
 Do not delete `brain.lock` after first deploy — subsequent deploys read the brain ID from it.
+
+**Changing models or local LLMs.** After you add or edit `DEFAULT_LLM_MODEL`, `LOCAL_LLM_*`, a provider API key, compose `llm-model`, or a workflow `model:` pin, redeploy so the brain stores the new values:
+
+```bash
+brain deploy --env [local|dev|stage|prod]
+```
+
+Settings **Default LLM model** applies immediately (no deploy). Persist the same value as `DEFAULT_LLM_MODEL` in `.env` (or `llm-model` in compose) so the next deploy does not clear it. Local Ollama from Brain-in-Docker must use `http://host.docker.internal:11434/v1`, not `localhost`. `ollama pull` (or loading a new llama.cpp weights file) on an already-stored `LOCAL_LLM_N_BASE_URL` does **not** need a redeploy — Settings lists models from the runner live. Full how-to: **BRA106** §8.
 
 **Redeploy tip:** run `brain snapshot` before redeploying during iterative development to pull live version numbers to disk and avoid HTTP 409 conflicts.
 

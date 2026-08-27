@@ -8,6 +8,8 @@ description: >-
 version: 1
 type: TRIGGERED
 trigger: unitofwork:complete:low
+# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
+# compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 system-prompt-code: WF-SYSTEM-PROMPT
 

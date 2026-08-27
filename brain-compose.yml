@@ -11,6 +11,20 @@ embedding-model: voyage-3-lite
 # triggers declare a :high (or lower) learning-mode qualifier (BRA122 / BRA404).
 learning-mode: high
 
+# Optional default LLM (provider/model). When set and the matching credential
+# exists, every live run uses this model instead of the workflow frontmatter.
+# Same role as Settings "Default LLM model" and DEFAULT_LLM_MODEL in .env.
+# Omit (and leave DEFAULT_LLM_MODEL blank) to use each workflow's own model.
+# If that is also omitted, the run fails — leftover cloud keys are not used as
+# a silent default. Simulation modelOverride (this run only) still wins; older
+# clients may send settingsOverride.model instead. A missing credential for
+# this value falls back to the workflow model.
+# Compose llm-model wins over DEFAULT_LLM_MODEL at deploy time, so leave this
+# commented if you want Settings / .env to be the switch.
+# llm-model: anthropic/claude-sonnet-4-6
+# llm-model: openrouter/anthropic/claude-sonnet-4.6
+# llm-model: local_1/qwen3:8b
+
 # Checkpoints: weekly schedule plus a snapshot before each deploy.
 checkpoint-strategy: Daily,BeforeDeploy
 

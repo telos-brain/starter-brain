@@ -10,6 +10,8 @@ description: >-
   records each learning as an inbox entry with routing_type EVAL and status
   PROCESSED, then creates inbox tasks via add_inbox_task for skill and
   workflow/tool schema updates (WF-UPDATE-SKILL / WF-UPDATE-WORKFLOW).
+# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
+# compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 system-prompt-code: WF-SYSTEM-PROMPT
 trigger: workflowrun:complete

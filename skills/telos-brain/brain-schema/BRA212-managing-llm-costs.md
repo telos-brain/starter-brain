@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 2
+version: 4
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -25,8 +25,10 @@ uncached, JSON-heavy, retry-prone tools still burns money.
 Measure after you change something. Run telemetry (**BRA403**) reports
 `gen_ai.usage.input_tokens`, `output_tokens`, `cache_read_input_tokens`,
 `cache_creation_input_tokens`, `telos.turns.used` / `telos.turns.max`, and
-`CostCents` (null when the organisation has no `LlmPrices` row for that
-model). Spend limits only accumulate when prices exist.
+`CostCents`. For OpenRouter, `CostCents` is the sum of billed `usage.cost`
+when every token-bearing message has one; otherwise it uses `LlmPrices` and
+is null when the organisation has no row for that model. Spend limits only
+accumulate when prices exist (or billed cost was persisted).
 
 ---
 
@@ -265,8 +267,12 @@ have nothing to call.
 ## 5. Use a cheaper model (Grok is a great choice for cheaper without compromising quality)
 
 Workflows choose a model with `model: provider/model-name` (**BRA210**).
-Omit it and you get Anthropic `claude-sonnet-4-5` — a strong default, not
-a cheap one.
+Omit it and the run uses the brain default (`llm-model` /
+`DEFAULT_LLM_MODEL` / Settings) when that credential exists. If that is
+also unset, the run **fails** — leftover cloud keys are not a silent
+default. A reachable brain default also overrides a workflow `model:`
+pin. Compaction and short `TOOL` workflows should stay on a cheap pin
+only when you are **not** setting a brain-wide default.
 
 **Grok is a great choice for cheaper without compromising quality.** Set
 `XAI_API_KEY` in the brain `.env` (**BRA202**) and:
@@ -291,12 +297,16 @@ Match the model to the workflow, not the brain:
 - Do not put Opus on a heartbeat or eval loop.
 
 Native tools (`web_search`, `web_fetch`) are Anthropic-shaped and are
-skipped on OpenAI / xAI (**BRA210** §6). If a workflow needs them, keep
-Claude for that workflow only.
+skipped on OpenAI / xAI / OpenRouter / local runners (**BRA210** §7). If a
+workflow needs them, keep Claude for that workflow only.
 
 Organisation `LlmPrices` must include the model you pick. A missing price
 row leaves `CostCents` null — telemetry still shows tokens, but daily /
-monthly spend limits cannot see the spend.
+monthly spend limits cannot see the spend. For OpenRouter, add rows with
+**provider** `openrouter` and **model** the catalogue id
+(`anthropic/claude-sonnet-4.6`, not the native Anthropic hyphenated id).
+OpenRouter runs that persist billed `usage.cost` do not need a matching row
+for `CostCents` to populate.
 
 ---
 
@@ -498,7 +508,7 @@ Checklist when reviewing a brain for cost:
 - [ ] `model` is Grok / Haiku unless Claude is required
 - [ ] `output-tokens` starts small; `max-turns` matches the job
 - [ ] `daily-limit-usd` / `monthly-limit-usd` are set on the compose file
-- [ ] Organisation `LlmPrices` includes every model the brain calls
+- [ ] Organisation `LlmPrices` includes every model the brain calls (OpenRouter: provider `openrouter`, catalogue id as the model)
 - [ ] Conversational workflows inject discovery tools (`find_available_skills`,
       `get_skill`, `find_available_tools`) and keep domain skills/tools in
       `available-skills` / `available-tools`
@@ -510,7 +520,8 @@ Checklist when reviewing a brain for cost:
 - **BRA103** — skill codes and progressive disclosure
 - **BRA105** — budget principle and “keep each skill short” (always inject when editing the brain)
 - **BRA201** §5 — tool YAML; §6.3 skill-declared tool promotion; §8 `tools` / `available-tools`; §8.0a `input-tools`; §8.1 LLM execution settings
-- **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`
+- **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` /
+  `OPENROUTER_API_KEY` / `DEFAULT_LLM_MODEL` / `LOCAL_LLM_N_BASE_URL`
 - **BRA203** — schema tools (`update_schema_file` to apply these fields)
 - **BRA204** §3.5 — `{{result.*}}` in `response-markdown` / `error-markdown`
 - **BRA210** — provider / model strings and which settings each provider honours

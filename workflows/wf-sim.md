@@ -4,6 +4,8 @@ code: WF-SIM
 version: 1
 type: SIMULATION
 description: Synthesises a plausible tool response from historical sample call/response pairs for simulation runs.
+# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
+# compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 
 # No tools: / available-tools: — the LLM only synthesises from pre-fetched samples.
