@@ -30,8 +30,8 @@ the user, stop and load **BRA211** (auto-build) instead.
 - **BRA201** — brain schema structure (`brain-compose.yml`, entities, units of
   work, blueprints, skillbooks)
 - **BRA210** — LLM providers and example `model` codes for workflows
-  (`anthropic/…`, `openai/…`, `xai/…`, `local_1/…`), plus the brain default
-  (`DEFAULT_LLM_MODEL` / compose `llm-model` / Settings)
+  (`anthropic/…`, `openai/…`, `xai/…`, `openrouter/…`, `local_1/…`), plus the
+  brain default (`DEFAULT_LLM_MODEL` / compose `llm-model` / Settings)
 - **BRA208** — skill-book category design and numeric ranges
 - **BRA102** — company brain model (brain-scoped vs entity-scoped memory)
 

@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 14
+version: 15
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -78,6 +78,7 @@ convention** and used automatically:
 | `ANTHROPIC_API_KEY`     | uploaded     | LLM provider key for **Anthropic / Claude**. Resolved automatically for any run whose model is `anthropic/…` (or unprefixed — Anthropic is the default provider). |
 | `OPENAI_API_KEY`        | uploaded     | LLM provider key for **OpenAI**. Resolved for runs whose model is `openai/…`.                 |
 | `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (**BRA210**).       |
+| `OPENROUTER_API_KEY`    | uploaded     | LLM provider key for **OpenRouter**. Resolved for runs whose model is `openrouter/…`. Remainder after the first `/` is the OpenRouter model id (**BRA210**). |
 | `LOCAL_LLM_N_BASE_URL`  | uploaded     | Base URL for local runner N (Ollama, llama.cpp). Required to use `local_N/…`. Example: `LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1` (**BRA210**, **BRA106** §8). |
 | `LOCAL_LLM_N_API_KEY`   | uploaded     | Optional API key for a secured local runner. Omit for unsecured Ollama. |
 | `DEFAULT_LLM_MODEL`     | uploaded     | Optional default LLM (`provider/model`, e.g. `local_1/qwen3:8b`). Same role as Settings **Default LLM model** and compose `llm-model`. When set and the matching credential exists, every live run uses this model instead of the workflow frontmatter. Blank/omitted → each workflow's own `model:`; if that is also omitted the run fails (leftover cloud keys are not a silent default). Compose `llm-model` wins when both are present. See **BRA210**. |
@@ -94,6 +95,8 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 - `anthropic/claude-sonnet-4-5` → looks up **`ANTHROPIC_API_KEY`**
 - `openai/gpt-…` → looks up **`OPENAI_API_KEY`**
 - `xai/grok-4.5` → looks up **`XAI_API_KEY`**
+- `openrouter/anthropic/claude-sonnet-4-6` → looks up **`OPENROUTER_API_KEY`**
+  (wire model is `anthropic/claude-sonnet-4-6`)
 - `local_1/qwen3:8b` → looks up **`LOCAL_LLM_1_BASE_URL`** (and optional
   **`LOCAL_LLM_1_API_KEY`**). This is **not** `LOCAL_1_API_KEY`.
 - a workflow with a **bare** model name (no provider prefix) still treats the
@@ -103,8 +106,9 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
   leftover cloud keys are not used as a silent default.
 
 Always name the Claude key **`ANTHROPIC_API_KEY`** — that is the one and only
-name the platform looks for for Anthropic. Use **`OPENAI_API_KEY`** for OpenAI
-and **`XAI_API_KEY`** for Grok. Local runners are the exception to the
+name the platform looks for for Anthropic. Use **`OPENAI_API_KEY`** for OpenAI,
+**`XAI_API_KEY`** for Grok, and **`OPENROUTER_API_KEY`** for OpenRouter. Local
+runners are the exception to the
 `<PROVIDER>_API_KEY` pattern: they use `LOCAL_LLM_N_BASE_URL`. If a workflow's
 model resolves to a provider whose required variable is not set for the brain,
 the run cannot start.

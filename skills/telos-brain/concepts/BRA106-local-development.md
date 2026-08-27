@@ -1,7 +1,7 @@
 ---
 name: Local Development
 code: BRA106
-version: 5
+version: 7
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
   host.docker.internal, and running workflows against a local LLM (Ollama or
@@ -115,6 +115,7 @@ Before the first `brain deploy --env local`, fill at least:
 | `ANTHROPIC_API_KEY` | Needed if workflows use Anthropic (the default provider). |
 | `OPENAI_API_KEY` | Needed for `openai/…` models, or if `embedding-model` is a `text-embedding-*` model. |
 | `XAI_API_KEY` | Needed for `xai/…` models. |
+| `OPENROUTER_API_KEY` | Needed for `openrouter/…` models (OpenRouter aggregator). |
 
 See **BRA202** and **BRA210** for the full key list. Local Ollama / llama.cpp
 runners use `LOCAL_LLM_N_BASE_URL` instead of a cloud API key — §8.
@@ -296,7 +297,7 @@ This does not skip embeddings. You still need `VOYAGE_API_KEY` (or
 
 Add numbered entries to `.env.local`. The number maps to `local_{N}` in the
 workflow `model` string. Presence of `LOCAL_LLM_N_BASE_URL` is the gate — if
-it is unset, that runner cannot be used. Redeploy after changing these values.
+it is unset, that runner cannot be used.
 
 ```env
 # Ollama on the host, Brain in Docker (usual local stack):
@@ -325,6 +326,19 @@ A trailing `/v1` is accepted and stripped. The conversant calls
 Do **not** use `http://localhost:11434` while Brain is in Docker — that is the
 container itself. Use `host.docker.internal` (same rule as §7). `localhost` is
 correct only if the Brain server is running natively on the host.
+
+### When to redeploy
+
+`.env.local` and schema files only reach the brain on `brain deploy`. Pulling
+a new weights file onto an already-wired runner does not.
+
+| Change | Redeploy? |
+| ------ | --------- |
+| Add or change `LOCAL_LLM_N_BASE_URL` / `LOCAL_LLM_N_API_KEY` in `.env.local` | Yes |
+| Set `DEFAULT_LLM_MODEL` in `.env.local` or `llm-model` in `brain-compose.yml` | Yes |
+| Change a workflow YAML `model:` (e.g. to `local_1/qwen3:8b`) | Yes |
+| `ollama pull` / llama.cpp load of a new model on an existing runner URL | No — Settings lists models from `/v1/models` live |
+| **Default LLM model** in Settings | No — saved immediately |
 
 Confirm the runner before deploying:
 

@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 45
+version: 46
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -1020,6 +1020,7 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
 # model: openai/gpt-4o                 # OpenAI
 # model: xai/grok-4.5                  # xAI / Grok
+# model: openrouter/anthropic/claude-sonnet-4-6  # OpenRouter (BRA210)
 # model: local_1/qwen3:8b              # local Ollama / llama.cpp (BRA210)
 # deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
 # elevenlabs-agent-id: agt_xxx         # optional; written back after first ElevenLabs create — omit on first deploy
@@ -1180,7 +1181,8 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 ### 8.0b Choosing a model (`model`, see **BRA210**)
 
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
-`openai/gpt-4o`, `xai/grok-4.5`, `local_1/qwen3:8b`). Supported providers, example model codes, and
+`openai/gpt-4o`, `xai/grok-4.5`, `openrouter/anthropic/claude-sonnet-4-6`,
+`local_1/qwen3:8b`). Supported providers, example model codes, and
 credential mapping are listed in **BRA210**. Bare model names (no prefix)
 default to Anthropic. Omit `model` to use the brain default (`llm-model` /
 `DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails — leftover
@@ -1194,13 +1196,13 @@ its default. Omitting all of them reproduces the historic behaviour exactly, so
 existing workflows need no changes.
 
 `max-turns` and `output-tokens` apply to every supported provider. `caching`
-applies on providers that support prompt caching (Anthropic, xAI); OpenAI
-ignores it. `thinking`, `thinking-budget`, and `thinking-effort` are
+applies on providers that support prompt caching (Anthropic, xAI); OpenAI and
+OpenRouter ignore it. `thinking`, `thinking-budget`, and `thinking-effort` are
 **Claude-oriented** — validated on deploy when present, but ignored at run time
-on OpenAI / xAI (see **BRA210** §5). `auto-compaction` applies on every
-provider: Claude uses server-side `compact_20260112`; OpenAI / xAI run the
-brain's `COMPACTION` workflow client-side when the prompt-token threshold is
-reached.
+on OpenAI / xAI / OpenRouter (see **BRA210** §6). `auto-compaction` applies on
+every provider: Claude uses server-side `compact_20260112`; OpenAI / xAI /
+OpenRouter / local runners run the brain's `COMPACTION` workflow client-side
+when the prompt-token threshold is reached.
 
 ```markdown
 ---

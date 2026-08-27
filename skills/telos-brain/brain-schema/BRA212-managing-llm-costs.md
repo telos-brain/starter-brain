@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 3
+version: 4
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -295,8 +295,8 @@ Match the model to the workflow, not the brain:
 - Do not put Opus on a heartbeat or eval loop.
 
 Native tools (`web_search`, `web_fetch`) are Anthropic-shaped and are
-skipped on OpenAI / xAI (**BRA210** §6). If a workflow needs them, keep
-Claude for that workflow only.
+skipped on OpenAI / xAI / OpenRouter / local runners (**BRA210** §7). If a
+workflow needs them, keep Claude for that workflow only.
 
 Organisation `LlmPrices` must include the model you pick. A missing price
 row leaves `CostCents` null — telemetry still shows tokens, but daily /
@@ -515,7 +515,7 @@ Checklist when reviewing a brain for cost:
 - **BRA105** — budget principle and “keep each skill short” (always inject when editing the brain)
 - **BRA201** §5 — tool YAML; §6.3 skill-declared tool promotion; §8 `tools` / `available-tools`; §8.0a `input-tools`; §8.1 LLM execution settings
 - **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` /
-  `DEFAULT_LLM_MODEL` / `LOCAL_LLM_N_BASE_URL`
+  `OPENROUTER_API_KEY` / `DEFAULT_LLM_MODEL` / `LOCAL_LLM_N_BASE_URL`
 - **BRA203** — schema tools (`update_schema_file` to apply these fields)
 - **BRA204** §3.5 — `{{result.*}}` in `response-markdown` / `error-markdown`
 - **BRA210** — provider / model strings and which settings each provider honours
