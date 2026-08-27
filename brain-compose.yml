@@ -16,8 +16,9 @@ learning-mode: high
 # Same role as Settings "Default LLM model" and DEFAULT_LLM_MODEL in .env.
 # Omit (and leave DEFAULT_LLM_MODEL blank) to use each workflow's own model.
 # If that is also omitted, the run fails — leftover cloud keys are not used as
-# a silent default. Simulation settingsOverride.model still wins per run. A
-# missing credential for this value falls back to the workflow model.
+# a silent default. Simulation modelOverride (this run only) still wins; older
+# clients may send settingsOverride.model instead. A missing credential for
+# this value falls back to the workflow model.
 # Compose llm-model wins over DEFAULT_LLM_MODEL at deploy time, so leave this
 # commented if you want Settings / .env to be the switch.
 # llm-model: anthropic/claude-sonnet-4-6

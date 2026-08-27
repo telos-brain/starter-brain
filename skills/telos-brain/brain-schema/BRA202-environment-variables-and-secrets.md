@@ -92,7 +92,7 @@ convention** and used automatically:
 The model resolver maps a workflow's `model` prefix onto a **standard** variable
 name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 
-- `anthropic/claude-sonnet-4-5` → looks up **`ANTHROPIC_API_KEY`**
+- `anthropic/claude-sonnet-4-6` → looks up **`ANTHROPIC_API_KEY`**
 - `openai/gpt-…` → looks up **`OPENAI_API_KEY`**
 - `xai/grok-4.5` → looks up **`XAI_API_KEY`**
 - `openrouter/anthropic/claude-sonnet-4.6` → looks up **`OPENROUTER_API_KEY`**
