@@ -25,8 +25,10 @@ uncached, JSON-heavy, retry-prone tools still burns money.
 Measure after you change something. Run telemetry (**BRA403**) reports
 `gen_ai.usage.input_tokens`, `output_tokens`, `cache_read_input_tokens`,
 `cache_creation_input_tokens`, `telos.turns.used` / `telos.turns.max`, and
-`CostCents` (null when the organisation has no `LlmPrices` row for that
-model). Spend limits only accumulate when prices exist.
+`CostCents`. For OpenRouter, `CostCents` is the sum of billed `usage.cost`
+when every token-bearing message has one; otherwise it uses `LlmPrices` and
+is null when the organisation has no row for that model. Spend limits only
+accumulate when prices exist (or billed cost was persisted).
 
 ---
 
@@ -300,7 +302,11 @@ workflow needs them, keep Claude for that workflow only.
 
 Organisation `LlmPrices` must include the model you pick. A missing price
 row leaves `CostCents` null — telemetry still shows tokens, but daily /
-monthly spend limits cannot see the spend.
+monthly spend limits cannot see the spend. For OpenRouter, add rows with
+**provider** `openrouter` and **model** the catalogue id
+(`anthropic/claude-sonnet-4.6`, not the native Anthropic hyphenated id).
+OpenRouter runs that persist billed `usage.cost` do not need a matching row
+for `CostCents` to populate.
 
 ---
 
@@ -502,7 +508,7 @@ Checklist when reviewing a brain for cost:
 - [ ] `model` is Grok / Haiku unless Claude is required
 - [ ] `output-tokens` starts small; `max-turns` matches the job
 - [ ] `daily-limit-usd` / `monthly-limit-usd` are set on the compose file
-- [ ] Organisation `LlmPrices` includes every model the brain calls
+- [ ] Organisation `LlmPrices` includes every model the brain calls (OpenRouter: provider `openrouter`, catalogue id as the model)
 - [ ] Conversational workflows inject discovery tools (`find_available_skills`,
       `get_skill`, `find_available_tools`) and keep domain skills/tools in
       `available-skills` / `available-tools`

@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 15
+version: 16
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -95,8 +95,8 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 - `anthropic/claude-sonnet-4-5` → looks up **`ANTHROPIC_API_KEY`**
 - `openai/gpt-…` → looks up **`OPENAI_API_KEY`**
 - `xai/grok-4.5` → looks up **`XAI_API_KEY`**
-- `openrouter/anthropic/claude-sonnet-4-6` → looks up **`OPENROUTER_API_KEY`**
-  (wire model is `anthropic/claude-sonnet-4-6`)
+- `openrouter/anthropic/claude-sonnet-4.6` → looks up **`OPENROUTER_API_KEY`**
+  (wire model is `anthropic/claude-sonnet-4.6`)
 - `local_1/qwen3:8b` → looks up **`LOCAL_LLM_1_BASE_URL`** (and optional
   **`LOCAL_LLM_1_API_KEY`**). This is **not** `LOCAL_1_API_KEY`.
 - a workflow with a **bare** model name (no provider prefix) still treats the

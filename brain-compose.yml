@@ -21,7 +21,7 @@ learning-mode: high
 # Compose llm-model wins over DEFAULT_LLM_MODEL at deploy time, so leave this
 # commented if you want Settings / .env to be the switch.
 # llm-model: anthropic/claude-sonnet-4-6
-# llm-model: openrouter/anthropic/claude-sonnet-4-6
+# llm-model: openrouter/anthropic/claude-sonnet-4.6
 # llm-model: local_1/qwen3:8b
 
 # Checkpoints: weekly schedule plus a snapshot before each deploy.

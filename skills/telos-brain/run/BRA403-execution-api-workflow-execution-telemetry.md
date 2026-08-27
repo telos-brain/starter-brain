@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 16
+version: 17
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -262,7 +262,7 @@ Running  →  AwaitingInput  ⇄  Running (next turn)  →  Completed
 
 After each successful turn the run settles at `AwaitingInput` (open) with an `expiresDateUtc`. It is closed to `Completed` when you call `complete`, or automatically when its inactivity timeout passes (see [Session timeout](#session-timeout)). Manual **Run eval** can target a `Completed`, `Failed`, or `AwaitingInput` run (BRA207). Automatic evals still fire on `Completed`.
 
-**Cost and billing.** Each turn (including a sync call that leaves the run `AwaitingInput`) recalculates the run's LLM `CostCents` from its messages. Daily time-based charges include open sessions: the night job bills `RunSeconds - BilledSeconds` and then raises `BilledSeconds`, so a chat that stays open is charged that day and a later continuation only bills the unbilled remainder.
+**Cost and billing.** Each turn (including a sync call that leaves the run `AwaitingInput`) recalculates the run's LLM `CostCents` from its messages. OpenRouter turns that stored provider-billed `usage.cost` on every token-bearing message use that sum; otherwise cost is tokens × date-effective `LlmPrices` for the run's model (`openrouter` + catalogue id for OpenRouter). Daily time-based charges include open sessions: the night job bills `RunSeconds - BilledSeconds` and then raises `BilledSeconds`, so a chat that stays open is charged that day and a later continuation only bills the unbilled remainder.
 
 ### `POST /runs/{runId}/messages` — continue a session
 

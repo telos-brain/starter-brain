@@ -1020,7 +1020,7 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
 # model: openai/gpt-4o                 # OpenAI
 # model: xai/grok-4.5                  # xAI / Grok
-# model: openrouter/anthropic/claude-sonnet-4-6  # OpenRouter (BRA210)
+# model: openrouter/anthropic/claude-sonnet-4.6  # OpenRouter catalogue id (BRA210)
 # model: local_1/qwen3:8b              # local Ollama / llama.cpp (BRA210)
 # deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
 # elevenlabs-agent-id: agt_xxx         # optional; written back after first ElevenLabs create — omit on first deploy
@@ -1181,7 +1181,7 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 ### 8.0b Choosing a model (`model`, see **BRA210**)
 
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
-`openai/gpt-4o`, `xai/grok-4.5`, `openrouter/anthropic/claude-sonnet-4-6`,
+`openai/gpt-4o`, `xai/grok-4.5`, `openrouter/anthropic/claude-sonnet-4.6`,
 `local_1/qwen3:8b`). Supported providers, example model codes, and
 credential mapping are listed in **BRA210**. Bare model names (no prefix)
 default to Anthropic. Omit `model` to use the brain default (`llm-model` /
