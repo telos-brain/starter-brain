@@ -195,7 +195,8 @@ Rules:
   also omitted, the run fails (no silent Anthropic/OpenAI default). A missing
   credential for this value falls back to the workflow model. The same default
   can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
-  both are present). Simulation `settingsOverride.model` still wins per run.
+  both are present). Simulation `modelOverride` (this run only) still wins;
+  older clients may send `settingsOverride.model` instead.
   Deploy warns (does not fail) when executable workflows have no `model:` and
   no default is set. See **BRA210**.
 - `checkpoint-strategy` is optional (see §4.2).
