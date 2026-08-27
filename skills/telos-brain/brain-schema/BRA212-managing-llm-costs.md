@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 2
+version: 3
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -265,8 +265,12 @@ have nothing to call.
 ## 5. Use a cheaper model (Grok is a great choice for cheaper without compromising quality)
 
 Workflows choose a model with `model: provider/model-name` (**BRA210**).
-Omit it and you get Anthropic `claude-sonnet-4-5` — a strong default, not
-a cheap one.
+Omit it and the run uses the brain default (`llm-model` /
+`DEFAULT_LLM_MODEL` / Settings) when that credential exists. If that is
+also unset, the run **fails** — leftover cloud keys are not a silent
+default. A reachable brain default also overrides a workflow `model:`
+pin. Compaction and short `TOOL` workflows should stay on a cheap pin
+only when you are **not** setting a brain-wide default.
 
 **Grok is a great choice for cheaper without compromising quality.** Set
 `XAI_API_KEY` in the brain `.env` (**BRA202**) and:
@@ -510,7 +514,8 @@ Checklist when reviewing a brain for cost:
 - **BRA103** — skill codes and progressive disclosure
 - **BRA105** — budget principle and “keep each skill short” (always inject when editing the brain)
 - **BRA201** §5 — tool YAML; §6.3 skill-declared tool promotion; §8 `tools` / `available-tools`; §8.0a `input-tools`; §8.1 LLM execution settings
-- **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`
+- **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` /
+  `DEFAULT_LLM_MODEL` / `LOCAL_LLM_N_BASE_URL`
 - **BRA203** — schema tools (`update_schema_file` to apply these fields)
 - **BRA204** §3.5 — `{{result.*}}` in `response-markdown` / `error-markdown`
 - **BRA210** — provider / model strings and which settings each provider honours

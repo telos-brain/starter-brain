@@ -1,18 +1,18 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 3
+version: 6
 description: Supported AI providers for workflow runs, the provider/model string
-  format, example model codes, credential variable names, and which ConversantSettings
-  apply per provider.
+  format, example model codes, credential variable names, local OpenAI-compatible
+  runners (Ollama / llama.cpp), and which ConversantSettings apply per provider.
 ---
 
 # LLM Providers and Models
 
 Workflows choose an LLM with the optional frontmatter field `model`. The value
 is a **`provider/model`** string. The platform resolves the provider prefix to a
-conversant implementation and looks up the matching API key from brain
-environment variables (see **BRA202**).
+conversant implementation and looks up credentials from brain environment
+variables (see **BRA202**).
 
 This skill is the authoring reference for which providers are supported and
 which model codes are known to work. Pricing for cost calculation is managed
@@ -32,15 +32,36 @@ model: provider/model-name
 | `anthropic/claude-sonnet-4-6` | Uses the Anthropic conversant and `ANTHROPIC_API_KEY` |
 | `openai/gpt-4o` | Uses the OpenAI conversant and `OPENAI_API_KEY` |
 | `xai/grok-4.5` | Uses the xAI (Grok) conversant and `XAI_API_KEY` |
-| `claude-sonnet-4-6` (no prefix) | Treated as **anthropic** (default provider) |
-| omitted / null | Default provider **anthropic**, default model `claude-sonnet-4-5` |
+| `local_1/qwen3:8b` | Uses runner 1 (`LOCAL_LLM_1_BASE_URL`). Remainder is the runner's model id |
+| `local_2/gemma4:e4b` | Uses runner 2 (`LOCAL_LLM_2_BASE_URL`) |
+| `claude-sonnet-4-6` (no prefix) | Treated as **anthropic** (default provider for unprefixed names) |
+| omitted / null | Brain default (`llm-model` / `DEFAULT_LLM_MODEL` / Settings) when set and reachable; otherwise the run **fails**. Leftover cloud keys are not used as a silent default. |
 
 Both `/` and `\` are accepted as the separator. The provider prefix is
 case-insensitive (`OpenAI/gpt-4o` → `openai`). The alias `claude/…` folds to
 `anthropic`.
 
-If the resolved provider has no matching `<PROVIDER>_API_KEY` on the brain, the
-run cannot start.
+Named cloud providers require `<PROVIDER>_API_KEY` on the brain. Local runners
+require `LOCAL_LLM_N_BASE_URL` instead (not `LOCAL_1_API_KEY`). If the matching
+variable is missing, the resolver tries the next candidate in the chain below.
+
+### Resolution order
+
+1. Simulation `settingsOverride.model` (this run only), if set. Missing
+   credential fails the run — no silent fallback.
+2. Brain default: Settings, compose `llm-model`, or `DEFAULT_LLM_MODEL`, if set
+   and the matching env var exists. Compose `llm-model` wins over the env key
+   at deploy time. A missing credential falls through to the workflow model.
+3. Workflow frontmatter `model:`.
+4. **Fail** — there is no silent Anthropic/OpenAI platform default. A leftover
+   `ANTHROPIC_API_KEY` (or OpenAI / xAI key) is not used just because it is
+   present; overnight / heartbeat runs must not spend cloud tokens by accident.
+
+If none of those candidates have a credential, the run does not start and the
+error lists what was tried (or explains that no model is configured). Set a
+brain default when you want every workflow to use a local runner without editing
+each YAML file. Deploy warns (does not 409) when executable workflows have no
+`model:` and no default is set. SYSTEM workflows are skipped for that warning.
 
 ---
 
@@ -48,15 +69,42 @@ run cannot start.
 
 | Provider prefix | Conversant | Credential (`.env`) | Notes |
 | --------------- | ---------- | ------------------- | ----- |
-| `anthropic` (alias `claude`) | Claude | `ANTHROPIC_API_KEY` | Default when `model` is omitted or unprefixed |
+| `anthropic` (alias `claude`) | Claude | `ANTHROPIC_API_KEY` | Default provider for **unprefixed** model names |
 | `openai` | OpenAI Chat Completions | `OPENAI_API_KEY` | Also used for OpenAI embedding models when configured |
 | `xai` | OpenAI-compatible Chat Completions at `api.x.ai` | `XAI_API_KEY` | Grok models; response `reasoning_content` mapped to Thinking |
+| `local_N` (e.g. `local_1`) | Local OpenAI-compatible | `LOCAL_LLM_N_BASE_URL` (required), `LOCAL_LLM_N_API_KEY` (optional) | Ollama, llama.cpp, or any OpenAI-compatible local server. See §3. |
 
 Any other prefix is rejected at run time (`NotSupportedException`).
 
 ---
 
-## 3. Example model codes
+## 3. Local runners (Ollama / llama.cpp)
+
+Numbered env vars register one or more OpenAI-compatible local endpoints.
+`local_1/qwen3:8b` uses `LOCAL_LLM_1_BASE_URL`; `local_2/…` uses runner 2, and
+so on. The remainder after the first `/` is the runner's model id, passed
+verbatim.
+
+```env
+# Brain in Docker talking to Ollama on the host:
+LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
+# Native Brain (not Docker) talking to Ollama on the same machine:
+# LOCAL_LLM_1_BASE_URL=http://localhost:11434/v1
+# llama.cpp server:
+# LOCAL_LLM_1_BASE_URL=http://localhost:8080/v1
+# LOCAL_LLM_1_API_KEY=  # optional; omit for unsecured Ollama
+```
+
+How to wire this on a local Docker stack (including `host.docker.internal`):
+**BRA106** §8.
+
+Do not seed `LlmPrices` rows for local runners. `CostCents` is null (UI `—`).
+Local runners do not replace embeddings — deploy still needs `VOYAGE_API_KEY`
+or `OPENAI_API_KEY`.
+
+---
+
+## 4. Example model codes
 
 These are example workflow `model` values. Provider catalogues change over time —
 use a model id your API key can call. Prefer an explicit `provider/` prefix.
@@ -65,8 +113,7 @@ use a model id your API key can call. Prefer an explicit `provider/` prefix.
 
 | `model` value | Typical use |
 | ------------- | ----------- |
-| `anthropic/claude-sonnet-4-6` | Default strong general / agentic workflows |
-| `anthropic/claude-sonnet-4-5` | Platform default when `model` is omitted |
+| `anthropic/claude-sonnet-4-6` | Strong general / agentic workflows |
 | `anthropic/claude-haiku-4-5` | Faster / cheaper turns |
 | `anthropic/claude-opus-4-5` | Highest capability Claude |
 
@@ -90,9 +137,18 @@ use a model id your API key can call. Prefer an explicit `provider/` prefix.
 | `xai/grok-4.20-0309-non-reasoning` | Non-reasoning Grok 4.20 |
 | `xai/grok-4.20-multi-agent-0309` | Multi-agent long-context |
 
+### Local runners
+
+| `model` value | Typical use |
+| ------------- | ----------- |
+| `local_1/qwen3:8b` | Ollama (or llama.cpp) model on runner 1 |
+| `local_2/gemma4:e4b` | Second parallel local runner |
+
+Use the model id your runner actually serves (`ollama list`, llama.cpp `--model`).
+
 ---
 
-## 4. Workflow frontmatter examples
+## 5. Workflow frontmatter examples
 
 ```yaml
 # Claude (explicit)
@@ -103,6 +159,9 @@ model: openai/gpt-4o
 
 # Grok
 model: xai/grok-4.5
+
+# Local Ollama / llama.cpp (runner 1)
+model: local_1/qwen3:8b
 ```
 
 ```yaml
@@ -112,18 +171,18 @@ model: claude-haiku-4-5
 
 ---
 
-## 5. ConversantSettings by provider
+## 6. ConversantSettings by provider
 
 Optional LLM execution fields on the workflow (`max-turns`, `output-tokens`,
 `caching`, `thinking`, …) are documented in **BRA201** §8.1.
 
-| Setting | Anthropic | OpenAI | xAI |
-| ------- | --------- | ------ | --- |
-| `max-turns` | Applied | Applied | Applied |
-| `output-tokens` (retry caps) | Applied (`max_tokens` / `max_tokens` stop) | Applied (`max_tokens` / `finish_reason=length`) | Applied (same as OpenAI) |
-| `caching` | Applied | Ignored | Applied |
-| `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored (request) | Ignored (request) |
-| `auto-compaction` | Applied (server-side) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) |
+| Setting | Anthropic | OpenAI | xAI | Local |
+| ------- | --------- | ------ | --- | ----- |
+| `max-turns` | Applied | Applied | Applied | Applied |
+| `output-tokens` (retry caps) | Applied (`max_tokens` / `max_tokens` stop) | Applied (`max_tokens` / `finish_reason=length`) | Applied (same as OpenAI) | Applied (same as OpenAI) |
+| `caching` | Applied | Ignored | Applied | Ignored |
+| `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored (request) | Ignored (request) | Ignored (request) |
+| `auto-compaction` | Applied (server-side) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) |
 
 Unsupported fields are accepted on deploy and silently ignored at run time where
 the table shows Ignored — they do not fail the run. Each provider applies
@@ -139,17 +198,18 @@ thinking request parameters to OpenAI / xAI.
 
 ---
 
-## 6. Native tools
+## 7. Native tools
 
 Provider-native tools such as `web_search` and `web_fetch` are Anthropic-shaped
-today. On OpenAI / xAI runs they are skipped rather than sent as unknown
-capabilities. Declared and system tools still work on every provider.
+today. On OpenAI / xAI / local-runner runs they are skipped rather than sent as
+unknown capabilities. Declared and system tools still work on every provider.
 
 ---
 
-## 7. Related skills
+## 8. Related skills
 
 - **BRA201** §8 — workflow frontmatter, including LLM execution settings
-- **BRA202** — `.env` upload and `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `XAI_API_KEY`
+- **BRA202** — `.env` upload, cloud LLM keys, `DEFAULT_LLM_MODEL`, and `LOCAL_LLM_N_BASE_URL`
+- **BRA106** §8 — local Docker stack: Ollama env vars and `host.docker.internal`
 - **BRA212** — managing LLM costs (caching, cheaper models, budgets, spend limits)
 - **BRA403** — run telemetry (`gen_ai.request.model`, token fields, cost)

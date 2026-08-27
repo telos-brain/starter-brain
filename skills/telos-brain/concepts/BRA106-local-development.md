@@ -1,11 +1,12 @@
 ---
 name: Local Development
 code: BRA106
-version: 3
+version: 5
 description: How to run Telos Brain locally with the CLI and Docker — start,
-  stop, deploy, credentials, and pointing connectors at a host app via
-  host.docker.internal. Use when developing a brain or a host application
-  against a local Brain stack.
+  stop, deploy, credentials, pointing connectors at a host app via
+  host.docker.internal, and running workflows against a local LLM (Ollama or
+  llama.cpp). Use when developing a brain or a host application against a
+  local Brain stack.
 ---
 
 # Local Development
@@ -115,7 +116,11 @@ Before the first `brain deploy --env local`, fill at least:
 | `OPENAI_API_KEY` | Needed for `openai/…` models, or if `embedding-model` is a `text-embedding-*` model. |
 | `XAI_API_KEY` | Needed for `xai/…` models. |
 
-See **BRA202** and **BRA210** for the full key list.
+See **BRA202** and **BRA210** for the full key list. Local Ollama / llama.cpp
+runners use `LOCAL_LLM_N_BASE_URL` instead of a cloud API key — §8.
+
+A local LLM does **not** replace the embedding key. `brain deploy` still
+requires `VOYAGE_API_KEY` or `OPENAI_API_KEY` for semantic search.
 
 ---
 
@@ -278,7 +283,99 @@ brain deploy --env local --instance local-brain
 
 ---
 
-## 8. Local stack behaviour
+## 8. Local LLM runners (Ollama / llama.cpp)
+
+Workflows can call a local OpenAI-compatible runner (Ollama, llama.cpp server,
+or similar) instead of Anthropic / OpenAI / xAI. The Brain process still runs
+in Docker, so the runner URL must be reachable **from the container**.
+
+This does not skip embeddings. You still need `VOYAGE_API_KEY` (or
+`OPENAI_API_KEY` for a `text-embedding-*` model) to deploy.
+
+### Env vars
+
+Add numbered entries to `.env.local`. The number maps to `local_{N}` in the
+workflow `model` string. Presence of `LOCAL_LLM_N_BASE_URL` is the gate — if
+it is unset, that runner cannot be used. Redeploy after changing these values.
+
+```env
+# Ollama on the host, Brain in Docker (usual local stack):
+LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
+
+# Second runner (optional):
+# LOCAL_LLM_2_BASE_URL=http://host.docker.internal:11435/v1
+
+# Optional API key for a secured local endpoint:
+# LOCAL_LLM_1_API_KEY=your_optional_key_here
+
+# Optional default for every live run (overrides workflow `model:` when set):
+# DEFAULT_LLM_MODEL=local_1/qwen3:8b
+```
+
+| Variable | Required | Meaning |
+| -------- | -------- | ------- |
+| `LOCAL_LLM_1_BASE_URL` | yes, to use `local_1/…` | OpenAI-compatible base URL for runner 1 |
+| `LOCAL_LLM_N_BASE_URL` | yes, to use `local_N/…` | Same for runner N |
+| `LOCAL_LLM_N_API_KEY` | no | Sent as `Authorization: Bearer` when set. Omitted otherwise (Ollama ignores a placeholder). |
+| `DEFAULT_LLM_MODEL` | no | Optional brain default (`local_1/qwen3:8b`). Same as Settings **Default LLM model**. |
+
+A trailing `/v1` is accepted and stripped. The conversant calls
+`{base}/v1/chat/completions`.
+
+Do **not** use `http://localhost:11434` while Brain is in Docker — that is the
+container itself. Use `host.docker.internal` (same rule as §7). `localhost` is
+correct only if the Brain server is running natively on the host.
+
+Confirm the runner before deploying:
+
+```bash
+curl http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"qwen3:8b","messages":[{"role":"user","content":"ping"}]}'
+```
+
+Then:
+
+```bash
+brain deploy --env local --instance local-brain
+```
+
+Run `brain deploy` from the folder that contains `brain-compose.yml` (or pass
+that path). The repo root of the platform is not a brain folder.
+
+### Workflow model
+
+Point the workflow at the runner and the model id the runner serves:
+
+```yaml
+model: local_1/qwen3:8b
+```
+
+```yaml
+model: local_2/gemma4:e4b
+```
+
+The prefix `local_1` resolves `LOCAL_LLM_1_BASE_URL`. The remainder
+(`qwen3:8b`) is passed verbatim to the runner. Unprefixed model names still
+use Anthropic. Omitting `model` uses the brain default (Settings /
+`DEFAULT_LLM_MODEL` / compose `llm-model`); if that is also unset, the run
+fails — leftover cloud keys are not a silent default.
+
+To point every workflow at a local runner without editing each YAML file, set
+**Default LLM model** in Settings, `DEFAULT_LLM_MODEL` in `.env.local`, or
+`llm-model` in `brain-compose.yml`.
+
+If the run fails with "No LLM model is configured" or "No model credential is
+configured", either no default/`model:` is set, or the workflow is still on
+`anthropic/…` (or another cloud prefix) and that key is missing. Setting
+`LOCAL_LLM_1_BASE_URL` alone does not change existing workflow models.
+
+`CostCents` is null for local-runner runs (no Telos Brain price row). The UI
+shows `—`. Full provider contract: **BRA210**.
+
+---
+
+## 9. Local stack behaviour
 
 | Topic | What to expect |
 |---|---|
@@ -309,7 +406,7 @@ brain start --image telos-brain:local
 
 ---
 
-## 9. Common pitfalls
+## 10. Common pitfalls
 
 - **Tool call fails with "must resolve to a valid HTTPS URL"** — the
   `url-env` value is missing, blank, or a remote `http://` URL. Local HTTP is
@@ -318,7 +415,22 @@ brain start --image telos-brain:local
   `localhost` or `127.0.0.1`. Switch to `http://host.docker.internal:<PORT>`
   and redeploy.
 - **Deploy fails on embeddings** — `VOYAGE_API_KEY` (or `OPENAI_API_KEY` for
-  an OpenAI embedding model) is blank. Fill it in `.env.local`.
+  an OpenAI embedding model) is blank. Fill it in `.env.local`. A local LLM
+  does not replace this key.
+- **`No brain compose file found`** — `brain deploy` was run from a folder
+  without `brain-compose.yml`. Pass the schema path (e.g.
+  `brain deploy brain-schema --env local --instance local-brain`).
+- **Local LLM: "No LLM model is configured"** — no Default LLM model /
+  `DEFAULT_LLM_MODEL` / compose `llm-model`, and the workflow has no `model:`.
+  Set one of those, then redeploy or save Settings.
+- **Local LLM: "No model credential is configured"** — the workflow `model`
+  is still `anthropic/…` (or another cloud prefix), or the default points at a
+  runner whose env var is missing. Set `model: local_1/…` (or a brain default)
+  and `LOCAL_LLM_1_BASE_URL`, then redeploy. A failed inbox task cannot be
+  retried; create a new task or entry.
+- **Local LLM connection refused** — `LOCAL_LLM_1_BASE_URL` used `localhost`
+  from Brain-in-Docker, or the runner is not listening. Use
+  `http://host.docker.internal:11434/v1` (§8).
 - **Port already allocated** — change `api_port` / `sql_port` in
   `brain.config.toml`, or pass `--port`, then `brain start` again.
 - **`brain init` fails** — GitHub HTTPS auth is not set up for the private

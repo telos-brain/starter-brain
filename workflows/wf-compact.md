@@ -4,6 +4,7 @@ code: WF-COMPACT
 version: 2
 type: COMPACTION
 description: Summarises older conversation turns so a run can continue within the context window.
+# Cheap compaction fallback. A reachable brain default still wins (BRA210).
 model: anthropic/claude-haiku-4-5
 
 # No tools — this workflow only reads the transcript passed as the user message

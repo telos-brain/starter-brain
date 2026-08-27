@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 43
+version: 45
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -138,6 +138,7 @@ name: kappa                      # REQUIRED: the brain's name
 # Optional brain-level settings (persisted on every `brain deploy`):
 # embedding-model: voyage-3-lite # optional; defaults to voyage-3-lite when omitted
 # learning-mode: off             # optional; off | low | medium | high (omit = off)
+# llm-model: local_1/qwen3:8b    # optional; default LLM (omit = workflow model)
 # checkpoint-strategy: Daily     # optional; see §4.2 (omit = Daily)
 # allowed-callback-domains:      # optional; shared outbound host allowlist (see §4.3)
 #   - harness.example.com
@@ -187,6 +188,16 @@ Rules:
 - `embedding-model` is optional (defaults to `voyage-3-lite` when omitted).
 - `learning-mode` is optional (`off` | `low` | `medium` | `high`; omit or null is
   treated as `off`). Persisted onto the Brain on every deploy.
+- `llm-model` is optional (a `provider/model` string such as
+  `local_1/qwen3:8b` or `anthropic/claude-sonnet-4-6`). When set and the matching
+  credential exists, every live run uses this model instead of the workflow
+  frontmatter. Omit or blank → each workflow uses its own `model:`. If that is
+  also omitted, the run fails (no silent Anthropic/OpenAI default). A missing
+  credential for this value falls back to the workflow model. The same default
+  can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
+  both are present). Simulation `settingsOverride.model` still wins per run.
+  Deploy warns (does not fail) when executable workflows have no `model:` and
+  no default is set. See **BRA210**.
 - `checkpoint-strategy` is optional (see §4.2).
 - `allowed-callback-domains` is optional (see §4.3) — shared host allowlist for
   async run callbacks and declared-tool webhook URLs.
@@ -1009,6 +1020,7 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
 # model: openai/gpt-4o                 # OpenAI
 # model: xai/grok-4.5                  # xAI / Grok
+# model: local_1/qwen3:8b              # local Ollama / llama.cpp (BRA210)
 # deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
 # elevenlabs-agent-id: agt_xxx         # optional; written back after first ElevenLabs create — omit on first deploy
 
@@ -1168,10 +1180,11 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 ### 8.0b Choosing a model (`model`, see **BRA210**)
 
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
-`openai/gpt-4o`, `xai/grok-4.5`). Supported providers, example model codes, and
+`openai/gpt-4o`, `xai/grok-4.5`, `local_1/qwen3:8b`). Supported providers, example model codes, and
 credential mapping are listed in **BRA210**. Bare model names (no prefix)
-default to Anthropic. Omit `model` for the platform default
-(`anthropic` / `claude-sonnet-4-5`).
+default to Anthropic. Omit `model` to use the brain default (`llm-model` /
+`DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails — leftover
+cloud keys are not used as a silent default.
 
 ### 8.1 LLM execution settings (optional)
 

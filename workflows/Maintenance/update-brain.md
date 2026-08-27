@@ -6,6 +6,8 @@ description: >-
   exposed as workflow tools), wiring, and other structural schema fixes outside
   skill-craft and simple workflow/tool edits. High learning mode only.
 version: 7
+# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
+# compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED

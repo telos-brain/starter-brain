@@ -29,8 +29,16 @@ VOYAGE_API_KEY=your-voyage-api-key
 ```
 
 - `TELOS_BRAIN_ORG_API_KEY` — https://go.telosbrain.com (sign up for free and create an API key)
-- `ANTHROPIC_API_KEY` — https://console.anthropic.com
+- `ANTHROPIC_API_KEY` — https://console.anthropic.com (needed for the starter workflow `model:` pins)
 - `VOYAGE_API_KEY` — https://dash.voyageai.com (required; this brain defaults to `voyage-3-lite`)
+
+Starter workflows pin `anthropic/claude-sonnet-4-6` (compaction uses Haiku) so a brain with only `ANTHROPIC_API_KEY` still runs. To point **every** workflow at one provider/model without editing YAML, set **Default LLM model** in Settings, `DEFAULT_LLM_MODEL` in `.env`, or `llm-model` in `brain-compose.yml` (BRA210). A reachable brain default overrides the workflow pins. Leave those unset to keep each workflow's own `model:`.
+
+Optional:
+
+- `OPENAI_API_KEY` / `XAI_API_KEY` — for `openai/…` or `xai/…` models
+- `LOCAL_LLM_1_BASE_URL` — Ollama / llama.cpp (`model: local_1/<id>`; BRA106 §8)
+- `DEFAULT_LLM_MODEL` — e.g. `local_1/qwen3:8b` or `anthropic/claude-sonnet-4-6`
 
 ```bash
 brain deploy --env [local|dev|stage|prod]

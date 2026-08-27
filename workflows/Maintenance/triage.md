@@ -8,6 +8,8 @@ description: >-
   review_blueprint tasks for clear category matches — without repeating the
   entry body into maintenance task instructions.
 version: 9
+# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
+# compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 
 type: TRIGGERED
