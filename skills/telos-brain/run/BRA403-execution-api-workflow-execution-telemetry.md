@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 17
+version: 18
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -80,7 +80,7 @@ All fields are optional:
 | `unitOfWorkId` | Optional runtime scope for template tags (e.g. `{{#unitOfWork.context}}`). Nothing is hard-coded into the prompt; workflows that need the logs declare those tags in Instructions. |
 | `variables` | Optional string→string map persisted on the `WorkflowRun` and exposed to templates as `{{input.<key>}}`. Omit or leave null for unchanged behaviour. Keys and values are plain strings (no type coercion). See [Run variables](#run-variables-input) and **BRA409**. |
 | `callbackUrl` | Honoured on the async path only. Must be `https` (or `http://localhost` / `http://127.0.0.1` in Development). Subject to the brain's shared outbound host allowlist — see [Async callback SSRF rules](#async-callback-ssrf-rules). |
-| `caller_jwt` | Optional opaque JWT forwarded as `Authorization: Bearer` on outbound calls for connectors with `auth-type: caller-jwt` (BRA274). Encrypted at rest on the `WorkflowRun`. Never logged or echoed. Nested `run_workflow` / workflow-tool child runs inherit it. Brain does not validate the token. Clerk JWTs often expire in ~60 seconds — on `/run/async`, tool dispatch may happen after expiry and the downstream API will 401. |
+| `caller_jwt` | Optional opaque JWT forwarded as `Authorization: Bearer` on outbound calls for connectors with `auth-type: caller-jwt`. Never logged or echoed. Nested `run_workflow` / workflow-tool child runs inherit it. The brain does not validate the token. Clerk JWTs often expire in ~60 seconds — on `/run/async`, tool dispatch may happen after expiry and the downstream API will 401. |
 
 ### Run variables (`variables` → `{{input.*}}`)
 
@@ -89,8 +89,7 @@ and async endpoints accept the same optional `variables` object.
 
 **What happens**
 
-1. The map is persisted on the `WorkflowRun` as JSON before execution starts
-   (so Hangfire async jobs can read it from the database).
+1. The map is persisted on the run before execution starts.
 2. Template tags `{{input.<key>}}` resolve to those values in workflow
    Instructions, system prompts, tool response markdown, and `input-tools`
    parameter mappings (see **BRA201** §8.0a / **BRA409**).
@@ -311,7 +310,7 @@ To close the session after stopping, call `POST /runs/{runId}/complete`.
 ### `POST /runs/{runId}/complete` — close a session
 
 Closes an open session, transitioning it to `Completed` so it becomes eligible for
-learning evaluation (BRA207 / BRA091). If the brain has a `workflowrun:complete`
+learning evaluation (**BRA207**). If the brain has a `workflowrun:complete`
 workflow with `trigger-mode: automatic`, an eval is enqueued. If only
 `trigger-mode: manual` (or omitted) is configured, use the admin UI **Run eval**
 button on the run detail page (or `POST /brains/{instance}/runs/{runId}/eval` on
@@ -359,6 +358,7 @@ Response `200 OK`:
   "totals": {
     "gen_ai.usage.input_tokens": 1820,
     "gen_ai.usage.output_tokens": 430,
+    "gen_ai.embeddings.count": 2,
     "telos.turns.used": 3,
     "telos.turns.max": 15
   },
@@ -371,6 +371,7 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 | Attribute | Notes |
 |---|---|
 | `gen_ai.request.model` | Fully-qualified model the run executed against (`provider/model`) |
+| `gen_ai.embeddings.count` | Embeddings generated in the run (always present on `totals`). OTEL standardises `gen_ai.embeddings.dimension.count` (vector size) only; this is the count of embeddings produced. |
 | `telos.thinking.mode` | Workflow thinking mode (`none` \| `adaptive` \| `extended` \| `effort`) |
 | `telos.turns.used` | Completed assistant loop steps (excludes retries / `max_tokens` attempts) |
 | `telos.turns.max` | Effective max-turns cap for the run (workflow value or engine default 10) |
@@ -384,6 +385,7 @@ Span attributes:
 | `gen_ai.usage.input_tokens` / `output_tokens` | Per-turn token counts |
 | `gen_ai.usage.cache_read_input_tokens` / `cache_creation_input_tokens` | Present only when the provider reports prompt-cache usage |
 | `gen_ai.tool.name` / `gen_ai.tool.call.id` | Present only on tool-call and tool-result turns |
+| `gen_ai.embeddings.count` | Embeddings generated for this turn (usually the assistant tool-call row). Omitted when unused. |
 | `gen_ai.response.finish_reason` | Provider stop reason on assistant turns (`end_turn` \| `tool_use` \| `max_tokens` \| ...) |
 | `gen_ai.request.max_tokens` | The output token cap the attempt ran with; doubles per output-token retry |
 | `error.message` | Present only on a failed / truncated assistant attempt |

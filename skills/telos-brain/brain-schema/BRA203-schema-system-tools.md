@@ -1,7 +1,7 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 5
+version: 6
 description: The in-brain system tools that let a running brain inspect, edit,
   and create its own configuration-as-code schema — list_schema_files,
   search_schema_files, get_schema_file, update_schema_file, create_skill and
@@ -122,7 +122,7 @@ the agent can correct and retry.
 Requires `skillbook_code`, `category_title`, `title`, `description`, and
 `content`. Resolves the SkillBook by code and a category by title
 (case-insensitive), auto-assigns the next skill code in that category range
-(soft-deleted codes stay reserved), defaults version to 1, and returns the new
+(deleted codes stay reserved), defaults version to 1, and returns the new
 code (e.g. `BRA209`). Prefer this over `create_schema_file` for skills.
 
 On failure, load **BRA208** (skill-book design) and **BRA201** §6 (skill format)

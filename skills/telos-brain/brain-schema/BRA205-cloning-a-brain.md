@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 6
+version: 7
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -70,7 +70,7 @@ X-Telos-Api-Key: <organisation-api-key>
 | `id` | GUID of the new brain |
 | `apiKey` | Fresh Execution API credential. Returned **once only** — store it immediately. Subsequent reads mask it to the last four characters. |
 
-The key is generated with `Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))`. It is **not** a copy of the source brain's key.
+The key is freshly generated. It is **not** a copy of the source brain's key.
 
 ### Status codes
 
@@ -90,20 +90,20 @@ Errors use the standard Management API shape: `{ "error": "message" }`.
 
 ## 2. What is cloned
 
-Everything below is deep-copied into new rows with new GUIDs, pointed at the new
-`BrainId`. Codes, names, versions, and embedding bytes are preserved exactly so
-CLI deploy version-precedence rules and semantic search keep working on the clone.
+Everything below is deep-copied onto the new brain. Codes, names, versions, and
+embedding bytes are preserved exactly so CLI deploy version-precedence rules and
+semantic search keep working on the clone.
 
 | Layer | Copied |
 |---|---|
-| **Brain header** | Display `Name`, `Description`, `EmbeddingModel` (unchanged — do not reset; changing it would invalidate copied embeddings). New `InstanceName`, new `ApiKey`, status `Active`. |
+| **Brain header** | Display name, description, and embedding model (unchanged — do not reset; changing it would invalidate copied embeddings). New instance name, new API key, status `Active`. |
 | **Connectors** | Connector definitions (name, URL / url-env, auth type, platform `type`, OAuth endpoints, api-key header, declared parameters including each parameter's `secret:` env-var name). Names are preserved so tools' `connector:` field still resolves. Connector-scoped env-var keys (`CONNECTOR_{id}_*`) are remapped to the new connector IDs. Named keys such as `ELEVENLABS_API_KEY` copy as-is. |
 | **Tools** | Tool groups, tools (including embeddings), and parameters |
-| **Workflows** | Workflows (all LLM settings, skill-code lists, versions, `deployment-type`, schema `FilePath`) with injected/available tools re-linked and `input-tools` copied. `elevenlabs-agent-id` is **not** copied — the clone creates its own agent on first deploy. |
+| **Workflows** | Workflows (all LLM settings, skill-code lists, versions, `deployment-type`) with injected/available tools re-linked and `input-tools` copied. `elevenlabs-agent-id` is **not** copied — the clone creates its own agent on first deploy. |
 | **Skills** | Skill books, categories, and skills (including embeddings and tool-code lists) |
 | **Memory** | Blueprints, categories, entries, chunks, and embeddings |
 | **Schema types** | Entity types and their variable keys; unit-of-work types |
-| **Secrets** | Encrypted environment variables (ciphertext copied when encryption uses the global key — see §3) |
+| **Secrets** | Encrypted environment variables (copied with the clone — see §3) |
 
 ### What is **not** cloned
 
@@ -127,9 +127,8 @@ The whole clone is **all-or-nothing**. A failure leaves no partial clone.
 
 ## 3. Environment-variable merge
 
-Environment variables are encrypted at rest with the platform's global AES-256-GCM
-key — the same mechanism described in BRA202. Because the key
-is not per-brain, source ciphertext can be copied directly onto the clone.
+Environment variables are encrypted at rest — the same mechanism described in
+**BRA202**. Source secrets can be copied directly onto the clone.
 
 When the request includes `environmentVariables`:
 
@@ -154,7 +153,7 @@ Brains have two name fields:
 
 | Field | Role |
 |---|---|
-| `InstanceName` | Organisation-scoped slug used in every Management API route (`/brains/{instance}/…`). Unique per organisation (`UQ_Brains_OrganisationId_InstanceName`). |
+| `InstanceName` | Organisation-scoped slug used in every Management API route (`/brains/{instance}/…`). Unique per organisation. |
 | `Name` | Human-readable display name. Not unique. |
 
 On clone, `newName` becomes the new **`InstanceName`**. Display `Name` and

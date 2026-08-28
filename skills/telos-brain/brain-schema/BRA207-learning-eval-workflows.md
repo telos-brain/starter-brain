@@ -45,8 +45,6 @@ code: WF-EVAL-RUN
 type: TRIGGERED
 version: 1
 description: Grades a completed workflow run, records the score, and creates inbox learnings.
-# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
-# compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 system-prompt-code: <your-system-prompt-workflow-code>
 

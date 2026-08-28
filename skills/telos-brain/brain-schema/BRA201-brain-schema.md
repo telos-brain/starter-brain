@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 47
+version: 48
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -196,8 +196,7 @@ Rules:
   default). A missing
   credential for this value falls back to the workflow model. The same default
   can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
-  both are present). Simulation `modelOverride` (this run only) still wins;
-  older clients may send `settingsOverride.model` instead.
+  both are present). Simulation `settingsOverride.model` still wins per run.
   Deploy warns (does not fail) when executable workflows have no `model:` and
   no default is set. See **BRA210**.
 - `checkpoint-strategy` is optional (see §4.2).
@@ -834,8 +833,8 @@ Rules:
   variable that holds the API key (same field as tool parameters). When omitted,
   api-key auth reads `CONNECTOR_{connectorId}_CLIENT_SECRET`. OAuth Connect does
   not use `secret:` yet.
-- Upsert-always on deploy (no `version` field): Name / Url / UrlEnv / AuthType /
-  Type / Scope / ApiKeyHeader / parameters are replaced on every deploy.
+- Upsert-always on deploy (no `version` field): name, url / url-env, auth-type,
+  type, scope, api-key-header, and parameters are replaced on every deploy.
 - Register paths under `connectors:` in `brain-compose.yml` (unlisted = not
   deployed).
 
@@ -1023,6 +1022,7 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # model: openai/gpt-4o                 # OpenAI
 # model: xai/grok-4.5                  # xAI / Grok
 # model: openrouter/anthropic/claude-sonnet-4.6  # OpenRouter catalogue id (BRA210)
+# model: openrouter/auto               # OpenRouter Auto Router (BRA210)
 # model: azure/gpt-4o-prod             # Azure OpenAI deployment name (BRA210)
 # model: local_1/qwen3:8b              # local Ollama / llama.cpp (BRA210)
 # deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
@@ -1185,13 +1185,13 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
 `openai/gpt-4o`, `xai/grok-4.5`, `openrouter/anthropic/claude-sonnet-4.6`,
-`azure/gpt-4o-prod`, `local_1/qwen3:8b`). For `azure/…` the remainder is the
-Azure **deployment name**, not the underlying model id. Supported providers,
-example model codes, and credential mapping are listed in **BRA210**. Bare
-model names (no prefix) default to Anthropic. Omit `model` to use the brain
-default (`llm-model` / `DEFAULT_LLM_MODEL` / Settings). If that is also unset,
-the run fails — leftover cloud keys (including Azure) are not used as a silent
-default.
+`openrouter/auto`, `azure/gpt-4o-prod`, `local_1/qwen3:8b`). For `azure/…`
+the remainder is the Azure **deployment name**, not the underlying model id.
+Supported providers, example model codes, and credential mapping are listed
+in **BRA210**. Bare model names (no prefix) default to Anthropic. Omit
+`model` to use the brain default (`llm-model` / `DEFAULT_LLM_MODEL` /
+Settings). If that is also unset, the run fails — leftover cloud keys
+(including OpenRouter and Azure) are not used as a silent default.
 
 ### 8.1 LLM execution settings (optional)
 

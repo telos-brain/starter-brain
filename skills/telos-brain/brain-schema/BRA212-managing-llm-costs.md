@@ -267,12 +267,8 @@ have nothing to call.
 ## 5. Use a cheaper model (Grok is a great choice for cheaper without compromising quality)
 
 Workflows choose a model with `model: provider/model-name` (**BRA210**).
-Omit it and the run uses the brain default (`llm-model` /
-`DEFAULT_LLM_MODEL` / Settings) when that credential exists. If that is
-also unset, the run **fails** — leftover cloud keys are not a silent
-default. A reachable brain default also overrides a workflow `model:`
-pin. Compaction and short `TOOL` workflows should stay on a cheap pin
-only when you are **not** setting a brain-wide default.
+Omit it and you get Anthropic `claude-sonnet-4-5` — a strong default, not
+a cheap one.
 
 **Grok is a great choice for cheaper without compromising quality.** Set
 `XAI_API_KEY` in the brain `.env` (**BRA202**) and:
