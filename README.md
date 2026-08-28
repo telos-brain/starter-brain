@@ -20,25 +20,25 @@ Use BRA211 when the host application already exists. Use BRA104 for a greenfield
 
 ## 3. Deploy
 
-Copy `.env.example` to `.env` and set at least:
+Copy `.env.example` to `.env`. Deploy needs the org API key. Starter workflows need an Anthropic key to run:
 
 ```
 TELOS_BRAIN_ORG_API_KEY=your-org-api-key
 ANTHROPIC_API_KEY=your-anthropic-api-key
-VOYAGE_API_KEY=your-voyage-api-key
 ```
 
 - `TELOS_BRAIN_ORG_API_KEY` — https://go.telosbrain.com (sign up for free and create an API key)
 - `ANTHROPIC_API_KEY` — https://console.anthropic.com (needed for the starter workflow `model:` pins)
-- `VOYAGE_API_KEY` — https://dash.voyageai.com (required; this brain defaults to `voyage-3-lite`)
 
 Starter workflows pin `anthropic/claude-sonnet-4-6` (compaction uses Haiku) so a brain with only `ANTHROPIC_API_KEY` still runs. To point **every** workflow at one provider/model without editing YAML, set **Default LLM model** in Settings, `DEFAULT_LLM_MODEL` in `.env`, or `llm-model` in `brain-compose.yml` (BRA210). A reachable brain default overrides the workflow pins. Leave those unset to keep each workflow's own `model:`.
 
 Optional:
 
+- `VOYAGE_API_KEY` — https://dash.voyageai.com (semantic search; this brain defaults to `voyage-3-lite`). Deploy succeeds without it; embeddings are skipped.
 - `OPENAI_API_KEY` / `XAI_API_KEY` / `OPENROUTER_API_KEY` — for `openai/…`, `xai/…`, or `openrouter/…` models
+- `AZURE_OPENAI_API_KEY` / `AZURE_OPENAI_ENDPOINT` — for `azure/…` models (remainder is the Azure deployment name; BRA210)
 - `LOCAL_LLM_1_BASE_URL` — Ollama / llama.cpp (`model: local_1/<id>`; BRA106 §8)
-- `DEFAULT_LLM_MODEL` — e.g. `local_1/qwen3:8b`, `openrouter/anthropic/claude-sonnet-4.6`, or `anthropic/claude-sonnet-4-6`
+- `DEFAULT_LLM_MODEL` — e.g. `local_1/qwen3:8b`, `openrouter/anthropic/claude-sonnet-4.6`, `openrouter/auto`, `azure/gpt-4o-prod`, or `anthropic/claude-sonnet-4-6`
 
 ```bash
 brain deploy --env [local|dev|stage|prod]

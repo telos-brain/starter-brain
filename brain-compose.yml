@@ -23,6 +23,8 @@ learning-mode: high
 # commented if you want Settings / .env to be the switch.
 # llm-model: anthropic/claude-sonnet-4-6
 # llm-model: openrouter/anthropic/claude-sonnet-4.6
+# llm-model: openrouter/auto
+# llm-model: azure/gpt-4o-prod
 # llm-model: local_1/qwen3:8b
 
 # Checkpoints: weekly schedule plus a snapshot before each deploy.
