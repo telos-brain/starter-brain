@@ -1,25 +1,24 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 10
+version: 13
 description: Supported AI providers for workflow runs, the provider/model string
   format, example model codes, credential variable names, OpenRouter, local
-  OpenAI-compatible runners (Ollama / llama.cpp), and which ConversantSettings
-  apply per provider.
+  OpenAI-compatible runners (Ollama / llama.cpp), and which LLM execution
+  settings apply per provider.
 ---
 
 # LLM Providers and Models
 
 Workflows choose an LLM with the optional frontmatter field `model`. The value
-is a **`provider/model`** string. The platform resolves the provider prefix to a
-conversant implementation and looks up credentials from brain environment
-variables (see **BRA202**).
+is a **`provider/model`** string. The platform resolves the provider prefix and looks up credentials from brain
+environment variables (see **BRA202**).
 
 This skill is the authoring reference for which providers are supported and
 which model codes are known to work. Pricing for cost calculation is managed
-in organisation settings (`LlmPrices`) as a fallback. OpenRouter runs prefer
+in organisation settings as a fallback. OpenRouter runs prefer
 the billed `usage.cost` on each API response when every token-bearing message
-has one; otherwise a missing `LlmPrices` row leaves `CostCents` null rather
+has one; otherwise a missing organisation price leaves cost unset rather
 than failing the run. OpenRouter catalogue ids use dots
 (`anthropic/claude-sonnet-4.6`); native Anthropic ids use hyphens
 (`claude-sonnet-4-6`).
@@ -38,6 +37,7 @@ model: provider/model-name
 | `openai/gpt-4o` | Uses the OpenAI conversant and `OPENAI_API_KEY` |
 | `xai/grok-4.5` | Uses the xAI (Grok) conversant and `XAI_API_KEY` |
 | `openrouter/anthropic/claude-sonnet-4.6` | Uses OpenRouter (`OPENROUTER_API_KEY`). Remainder is the OpenRouter model id |
+| `openrouter/auto` | OpenRouter Auto Router — OpenRouter picks a model per turn |
 | `local_1/qwen3:8b` | Uses runner 1 (`LOCAL_LLM_1_BASE_URL`). Remainder is the runner's model id |
 | `local_2/gemma4:e4b` | Uses runner 2 (`LOCAL_LLM_2_BASE_URL`) |
 | `claude-sonnet-4-6` (no prefix) | Treated as **anthropic** (default provider for unprefixed names) |
@@ -110,7 +110,7 @@ How to wire this on a local Docker stack (including `host.docker.internal`):
 up. `ollama pull` of a new model on an already-stored runner URL does not
 need a redeploy — Settings lists models from the runner live.
 
-Do not seed `LlmPrices` rows for local runners. `CostCents` is null (UI `—`).
+Do not add organisation prices for local runners. Cost stays unset (UI `—`).
 Local runners do not replace embeddings — deploy still needs `VOYAGE_API_KEY`
 or `OPENAI_API_KEY`.
 
@@ -161,21 +161,30 @@ own API.
 | `openrouter/anthropic/claude-sonnet-4.6` | Claude via OpenRouter |
 | `openrouter/openai/gpt-4o` | GPT-4o via OpenRouter |
 | `openrouter/google/gemini-2.5-pro` | Gemini via OpenRouter |
+| `openrouter/auto` | Auto Router — OpenRouter picks a model from market spend |
+| `openrouter/auto-beta` | Auto Router early-access track |
 
-Use a model id your OpenRouter key can call. Settings lists a capped catalogue from `/v1/models` when `OPENROUTER_API_KEY` is set.
+Use a model id your OpenRouter key can call. Settings lists a capped catalogue from `/v1/models` when `OPENROUTER_API_KEY` is set, and always offers `openrouter/auto`.
 
-Pin an explicit catalogue id. A bare `openrouter` is treated as an Anthropic
-model name and will not auto-route. OpenRouter Auto Router
-(`openrouter/openrouter/auto` → wire `openrouter/auto`) is not wired yet.
+A bare `openrouter` (no `/`) is treated as an Anthropic model name and does
+**not** auto-route. Prefer the alias `openrouter/auto`. The long form
+`openrouter/openrouter/auto` also works (remainder is the catalogue id).
 
-**Cost.** Each OpenRouter response includes billed `usage.cost` (USD) and the
-model that actually served the call (`response.model`). The run stores
-`openrouter/{response.model}` and, when every token-bearing message has a
-billed amount, `CostCents` is the sum of those amounts. Otherwise cost uses
-`LlmPrices` rows keyed `provider=openrouter` and `model=<catalogue id>`
-(seeded for the models in the table above). Do not reuse native Anthropic /
-OpenAI price rows — the provider key will not match. `openrouter/auto` has no
-fixed list price; until Auto Router is supported, pin a model.
+**Auto Router.** Chat Completions sends `model: openrouter/auto`. Every
+OpenRouter call (Auto and pinned models) also sends `session_id` = the
+workflow run id so later turns can sticky-route to the same provider, and Auto
+can prefer the same model when the task type is unchanged. `cost_tier` /
+`allowed_models` plugins are not schema fields yet — OpenRouter's default
+band applies (roughly `low`). After each turn the run stores the model that
+actually answered (`openrouter/{response.model}`).
+
+**Cost.** Each OpenRouter response includes billed `usage.cost` (USD). When
+every token-bearing message has a billed amount, run cost is the sum —
+that is what spend limits see. Otherwise cost uses the organisation price
+list keyed `provider=openrouter` and `model=<catalogue id>`. Do not reuse native
+Anthropic / OpenAI prices. Auto Router has no fixed list price; do not
+price `openrouter/auto` on the organisation list. Pin a model when you need a
+predictable fallback rate.
 
 ### Local runners
 
@@ -203,6 +212,9 @@ model: xai/grok-4.5
 # OpenRouter (remainder is the OpenRouter model id)
 model: openrouter/anthropic/claude-sonnet-4.6
 
+# OpenRouter Auto Router
+model: openrouter/auto
+
 # Local Ollama / llama.cpp (runner 1)
 model: local_1/qwen3:8b
 ```
@@ -214,7 +226,7 @@ model: claude-haiku-4-5
 
 ---
 
-## 6. ConversantSettings by provider
+## 6. LLM settings by provider
 
 Optional LLM execution fields on the workflow (`max-turns`, `output-tokens`,
 `caching`, `thinking`, …) are documented in **BRA201** §8.1.
@@ -234,10 +246,9 @@ provider's automatic prompt-cache mechanism).
 
 **Response-side reasoning (xAI / OpenAI-compatible):** Grok reasoning models often
 return chain-of-thought in `message.reasoning_content` (especially on tool-call
-turns where `content` is empty). The OpenAI-compatible conversant persists that
-field as `WorkflowMessage.Thinking` so the run UI can show it alongside tool
-cards. Workflow `thinking*` frontmatter still does not send Anthropic-style
-thinking request parameters to OpenAI / xAI / OpenRouter.
+turns where `content` is empty). That text is stored on the run so the UI can
+show it alongside tool cards. Workflow `thinking*` frontmatter still does not
+send Anthropic-style thinking request parameters to OpenAI / xAI / OpenRouter.
 
 ---
 

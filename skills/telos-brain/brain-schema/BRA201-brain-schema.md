@@ -195,8 +195,7 @@ Rules:
   also omitted, the run fails (no silent Anthropic/OpenAI default). A missing
   credential for this value falls back to the workflow model. The same default
   can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
-  both are present). Simulation `modelOverride` (this run only) still wins;
-  older clients may send `settingsOverride.model` instead.
+  both are present). Simulation `settingsOverride.model` still wins per run.
   Deploy warns (does not fail) when executable workflows have no `model:` and
   no default is set. See **BRA210**.
 - `checkpoint-strategy` is optional (see §4.2).
@@ -833,8 +832,8 @@ Rules:
   variable that holds the API key (same field as tool parameters). When omitted,
   api-key auth reads `CONNECTOR_{connectorId}_CLIENT_SECRET`. OAuth Connect does
   not use `secret:` yet.
-- Upsert-always on deploy (no `version` field): Name / Url / UrlEnv / AuthType /
-  Type / Scope / ApiKeyHeader / parameters are replaced on every deploy.
+- Upsert-always on deploy (no `version` field): name, url / url-env, auth-type,
+  type, scope, api-key-header, and parameters are replaced on every deploy.
 - Register paths under `connectors:` in `brain-compose.yml` (unlisted = not
   deployed).
 
@@ -1021,8 +1020,6 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
 # model: openai/gpt-4o                 # OpenAI
 # model: xai/grok-4.5                  # xAI / Grok
-# model: openrouter/anthropic/claude-sonnet-4.6  # OpenRouter catalogue id (BRA210)
-# model: local_1/qwen3:8b              # local Ollama / llama.cpp (BRA210)
 # deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
 # elevenlabs-agent-id: agt_xxx         # optional; written back after first ElevenLabs create — omit on first deploy
 
@@ -1182,8 +1179,7 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 ### 8.0b Choosing a model (`model`, see **BRA210**)
 
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
-`openai/gpt-4o`, `xai/grok-4.5`, `openrouter/anthropic/claude-sonnet-4.6`,
-`local_1/qwen3:8b`). Supported providers, example model codes, and
+`openai/gpt-4o`, `xai/grok-4.5`). Supported providers, example model codes, and
 credential mapping are listed in **BRA210**. Bare model names (no prefix)
 default to Anthropic. Omit `model` to use the brain default (`llm-model` /
 `DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails — leftover
@@ -1197,13 +1193,13 @@ its default. Omitting all of them reproduces the historic behaviour exactly, so
 existing workflows need no changes.
 
 `max-turns` and `output-tokens` apply to every supported provider. `caching`
-applies on providers that support prompt caching (Anthropic, xAI); OpenAI and
-OpenRouter ignore it. `thinking`, `thinking-budget`, and `thinking-effort` are
+applies on providers that support prompt caching (Anthropic, xAI); OpenAI
+ignores it. `thinking`, `thinking-budget`, and `thinking-effort` are
 **Claude-oriented** — validated on deploy when present, but ignored at run time
-on OpenAI / xAI / OpenRouter (see **BRA210** §6). `auto-compaction` applies on
-every provider: Claude uses server-side `compact_20260112`; OpenAI / xAI /
-OpenRouter / local runners run the brain's `COMPACTION` workflow client-side
-when the prompt-token threshold is reached.
+on OpenAI / xAI (see **BRA210** §5). `auto-compaction` applies on every
+provider: Claude uses server-side `compact_20260112`; OpenAI / xAI run the
+brain's `COMPACTION` workflow client-side when the prompt-token threshold is
+reached.
 
 ```markdown
 ---

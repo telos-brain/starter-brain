@@ -1,7 +1,7 @@
 ---
 name: Connectors
 code: BRA209
-version: 8
+version: 9
 description: "How to author connector YAML files for external services (OAuth 2,
   API key, none, or caller-jwt). Covers file layout, brain-compose registration, optional
   platform type (e.g. elevenlabs), parameter declarations vs secret storage,
@@ -98,7 +98,7 @@ parameters:                         # optional — omit the key entirely when em
 
 | Field | Required | Notes |
 |---|---|---|
-| `name` | yes | Unique per brain (`UQ_Connectors_BrainId_Name`). Stable identifier for schema paths and APIs. |
+| `name` | yes | Unique per brain. Stable identifier for schema paths and APIs. |
 | `url` | one of | Static HTTPS base URL (REST root or MCP endpoint). HTTP allowed only for localhost / `127.0.0.1` / `host.docker.internal` (**BRA106**). **Exactly one** of `url` or `url-env`. |
 | `url-env` | one of | Name of a brain environment variable (from `.env`) whose value is the base URL (HTTPS, or HTTP for those local hosts). Resolved at tool/OAuth dispatch — same schema, different domains per brain. |
 | `auth-type` | yes | Exactly one of: `oauth2`, `api-key`, `none`, `caller-jwt`. |
@@ -118,13 +118,13 @@ parameters:                         # optional — omit the key entirely when em
 
 ### Type (platform identity)
 
-`type` is an **optional** discriminator for platform-specific services. It is
-free text with **no check constraint** — omit the key when the connector is a
-generic REST/MCP endpoint. The first convention value is:
+`type` is an **optional** discriminator for platform-specific services. Omit
+the key when the connector is a generic REST/MCP endpoint. The first convention
+value is:
 
 | `type` | Used for |
 |---|---|
-| `elevenlabs` | ElevenLabs Conversational AI. The deployment handler (BRA259) finds this connector on the brain and reads the `api-key` parameter's `secret:` (or `CONNECTOR_{connectorId}_CLIENT_SECRET` when that field is omitted) as the `xi-api-key`. Pair with a workflow that sets `deployment-type: elevenlabs_conversational_ai` (BRA201 §8.3). |
+| `elevenlabs` | ElevenLabs Conversational AI. Pair with a workflow that sets `deployment-type: elevenlabs_conversational_ai` (**BRA201** §8.3). Bind the `xi-api-key` with `secret:` on the `api-key` parameter (or omit `secret:` to use the connector's default client-secret variable). |
 
 A brain should declare **at most one** connector of each platform type. The
 deployment handler picks the first by name and logs a warning if several match.
@@ -202,7 +202,11 @@ scope: brain
 
 No stored credentials. The harness passes `caller_jwt` on `POST /workflows/{code}/run/sync` or `/run/async`. Brain injects it as `Authorization: Bearer` at dispatch. If the JWT is missing, the tool call fails with a clear error.
 
-**Async expiry caveat:** Clerk JWTs typically expire in ~60 seconds. On `/run/async`, Hangfire may dispatch tools after the JWT has expired; the downstream API will return 401, which Brain surfaces as a tool error. Use `caller-jwt` on async runs only when the token lifetime covers expected dispatch delay, or when the downstream service accepts longer-lived tokens.
+**Async expiry caveat:** Clerk JWTs typically expire in ~60 seconds. On `/run/async`,
+tools may dispatch after the JWT has expired; the downstream API will return 401,
+which Brain surfaces as a tool error. Use `caller-jwt` on async runs only when the
+token lifetime covers expected dispatch delay, or when the downstream service
+accepts longer-lived tokens.
 
 ### 4.5 Environment-specific base URL — `url-env`
 

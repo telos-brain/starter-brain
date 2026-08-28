@@ -1,11 +1,12 @@
 ---
 name: Updating a Brain from a Template
 code: BRA206
-version: 2
+version: 4
 description: How to update an existing brain's configuration from a source
   (template) brain via the Management API — POST
   /brains/{targetInstance}/update-from/{sourceInstance} — including version
-  precedence, what is synced, embeddings, and the DeploySummary response.
+  precedence, what is synced (including connectors), embeddings, and the
+  DeploySummary response.
 ---
 
 # Updating a Brain from a Template
@@ -70,6 +71,14 @@ endpoints (`/skills`, `/workflows`, `/tools`, `/memory`, `/schema`):
       "message": "Workflow 'WF-CHAT' not updated: incoming version 1 is less than stored version 4."
     },
     {
+      "resourceType": "Connector",
+      "code": "salesforce",
+      "action": "Created",
+      "incomingVersion": 0,
+      "storedVersion": 0,
+      "message": null
+    },
+    {
       "resourceType": "Tool",
       "code": "list_inbox_entries",
       "action": "Created",
@@ -131,9 +140,15 @@ redeploy):
 
 ### Versionless resources (upsert-always)
 
-Entity types, entity variable keys, and unit-of-work types have no version field.
-They are always created or refreshed. They never produce `VersionConflict`.
-Versions in the summary are reported as `0`.
+Connectors, entity types, entity variable keys, and unit-of-work types have no
+version field. They are always created or refreshed. They never produce
+`VersionConflict`. Versions in the summary are reported as `0`.
+
+| Layer | Matched by | Notes |
+|---|---|---|
+| Connectors | `name` | Parameters replaced wholesale. Destination-only connectors are left alone. Runtime-discovered OAuth endpoints (`authorization-url` / `token-url` / `oauth-scope`) are kept when the source omits them. |
+| Entity types | `code` | Variable keys reconciled (keys absent from the source are removed) |
+| Unit-of-work types | `code` | Variable keys reconciled (keys absent from the source are removed) |
 
 ---
 
@@ -141,6 +156,7 @@ Versions in the summary are reported as `0`.
 
 ### Synced (configuration layer only)
 
+- Connectors (definitions and declared parameters; upserted by name before tools)
 - Tools (groups, tools, and parameters)
 - Workflows (tool lists re-linked by name on the destination)
 - Skills (books, categories, and skills)
@@ -151,28 +167,28 @@ Versions in the summary are reported as `0`.
 
 | Layer | Why |
 |---|---|
-| **Environment variables** | Not versioned; destination secrets stay as-is (unlike clone, which copies/merges them — BRA205) |
+| **Environment variables** | Not versioned; destination secrets stay as-is (unlike clone, which copies/merges them and remaps `CONNECTOR_{id}_*` keys — BRA205). Newly created connectors need secrets supplied separately. |
 | **Brain header** | Instance name, API key, embedding model, display name — left unchanged on the destination |
+| **OAuth tokens** | Runtime Connect state; the destination must reconnect. Tokens are also excluded from clone. |
 | **Runtime data** | Workflow runs, entities, units of work, inbox entries and tasks, etc. |
 
 ### Transactionality
 
-The whole sync runs in a **single database transaction**. Any failure rolls back
-completely; partial updates do not persist.
+The whole sync is **all-or-nothing**. A failure leaves the destination unchanged.
 
 ---
 
 ## 4. Embeddings
 
 Skills, tools, and blueprint chunk embeddings are portable only when both brains
-share the same `EmbeddingModel`.
+share the same `embedding-model`.
 
 | Condition | Behaviour |
 |---|---|
-| `source.EmbeddingModel == target.EmbeddingModel` | Copy embedding bytes / model / dimensions from source |
-| Models differ | Nullify skill/tool embeddings; omit chunk embedding rows so the destination can regenerate on a later index/deploy |
+| Same embedding model | Copy embeddings from source |
+| Models differ | Clear skill/tool embeddings so the destination can regenerate them on a later index/deploy |
 
-Update-from does **not** change the destination's `EmbeddingModel`.
+Update-from does **not** change the destination's `embedding-model`.
 
 ---
 
@@ -202,5 +218,6 @@ those via deploy or `POST /brains/{instance}/environment-variables` (BRA202).
 
 - **BRA201** — schema authoring and deploy versioning (same precedence rule)
 - **BRA202** — environment variables (left untouched by update-from)
-- **BRA205** — cloning a brain (creates the destination twin this endpoint updates)
+- **BRA205** — cloning a brain (creates the destination twin this endpoint updates; clone *does* copy connectors and remap their secret keys)
+- **BRA209** — connector YAML authoring
 - **BRA401** — Management vs Execution API authentication

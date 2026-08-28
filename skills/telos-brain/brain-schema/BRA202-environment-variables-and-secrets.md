@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 16
+version: 19
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -76,7 +76,8 @@ convention** and used automatically:
 | Variable                | Prefix scope | Meaning                                                                                       |
 | ----------------------- | ------------ | --------------------------------------------------------------------------------------------- |
 | `ANTHROPIC_API_KEY`     | uploaded     | LLM provider key for **Anthropic / Claude**. Resolved automatically for any run whose model is `anthropic/…` (or unprefixed — Anthropic is the default provider). |
-| `OPENAI_API_KEY`        | uploaded     | LLM provider key for **OpenAI**. Resolved for runs whose model is `openai/…`.                 |
+| `OPENAI_API_KEY`        | uploaded     | LLM provider key for **OpenAI**. Resolved for runs whose model is `openai/…`. Also the per-brain embedding key when `embedding-model` is `text-embedding-*`. |
+| `VOYAGE_API_KEY`        | uploaded     | Embedding provider key for **Voyage** (`voyage-*` models, including the default `voyage-3-lite`). Put this in `.env` so semantic search and skill/tool embeddings can run. |
 | `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (**BRA210**).       |
 | `OPENROUTER_API_KEY`    | uploaded     | LLM provider key for **OpenRouter**. Resolved for runs whose model is `openrouter/…`. Remainder after the first `/` is the OpenRouter model id (**BRA210**). |
 | `LOCAL_LLM_N_BASE_URL`  | uploaded     | Base URL for local runner N (Ollama, llama.cpp). Required to use `local_N/…`. Example: `LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1` (**BRA210**, **BRA106** §8). |
@@ -92,11 +93,14 @@ convention** and used automatically:
 The model resolver maps a workflow's `model` prefix onto a **standard** variable
 name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 
-- `anthropic/claude-sonnet-4-6` → looks up **`ANTHROPIC_API_KEY`**
+- `anthropic/claude-sonnet-4-5` → looks up **`ANTHROPIC_API_KEY`**
 - `openai/gpt-…` → looks up **`OPENAI_API_KEY`**
 - `xai/grok-4.5` → looks up **`XAI_API_KEY`**
 - `openrouter/anthropic/claude-sonnet-4.6` → looks up **`OPENROUTER_API_KEY`**
   (wire model is `anthropic/claude-sonnet-4.6`)
+- `openrouter/auto` → looks up **`OPENROUTER_API_KEY`** (wire model is
+  `openrouter/auto` — Auto Router). A bare `openrouter` is **not** this; it is
+  treated as an Anthropic model name.
 - `local_1/qwen3:8b` → looks up **`LOCAL_LLM_1_BASE_URL`** (and optional
   **`LOCAL_LLM_1_API_KEY`**). This is **not** `LOCAL_1_API_KEY`.
 - a workflow with a **bare** model name (no provider prefix) still treats the
@@ -114,7 +118,7 @@ model resolves to a provider whose required variable is not set for the brain,
 the run cannot start.
 
 For the full list of supported providers, example workflow `model` codes, and
-which ConversantSettings each provider honours, see **BRA210**.
+which settings each provider honours, see **BRA210**.
 
 ---
 
@@ -304,9 +308,9 @@ See **BRA209** for the connector file format and examples.
 ## 5. Checklist
 
 1. Put every secret the brain needs in the schema's `.env` (never commit it).
-2. Name the Claude key exactly `ANTHROPIC_API_KEY` (and OpenAI `OPENAI_API_KEY`).
-   For a local Ollama / llama.cpp runner, set `LOCAL_LLM_1_BASE_URL` and use
-   `model: local_1/…` (**BRA210**, **BRA106** §8).
+2. Name the Claude key exactly `ANTHROPIC_API_KEY` (and OpenAI `OPENAI_API_KEY`,
+   Voyage `VOYAGE_API_KEY`). For a local Ollama / llama.cpp runner, set
+   `LOCAL_LLM_1_BASE_URL` and use `model: local_1/…` (**BRA210**, **BRA106** §8).
 3. Keep CLI/deploy config under the `TELOS_` prefix — it stays local.
 4. To authenticate an **`api:` tool**, reference the variable with `secret:`;
    add `header:` (plus an optional `value: "Bearer {secret}"` template) to send
