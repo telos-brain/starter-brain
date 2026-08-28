@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 19
+version: 20
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -80,6 +80,9 @@ convention** and used automatically:
 | `VOYAGE_API_KEY`        | uploaded     | Embedding provider key for **Voyage** (`voyage-*` models, including the default `voyage-3-lite`). Put this in `.env` so semantic search and skill/tool embeddings can run. |
 | `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (**BRA210**).       |
 | `OPENROUTER_API_KEY`    | uploaded     | LLM provider key for **OpenRouter**. Resolved for runs whose model is `openrouter/…`. Remainder after the first `/` is the OpenRouter model id (**BRA210**). |
+| `AZURE_OPENAI_API_KEY`  | uploaded     | LLM provider key for **Azure OpenAI**. Resolved for runs whose model is `azure/…`. Must be paired with `AZURE_OPENAI_ENDPOINT`. Not `AZURE_API_KEY` (**BRA210**). |
+| `AZURE_OPENAI_ENDPOINT` | uploaded     | Azure OpenAI resource endpoint (e.g. `https://YOUR-RESOURCE.openai.azure.com`). Required for `azure/…` models. Configuration value stored per-brain like other env vars (**BRA210**). |
+| `AZURE_OPENAI_API_VERSION` | uploaded  | Optional Azure OpenAI REST `api-version`. Defaults to `2024-10-21` when omitted (**BRA210**). |
 | `LOCAL_LLM_N_BASE_URL`  | uploaded     | Base URL for local runner N (Ollama, llama.cpp). Required to use `local_N/…`. Example: `LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1` (**BRA210**, **BRA106** §8). |
 | `LOCAL_LLM_N_API_KEY`   | uploaded     | Optional API key for a secured local runner. Omit for unsecured Ollama. |
 | `DEFAULT_LLM_MODEL`     | uploaded     | Optional default LLM (`provider/model`, e.g. `local_1/qwen3:8b`). Same role as Settings **Default LLM model** and compose `llm-model`. When set and the matching credential exists, every live run uses this model instead of the workflow frontmatter. Blank/omitted → each workflow's own `model:`; if that is also omitted the run fails (leftover cloud keys are not a silent default). Compose `llm-model` wins when both are present. See **BRA210**. |
@@ -101,6 +104,11 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 - `openrouter/auto` → looks up **`OPENROUTER_API_KEY`** (wire model is
   `openrouter/auto` — Auto Router). A bare `openrouter` is **not** this; it is
   treated as an Anthropic model name.
+- `azure/gpt-4o-prod` → looks up **`AZURE_OPENAI_API_KEY`** and
+  **`AZURE_OPENAI_ENDPOINT`**. This is **not** `AZURE_API_KEY`. The remainder
+  after the first `/` is the Azure deployment name. Optional
+  **`AZURE_OPENAI_API_VERSION`** overrides the default Chat Completions
+  `api-version` (`2024-10-21`).
 - `local_1/qwen3:8b` → looks up **`LOCAL_LLM_1_BASE_URL`** (and optional
   **`LOCAL_LLM_1_API_KEY`**). This is **not** `LOCAL_1_API_KEY`.
 - a workflow with a **bare** model name (no provider prefix) still treats the
@@ -111,8 +119,10 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 
 Always name the Claude key **`ANTHROPIC_API_KEY`** — that is the one and only
 name the platform looks for for Anthropic. Use **`OPENAI_API_KEY`** for OpenAI,
-**`XAI_API_KEY`** for Grok, and **`OPENROUTER_API_KEY`** for OpenRouter. Local
-runners are the exception to the
+**`XAI_API_KEY`** for Grok, and **`OPENROUTER_API_KEY`** for OpenRouter. Azure
+OpenAI uses **`AZURE_OPENAI_API_KEY`** plus **`AZURE_OPENAI_ENDPOINT`**
+(optional **`AZURE_OPENAI_API_VERSION`**). Local
+runners are the other exception to the
 `<PROVIDER>_API_KEY` pattern: they use `LOCAL_LLM_N_BASE_URL`. If a workflow's
 model resolves to a provider whose required variable is not set for the brain,
 the run cannot start.

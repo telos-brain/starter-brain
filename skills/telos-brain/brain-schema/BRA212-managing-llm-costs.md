@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 3
+version: 4
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -302,7 +302,9 @@ monthly spend limits cannot see the spend. For OpenRouter, add rows with
 **provider** `openrouter` and **model** the catalogue id
 (`anthropic/claude-sonnet-4.6`, not the native Anthropic hyphenated id).
 OpenRouter runs that persist billed `usage.cost` do not need a matching row
-for `CostCents` to populate.
+for `CostCents` to populate. Local runners and Azure OpenAI are bring-your-
+own-billing: do not seed `LlmPrices` for them; `CostCents` stays null.
+Platform credits still apply via `RunSeconds`.
 
 ---
 

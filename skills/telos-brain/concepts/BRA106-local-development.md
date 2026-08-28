@@ -1,7 +1,7 @@
 ---
 name: Local Development
 code: BRA106
-version: 7
+version: 8
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
   host.docker.internal, and running workflows against a local LLM (Ollama or
@@ -107,11 +107,13 @@ TELOS_BRAIN_API_URL=http://127.0.0.1:60061
 to the brain. Every other declared variable in `.env.local` **is** uploaded on
 deploy (encrypted at rest). Blank values are skipped.
 
-Before the first `brain deploy --env local`, fill at least:
+Before the first `brain deploy --env local`, fill the keys your schema actually
+uses. Deploy succeeds with none of them; features that need a key simply skip
+or fail at run time.
 
 | Variable | Why |
 |---|---|
-| `VOYAGE_API_KEY` | Required for the default embedding model (`voyage-3-lite`). Deploy fails without an embedding key. |
+| `VOYAGE_API_KEY` | Needed for the default embedding model (`voyage-3-lite`) so semantic search can run. Optional at deploy — without it, embeddings are skipped. |
 | `ANTHROPIC_API_KEY` | Needed if workflows use Anthropic (the default provider). |
 | `OPENAI_API_KEY` | Needed for `openai/…` models, or if `embedding-model` is a `text-embedding-*` model. |
 | `XAI_API_KEY` | Needed for `xai/…` models. |
@@ -120,8 +122,9 @@ Before the first `brain deploy --env local`, fill at least:
 See **BRA202** and **BRA210** for the full key list. Local Ollama / llama.cpp
 runners use `LOCAL_LLM_N_BASE_URL` instead of a cloud API key — §8.
 
-A local LLM does **not** replace the embedding key. `brain deploy` still
-requires `VOYAGE_API_KEY` or `OPENAI_API_KEY` for semantic search.
+A local LLM does **not** replace embeddings. Semantic search still needs
+`VOYAGE_API_KEY` or `OPENAI_API_KEY` when you want it; deploy does not require
+either.
 
 ---
 
@@ -290,8 +293,9 @@ Workflows can call a local OpenAI-compatible runner (Ollama, llama.cpp server,
 or similar) instead of Anthropic / OpenAI / xAI. The Brain process still runs
 in Docker, so the runner URL must be reachable **from the container**.
 
-This does not skip embeddings. You still need `VOYAGE_API_KEY` (or
-`OPENAI_API_KEY` for a `text-embedding-*` model) to deploy.
+This does not replace embeddings. Semantic search still needs `VOYAGE_API_KEY`
+(or `OPENAI_API_KEY` for a `text-embedding-*` model) when you want it. Deploy
+does not require either key.
 
 ### Env vars
 
@@ -428,9 +432,10 @@ brain start --image telos-brain:local
 - **Tool call reaches the Brain container, not your app** — the URL used
   `localhost` or `127.0.0.1`. Switch to `http://host.docker.internal:<PORT>`
   and redeploy.
-- **Deploy fails on embeddings** — `VOYAGE_API_KEY` (or `OPENAI_API_KEY` for
-  an OpenAI embedding model) is blank. Fill it in `.env.local`. A local LLM
-  does not replace this key.
+- **Semantic search is empty / embeddings skipped** — neither
+  `VOYAGE_API_KEY` nor `OPENAI_API_KEY` is set. Deploy still succeeds. Fill a
+  key in `.env.local` if you want embeddings. A local LLM does not replace
+  this key.
 - **`No brain compose file found`** — `brain deploy` was run from a folder
   without `brain-compose.yml`. Pass the schema path (e.g.
   `brain deploy brain-schema --env local --instance local-brain`).
