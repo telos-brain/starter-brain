@@ -1,11 +1,12 @@
 name: create_inbox_entry
-version: 1
+version: 2
 description: >-
   Creates a single inbox entry recording one learning signal. Call this once per
-  learning. Provide title, body, and routing_type; source and status are
-  optional. Default status is PENDING (fires inbox triggers, then auto-promotes
-  to PROCESSED). Pass status PROCESSED to skip entry-create triggers when tasks
-  will be added directly via add_inbox_task.
+  learning. Provide title, body, and routing_type; source, status, workflow_name,
+  entity_name, and unit_of_work_name are optional. Status defaults to PENDING
+  (fires inbox triggers, then auto-promotes to PROCESSED). Pass status PROCESSED
+  to skip entry-create triggers when tasks will be added directly via
+  add_inbox_task.
 system:
   tool: create_inbox_entry
 parameters:
@@ -25,7 +26,8 @@ parameters:
     param: routing_type
     description: >-
       Required. Where the learning should be routed. One of: SKILL_UPDATE,
-      WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
+      WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, SYSTEM_CHANGE, or a
+      brain-defined value such as EVAL.
     type: string
     required: true
   - name: source
@@ -38,4 +40,19 @@ parameters:
     description: >-
       Optional. PENDING (default — fires inbox entry triggers) or PROCESSED
       (skip entry-create triggers; use when attaching tasks via add_inbox_task).
+    type: string
+  - name: workflow_name
+    param: workflow_name
+    description: >-
+      Optional. The name or code of the subject workflow being evaluated (the
+      one being graded), not the eval workflow calling this tool.
+    type: string
+  - name: entity_name
+    param: entity_name
+    description: Optional. The name of the entity the subject workflow ran against.
+    type: string
+  - name: unit_of_work_name
+    param: unit_of_work_name
+    description: >-
+      Optional. The name of the unit of work the subject workflow ran against.
     type: string

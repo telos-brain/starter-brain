@@ -1,7 +1,7 @@
 ---
 name: Learning Eval (Run)
 code: WF-EVAL-RUN
-version: 3
+version: 4
 type: TRIGGERED
 description: >-
   Manual workflow-run learning eval (BRA207 / BRA406). Grades a Completed run
@@ -35,6 +35,10 @@ logs.
 ## Subject run
 
 Reference (use this exact value for `set_run_grading`): {{run.reference}}
+
+{{#if entity.name}}
+Subject entity: **{{entity.name}}**
+{{/if}}
 
 <run_telemetry>
 {{run.telemetry}}
@@ -206,7 +210,18 @@ Call `create_inbox_entry` **exactly once** with:
 - `routing_type` — always **`EVAL`**
 - `status` — always `PROCESSED` (skip stage-1 inbox matching; this workflow
   creates apply tasks explicitly via `add_inbox_task`)
-- `source` — optional; use `WF-EVAL-RUN` when helpful
+- `source` — use `WF-EVAL-RUN` so triage can identify eval-origin entries
+- `workflow_name` — name or code of the *subject* workflow being evaluated
+  (the one graded in the telemetry), not this eval (`WF-EVAL-RUN`). If several
+  workflows ran, pass the primary one being graded. Omit if you cannot identify
+  it.
+- `entity_name` — the subject entity name (`{{entity.name}}`). Omit if that
+  tag is blank (no entity in scope).
+- `unit_of_work_name` — the unit of work title or name if you can identify it
+  from the telemetry. Omit if you cannot identify it.
+
+Do **not** invent values for `workflow_name`, `entity_name`, or
+`unit_of_work_name`. If a field is unavailable, omit it rather than guess.
 
 Capture the returned **entry reference** (8-character code). You need it for the
 next step and optionally for Step 6.
