@@ -1,8 +1,10 @@
 name: update_inbox_entry
-version: 1
+version: 2
 description: >-
-  Updates an inbox entry's status and/or routing_type. Status is forward-only:
-  PENDING → PROCESSED → COMPLETED. COMPLETED cannot be overwritten.
+  Updates an inbox entry's status, routing type, title, and/or body. Status
+  transitions are forward-only. Identify the entry by reference — never by UUID.
+  Title and body are plain overwrites; prepend previous body yourself when
+  consolidating entries.
 system:
   tool: update_inbox_entry
 parameters:
@@ -22,4 +24,18 @@ parameters:
     description: >-
       Optional. Routing classification such as SKILL_UPDATE, WORKFLOW_UPDATE,
       TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
+    type: string
+  - name: title
+    param: title
+    description: >-
+      Optional. Short label for the inbox entry (max 500 characters).
+      Overwrites the existing title when supplied. Omit to leave the title
+      unchanged.
+    type: string
+  - name: body
+    param: body
+    description: >-
+      Optional. Full signal content in Markdown. Overwrites the existing body
+      when supplied. Prepend previous content yourself when history must be
+      preserved. Omit to leave the body unchanged.
     type: string

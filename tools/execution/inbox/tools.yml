@@ -1,10 +1,11 @@
 name: Inbox
 description: >-
-  System tools for the learning-signal inbox — create entries, list/read/update
-  entries and tasks, route work by adding workflow-linked tasks, and persist
-  run grading scores from eval workflows.
+  System tools for the learning-signal inbox — create entries, cluster related
+  entries, list/read/update entries and tasks, route work by adding
+  workflow-linked tasks, and persist run grading scores from eval workflows.
 tools:
   - create-inbox-entry.yml
+  - create-inbox-cluster.yml
   - list-inbox-entries.yml
   - get-inbox-entry.yml
   - update-inbox-entry.yml

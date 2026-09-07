@@ -1,18 +1,30 @@
 name: list_inbox_entries
-version: 1
+version: 2
 description: >-
-  Lists inbox entries as CSV keyed by Reference. Optionally filter by status
-  and/or routing_type. Use get_inbox_entry to read a body.
+  Lists this brain's inbox entries (learning signals). Defaults to open entries
+  (PENDING and PROCESSED), highest Weight first, limited to 20. Returns a CSV
+  summary keyed by reference; use get_inbox_entry for an entry's full body and
+  tasks.
 system:
   tool: list_inbox_entries
 parameters:
   - name: status
     param: status
     description: >-
-      Optional. Filter to PENDING, PROCESSED, or COMPLETED.
+      Optional. Filter by status. Omit for open entries only (PENDING and
+      PROCESSED). Pass ALL for every status, a single status (PENDING,
+      PROCESSED, COMPLETED), or a comma-separated list.
     type: string
   - name: routing_type
     param: routing_type
     description: >-
-      Optional. Filter to a routing classification such as SKILL_UPDATE.
+      Optional. Filter to entries with this routing type (e.g. SKILL_UPDATE,
+      WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, SYSTEM_CHANGE).
+    type: string
+  - name: count
+    param: count
+    description: >-
+      Optional. Maximum number of entries to return after sorting by Weight
+      then Date (both descending). Defaults to 20 when omitted or not a
+      positive integer.
     type: string

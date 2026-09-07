@@ -1,0 +1,28 @@
+name: create_inbox_cluster
+version: 1
+description: >-
+  Consolidates related inbox entries into a single higher-weight cluster entry.
+  Pass comma-separated source references, a cluster title, and a cluster
+  description. Source entries become COMPLETED and their open tasks are
+  cancelled. Use this for related or near-duplicate signals that should be
+  reviewed together — not for standalone learnings.
+system:
+  tool: create_inbox_cluster
+parameters:
+  - name: inbox_entry_references
+    param: inbox_entry_references
+    description: >-
+      Required. Comma-separated 8-character lowercase alphanumeric references of
+      the inbox entries to cluster (at least two).
+    type: string
+    required: true
+  - name: cluster_title
+    param: cluster_title
+    description: Required. Title for the new cluster inbox entry (max 500 characters).
+    type: string
+    required: true
+  - name: cluster_description
+    param: cluster_description
+    description: Required. Body/description for the new cluster inbox entry (markdown).
+    type: string
+    required: true
