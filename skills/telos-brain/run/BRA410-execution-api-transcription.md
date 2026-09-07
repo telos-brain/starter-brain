@@ -1,11 +1,12 @@
 ---
 name: "Execution API: File Transcription"
 code: BRA410
-version: 2
+version: 3
 description: How to extract text from uploaded files via the Execution API
   POST /transcription endpoint — supported types, request shape, response
   envelope, error conditions, and how image transcription resolves its vision
-  model from Brain settings and environment secrets.
+  model from Brain settings and environment secrets. For in-brain URL
+  transcription with an optional prompt, see BRA412 (`transcribe_image`).
 ---
 
 # Execution API: File Transcription
@@ -113,8 +114,12 @@ The Tool Router's webhook dispatch **cannot inject HTTP headers**. A Brain
 cannot call `POST /transcription` via a declared tool definition — the request
 would arrive without `Authorization` and receive `401`. Use this endpoint from
 harness code, CLI scripts, or other callers that can send the brain API key.
-In-brain workflows that need text from files should receive already-transcribed
-content (e.g. via inbox body) rather than calling this HTTP path as a tool.
+
+In-brain workflows that need text from an **image URL** should call the
+`transcribe_image` system tool (**BRA412**), which loads the image in-process
+and can take an optional vision prompt. Workflows that need text from uploaded
+files should receive already-transcribed content (e.g. via inbox body) rather
+than calling this HTTP path as a tool.
 
 ---
 
@@ -136,3 +141,4 @@ content (e.g. via inbox body) rather than calling this HTTP path as a tool.
 - **BRA202** — `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` naming and upload rules
 - **BRA404** — inbox intake (a common destination for transcribed text)
 - **BRA201** — `transcription-model` in `brain-compose.yml`
+- **BRA412** — `transcribe_image` system tool (URL + optional prompt)

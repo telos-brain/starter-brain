@@ -1,7 +1,7 @@
 ---
 name: Learning Eval Workflows
 code: BRA207
-version: 6
+version: 7
 description: How to author TRIGGERED learning-eval workflows that grade a
   completed unit of work or workflow run, inject telemetry via template tags,
   persist a 0–100 score with set_run_grading, and create inbox learnings with
@@ -99,6 +99,8 @@ Reference (use this exact value for set_run_grading): {{run.reference}}
    - `title`, `body`, `routing_type`
    - optional `status: PROCESSED` when the finding should not fire inbox
      trigger workflows (typical for grade-linked findings)
+   - optional `workflow_name`, `entity_name`, `unit_of_work_name` when known
+     (subject workflow / entity / unit of work — omit rather than guess)
 5. Call `set_run_grading` exactly once with:
    - `run_reference` — the subject reference shown above ({{run.reference}})
    - `grading` — the integer 0–100
@@ -120,6 +122,9 @@ Runs inside the brain — no outbound HTTP. Declare under
 | `title`, `body`, `routing_type` | Required |
 | `source` | Optional producing-system label |
 | `status` | Optional: `PENDING` (default — triggers fire, then auto-`PROCESSED`) or `PROCESSED` (skip triggers) |
+| `workflow_name` | Optional. Subject workflow being evaluated (not WF-EVAL itself) |
+| `entity_name` | Optional. Entity the subject workflow ran against |
+| `unit_of_work_name` | Optional. Unit of work the subject workflow ran against |
 
 #### `set_run_grading` (BRA406)
 
@@ -247,7 +252,8 @@ Avoid:
 | **BRA204** | `run.reference`, `run.telemetry`, `unitOfWork.*` tag taxonomy |
 | **BRA403** | OTEL run telemetry shape; session close → eligible for eval |
 | **BRA404** | Inbox HTTP surface; inbox trigger stages (entry create vs task auto-run) |
-| **BRA405** | Inbox system tools (`create_inbox_entry`, `add_inbox_task`, …) |
+| **BRA405** | Inbox system tools (`create_inbox_entry`, `create_inbox_cluster`, …) |
 | **BRA406** | `set_run_grading` contract and operator surfaces |
+| **BRA413** | `create_inbox_cluster` — consolidate related inbox entries |
 | `workflows/WF-EVAL-RUN.md` | Canonical manual run-eval workflow |
 | Salesmate `wf-eval.md` / `wf-eval-run.md` | Sample brain copies |

@@ -1,7 +1,7 @@
 name: Telos Brain
 code: BRA
 prefix: BRA
-version: 41
+version: 43
 categories:
   - name: Concepts
     description: "The foundational theory of Telos Brain: what it is, how it works,
@@ -49,8 +49,9 @@ categories:
   - name: Run
     description: Using the Telos Brain API and MCP to run and interact with a Brain
       — authentication, endpoints, request and response patterns, MCP
-      configuration and usage, error handling, run variables / input-tools, and
-      practical patterns for querying and driving a Brain in operation.
+      configuration and usage, error handling, run variables / input-tools,
+      file and image-URL transcription, and practical patterns for querying and
+      driving a Brain in operation.
     index: 400
     skills:
       - ./run/BRA401-execution-api-authentication-conventions.md
@@ -64,6 +65,8 @@ categories:
       - ./run/BRA409-workflow-run-variables-and-input-tools.md
       - ./run/BRA410-execution-api-transcription.md
       - ./run/BRA411-skill-discovery-system-tools.md
+      - ./run/BRA412-transcribe-image-system-tool.md
+      - ./run/BRA413-create-inbox-cluster.md
 description: "Telos Brain is a self-learning AI Brain, deployed as
   infrastructure from a brain schema and accessed via API.  It works as a
   standalone AI Agent+Brain, or alongside Agent frameworks.  "

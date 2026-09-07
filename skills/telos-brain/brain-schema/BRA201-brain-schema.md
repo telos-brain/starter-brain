@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 46
+version: 47
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -429,7 +429,8 @@ The schema system tools — which let a running brain inspect and edit its own
 configuration-as-code files — are documented in BRA203. The inbox system tools —
 list / get / update entries and tasks by **reference** (never UUID) — are
 documented in BRA405. Run grading (`set_run_grading`) is documented in BRA406;
-learning-eval authoring that uses it is in BRA207.
+learning-eval authoring that uses it is in BRA207. Image URL transcription
+(`transcribe_image`) is documented in BRA412.
 
 **Workflow tool** (routes to another workflow in the same brain):
 

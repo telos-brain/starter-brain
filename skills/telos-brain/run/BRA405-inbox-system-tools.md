@@ -1,17 +1,19 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 8
+version: 10
 description: The in-brain system tools for operating the learning-signal inbox
-  — create_inbox_entry, list_inbox_entries, get_inbox_entry, update_inbox_entry,
-  list_inbox_tasks, add_inbox_task and update_inbox_task. All identity is by
-  8-character reference (never UUID); workflows are selected by code. Covers how
-  PENDING tasks auto-run from the linked workflow's inbox trigger (see BRA404).
-  For persisting a run quality score, see BRA406 (set_run_grading). For listing
-  Organisation members and assigning tasks by email, see BRA408 (list_users,
-  assign_task_to_user).
+  — create_inbox_entry, create_inbox_cluster, list_inbox_entries,
+  get_inbox_entry, update_inbox_entry, list_inbox_tasks, add_inbox_task and
+  update_inbox_task. All identity is by 8-character reference (never UUID);
+  workflows are selected by code. Covers how PENDING tasks auto-run from the
+  linked workflow's inbox trigger (see BRA404). For clustering related entries,
+  see BRA413 (create_inbox_cluster). For persisting a run quality score, see
+  BRA406 (set_run_grading). For listing Organisation members and assigning
+  tasks by email, see BRA408 (list_users, assign_task_to_user).
 tools:
   - create_inbox_entry
+  - create_inbox_cluster
   - list_inbox_entries
   - get_inbox_entry
   - update_inbox_entry
@@ -43,23 +45,25 @@ but documented in **BRA406** — eval workflows typically call both
 
 ---
 
-## The seven inbox tools
+## The inbox tools
 
 | Tool | Purpose | Key parameters | Returns |
 |---|---|---|---|
-| **`create_inbox_entry`** | Create a learning signal | `title`, `body`, `routing_type`, optional `source`, `status` | Confirmation with new entry **reference** |
-| **`list_inbox_entries`** | List entries (optional filters) | `status`, `routing_type` | CSV keyed by `Reference` |
+| **`create_inbox_entry`** | Create a learning signal | `title`, `body`, `routing_type`; optional `source`, `status`, `workflow_name`, `entity_name`, `unit_of_work_name` | Confirmation with new entry **reference** |
+| **`create_inbox_cluster`** | Consolidate related entries | `inbox_entry_references`, `cluster_title`, `cluster_description` | Confirmation with new cluster **reference** (BRA413) |
+| **`list_inbox_entries`** | List entries (optional filters) | `status`, `routing_type`, `count` | CSV keyed by `Reference` |
 | **`get_inbox_entry`** | Full entry + tasks | `inbox_entry_reference` | Markdown |
-| **`update_inbox_entry`** | Status / routing type | `inbox_entry_reference`, `status`, `routing_type` | Confirmation |
+| **`update_inbox_entry`** | Status, routing type, title, and/or body | `inbox_entry_reference`, `status`, `routing_type`, `title`, `body` | Confirmation |
 | **`list_inbox_tasks`** | Tasks for one entry | `inbox_entry_reference` | CSV keyed by `Reference` |
 | **`add_inbox_task`** | Create a task | `inbox_entry_reference`, `workflow_code`, `instructions`, optional `assigned_to` | Confirmation with new task reference |
 | **`update_inbox_task`** | Status / action; approve | `inbox_task_reference`, `status`, `action` | Confirmation |
 
 Intended flows:
 
-- **Learning evals:** `create_inbox_entry` (once per learning) then
-  `set_run_grading` (BRA406 / BRA207)
-- **Triage / review:** list entries → get entry → list/add/update tasks
+- **Learning evals:** `create_inbox_entry` (once per learning, with source-context
+  metadata when available) then `set_run_grading` (BRA406 / BRA207)
+- **Triage / review:** list entries → get entry → cluster related signals
+  (`create_inbox_cluster`, BRA413) or overwrite title/body → list/add/update tasks
 
 ---
 
@@ -69,8 +73,12 @@ Intended flows:
 |---|---|---|
 | `create_inbox_entry` | `title`, `body`, `routing_type` | Required |
 | `create_inbox_entry` | `source` | Optional producing-system label |
+| `create_inbox_entry` | `workflow_name`, `entity_name`, `unit_of_work_name` | Optional source-context labels for triage grouping (BRA323) |
+| `create_inbox_cluster` | `inbox_entry_references` | Required; comma-separated, at least two |
+| `create_inbox_cluster` | `cluster_title`, `cluster_description` | Required |
+| `list_inbox_entries` | `status`, `routing_type`, `count` | All optional; see below |
 | `get_inbox_entry` | `inbox_entry_reference` | Required |
-| `update_inbox_entry` | `inbox_entry_reference` | Required; plus `status` and/or `routing_type` |
+| `update_inbox_entry` | `inbox_entry_reference` | Required; plus at least one of `status`, `routing_type`, `title`, `body` |
 | `list_inbox_tasks` | `inbox_entry_reference` | Required |
 | `add_inbox_task` | `inbox_entry_reference` | Required |
 | `add_inbox_task` | `workflow_code` | Optional — workflow **code**, not id |
@@ -92,7 +100,16 @@ API key, no localhost.
 
 Required: `title`, `body`, `routing_type` (`SKILL_UPDATE`, `WORKFLOW_UPDATE`,
 `TOOL_UPDATE`, `MEMORY_UPDATE`, `SYSTEM_CHANGE`, or a brain-defined value).
-Optional: `source`, `status`.
+Optional: `source`, `status`, and source-context labels for triage grouping:
+
+| Parameter | Notes |
+| --- | --- |
+| `workflow_name` | Name or code of the *subject* workflow being evaluated (not the eval workflow itself) |
+| `entity_name` | Entity the subject workflow ran against |
+| `unit_of_work_name` | Unit of work the subject workflow ran against |
+
+Omit any label that is not available — do not invent a value. Eval workflows
+(WF-EVAL) should pass these when they can identify them (BRA326).
 
 | `status` | Behaviour |
 | --- | --- |
@@ -119,12 +136,28 @@ Canonical YAML: `tools/inbox/create-inbox-entry.yml`.
 
 ---
 
+## `create_inbox_cluster`
+
+Consolidates related inbox entries into one higher-weight cluster entry. Full
+contract, when-to-use guidance, and atomic behaviour: **BRA413**.
+
+Canonical YAML: `tools/inbox/create-inbox-cluster.yml`.
+
+---
+
 ## `list_inbox_entries`
 
-Optional `status` (`PENDING`, `PROCESSED`, `COMPLETED`) and `routing_type`.
-Returns CSV:
+Optional filters:
 
-`Reference,Date,Source,Title,Status,RoutingType,CreatedAt`
+| Parameter | Default / behaviour |
+| --- | --- |
+| `status` | Omit for open entries (`PENDING` and `PROCESSED`). Pass `ALL` for every status, a single status, or a comma-separated list |
+| `routing_type` | Optional exact filter |
+| `count` | Maximum rows after sort; defaults to `20` when omitted or not a positive integer |
+
+Sorted by **Weight** descending, then **Date** descending. Returns CSV:
+
+`Reference,Date,Title,Status,RoutingType,Source,WorkflowName,EntityName,UnitOfWorkName,Weight`
 
 Use `get_inbox_entry` for the body.
 
@@ -135,9 +168,13 @@ and a task list (each task by **reference**, with `workflow` as a **code**).
 
 ## `update_inbox_entry`
 
-Requires `inbox_entry_reference` and at least one of `status` or `routing_type`.
-Entry lifecycle is `PENDING → PROCESSED → COMPLETED`. Terminal
-`COMPLETED` cannot be overwritten.
+Requires `inbox_entry_reference` and at least one of `status`, `routing_type`,
+`title`, or `body`. Entry lifecycle is `PENDING → PROCESSED → COMPLETED`.
+Terminal `COMPLETED` cannot be overwritten.
+
+`title` (max 500) and `body` are plain overwrites when supplied. Prepend the
+previous body yourself when consolidating history — the tool does not keep a
+revision log.
 
 ## `list_inbox_tasks`
 
@@ -224,6 +261,7 @@ parameters:
   (entry create vs task auto-run, learning-mode qualifiers)
 - **BRA201** §8 — authoring `trigger: inbox:…` / learning-mode on workflows
 - **BRA207** — learning-eval workflows that call `create_inbox_entry`
+- **BRA413** — `create_inbox_cluster` (consolidate related entries)
 - **BRA406** — `set_run_grading` (persist 0–100 score on a WorkflowRun)
 - **BRA204** — `{{inboxEntry.*}}` / `{{task.*}}` / `{{#inboxTasks}}` template tags
 - **BRA408** — `list_users` / `assign_task_to_user` (Organisation members and

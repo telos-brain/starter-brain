@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 18
+version: 19
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -156,7 +156,10 @@ Response headers:
 Content-Type: text/event-stream
 Cache-Control: no-cache
 Connection: keep-alive
+X-Accel-Buffering: no
 ```
+
+While a turn is running, the server writes SSE **comment** keep-alives (`: keepalive`) every 15 seconds whenever no progress event has been sent. Comments are not `data:` events and must be ignored. They keep the HTTP connection active so Azure (and other proxies) do not close an idle SSE stream during a long tool call. A real client disconnect still fails the run.
 
 Event stream:
 
@@ -303,7 +306,7 @@ Response `200 OK`:
 
 Stopping aborts the in-flight turn, including any model request that is still in progress. Any assistant text already written stays on the run. The session timeout is re-armed from the moment of the stop. A connected SSE stream ends once the turn leaves `Queued` / `Running`.
 
-A client disconnect on `/run/sync` or `/messages` (idle timeout, closed socket) still **fails** the run. If a turn may run longer than the connection can stay open, use `/run/async` instead of relying on a dropped sync stream.
+A client disconnect on `/run/sync` or `/messages` (closed socket) still **fails** the run. Comment keep-alives keep the stream alive through long tool waits; they do not change this contract. If a turn may run longer than the *client* can stay connected, use `/run/async`.
 
 To close the session after stopping, call `POST /runs/{runId}/complete`.
 
