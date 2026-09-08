@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Inbox Entries & Tasks"
 code: BRA404
-version: 8
+version: 9
 description: How to create, list, read and update inbox entries and their tasks
   via the Execution API — the learning-signal intake surface. Covers the entry and
   task lifecycles, inbox trigger matching (entry create vs task auto-run), learning
@@ -42,7 +42,7 @@ injected into the input message. Authors must pull it in with template tags
 
 | Scope | Use |
 | --- | --- |
-| `{{inboxEntry.*}}` | Entry scalars: `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
+| `{{inboxEntry.*}}` | Entry scalars: `reference`, `date`, `source`, `title`, `body`, `status`, `routingType`, `workflowName`, `entityName`, `unitOfWorkName`, `weight`, `clusterReference`. `body` is prepended with the source-context and cluster fields. |
 | `{{task.*}}` | Triggering task scalars: `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
 | `{{#inboxTasks}}...{{/inboxTasks}}` | Sibling tasks: `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
 

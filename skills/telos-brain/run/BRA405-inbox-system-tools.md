@@ -1,7 +1,7 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 10
+version: 11
 description: The in-brain system tools for operating the learning-signal inbox
   — create_inbox_entry, create_inbox_cluster, list_inbox_entries,
   get_inbox_entry, update_inbox_entry, list_inbox_tasks, add_inbox_task and
@@ -157,14 +157,16 @@ Optional filters:
 
 Sorted by **Weight** descending, then **Date** descending. Returns CSV:
 
-`Reference,Date,Title,Status,RoutingType,Source,WorkflowName,EntityName,UnitOfWorkName,Weight`
+`Reference,Date,Title,Status,RoutingType,Source,WorkflowName,EntityName,UnitOfWorkName,Weight,ClusterReference`
 
 Use `get_inbox_entry` for the body.
 
 ## `get_inbox_entry`
 
-Requires `inbox_entry_reference`. Returns markdown with entry scalars, full body,
-and a task list (each task by **reference**, with `workflow` as a **code**).
+Requires `inbox_entry_reference`. Returns markdown with entry scalars (including
+WorkflowName, EntityName, UnitOfWorkName, Weight, and Cluster as an 8-character
+reference), full body, and a task list (each task by **reference**, with
+`workflow` as a **code**).
 
 ## `update_inbox_entry`
 

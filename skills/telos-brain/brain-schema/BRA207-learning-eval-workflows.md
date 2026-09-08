@@ -96,9 +96,9 @@ Reference (use this exact value for set_run_grading): {{run.reference}}
 3. Identify discrete, actionable learnings. If nothing to improve, create no
    entries.
 4. For each learning, call `create_inbox_entry` exactly once with:
-   - `title`, `body`, `routing_type`
-   - optional `status: PROCESSED` when the finding should not fire inbox
-     trigger workflows (typical for grade-linked findings)
+   - `title`, `body`, `routing_type: EVAL`
+   - `status: PENDING` so `inbox:*` (WF-TRIAGE) clusters and creates apply
+     tasks — do **not** pass `PROCESSED` or call `add_inbox_task`
    - optional `workflow_name`, `entity_name`, `unit_of_work_name` when known
      (subject workflow / entity / unit of work — omit rather than guess)
 5. Call `set_run_grading` exactly once with:
@@ -121,7 +121,7 @@ Runs inside the brain — no outbound HTTP. Declare under
 | --- | --- |
 | `title`, `body`, `routing_type` | Required |
 | `source` | Optional producing-system label |
-| `status` | Optional: `PENDING` (default — triggers fire, then auto-`PROCESSED`) or `PROCESSED` (skip triggers) |
+| `status` | Optional: `PENDING` (default — triggers fire, then auto-`PROCESSED`) or `PROCESSED` (skip triggers). Run evals (`WF-EVAL-RUN`) must use `PENDING` so WF-TRIAGE can cluster and create tasks. |
 | `workflow_name` | Optional. Subject workflow being evaluated (not WF-EVAL itself) |
 | `entity_name` | Optional. Entity the subject workflow ran against |
 | `unit_of_work_name` | Optional. Unit of work the subject workflow ran against |

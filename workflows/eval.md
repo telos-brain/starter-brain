@@ -1,15 +1,13 @@
 ---
 name: Learning Eval (Run)
 code: WF-EVAL-RUN
-version: 4
+version: 6
 type: TRIGGERED
 description: >-
   Manual workflow-run learning eval (BRA207 / BRA406). Grades a Completed run
   from {{run.telemetry}} against a 0–100 rubric (job done efficiently 40 /
-  tool use 35 / skill use 25), persists the score with set_run_grading,
-  records each learning as an inbox entry with routing_type EVAL and status
-  PROCESSED, then creates inbox tasks via add_inbox_task for skill and
-  workflow/tool schema updates (WF-UPDATE-SKILL / WF-UPDATE-WORKFLOW).
+  tool use 35 / skill use 25), persists the score with set_run_grading, and
+  files each learning as a PENDING inbox entry (routing_type EVAL).
 # Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
 # compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
@@ -22,7 +20,6 @@ max-turns: 20
 max-runs-per-hour: 500
 tools:
   - create_inbox_entry
-  - add_inbox_task
   - set_run_grading
 ---
 
@@ -44,32 +41,8 @@ Subject entity: **{{entity.name}}**
 {{run.telemetry}}
 </run_telemetry>
 
-## Update workflow codes (for inbox tasks)
-
-Every learning from this eval uses **`routing_type: EVAL`**. Choose the apply
-workflow with `add_inbox_task` (entries are `PROCESSED`, so stage-1 inbox
-matching does not create tasks — BRA404):
-
-| Learning kind | `routing_type` | `workflow_code` |
-| --- | --- | --- |
-| Skill / agent behaviour | `EVAL` | `WF-UPDATE-SKILL` |
-| Tool description or usage | `EVAL` | `WF-UPDATE-WORKFLOW` |
-| Workflow steps / wiring | `EVAL` | `WF-UPDATE-WORKFLOW` |
-
-Do **not** invent other workflow codes. For memory or system-change findings that
-should not spawn an apply task, create the `EVAL` entry only — do **not** call
-`add_inbox_task`.
-
-Linked update workflows (both declare a `:high` inbox trigger):
-
-| Workflow | Trigger | Auto-run (BRA404 stage 2) |
-| --- | --- | --- |
-| `WF-UPDATE-SKILL` | `inbox:SKILL_UPDATE:high` | Yes when LearningMode ≥ high; else **AWAITING_APPROVAL** |
-| `WF-UPDATE-WORKFLOW` | `inbox:WORKFLOW_UPDATE:high` / `inbox:TOOL_UPDATE:high` | Yes when LearningMode ≥ high; else **AWAITING_APPROVAL** |
-
-You **must** call `add_inbox_task` for skill and tool/workflow learnings — the
-inbox trigger does not create tasks for `PROCESSED` entries; it only decides
-whether an existing linked task auto-runs.
+The telemetry is the subject run being graded. When you create inbox entries,
+take `workflow_name` and `unit_of_work_name` from it.
 
 ## Step 1: Reconstruct the run
 
@@ -180,73 +153,31 @@ Admin UI traffic light (for awareness; do not change how you score): **Green**
 Write a one-line rationale for the integer you chose (optionally note A/B/C
 sub-scores). Persist the score only via `set_run_grading` in Step 6.
 
-## Step 5: Record learnings as inbox entries and tasks
+## Step 5: Record learnings as inbox entries
 
 Identify discrete, actionable learnings from Steps 2–3. If the run was clean and
 there is nothing to improve, create **no** entries and say so — you still must
 call `set_run_grading` in Step 6.
 
-Every learning entry uses **`routing_type: EVAL`**. Choose the apply workflow
-from the evidence:
+Create **separate** `EVAL` entries when both a skill finding and a
+tool/workflow finding apply.
 
-| Evidence from | `routing_type` | Then `add_inbox_task` with |
-| --- | --- | --- |
-| Step 2 tool issues (wrong tool, unclear description, bad params, redundant misuse) | `EVAL` | `WF-UPDATE-WORKFLOW` |
-| Step 3 skill gaps / behaviour (skill not loaded, not followed, needs instruction fix) | `EVAL` | `WF-UPDATE-SKILL` |
-| Workflow steps / wiring need to change | `EVAL` | `WF-UPDATE-WORKFLOW` |
-
-Create **both** skill and tool/workflow learnings when both apply — separate
-`EVAL` entries, each with the matching `workflow_code`.
-
-For each learning:
-
-### 5a. Create the inbox entry
-
-Call `create_inbox_entry` **exactly once** with:
+For each learning, call `create_inbox_entry` **exactly once** with:
 
 - `title` — short, specific one-line summary
 - `body` — markdown covering: what was observed, why it matters, and the
   concrete change you recommend (reference tool names and skill/workflow codes)
 - `routing_type` — always **`EVAL`**
-- `status` — always `PROCESSED` (skip stage-1 inbox matching; this workflow
-  creates apply tasks explicitly via `add_inbox_task`)
-- `source` — use `WF-EVAL-RUN` so triage can identify eval-origin entries
-- `workflow_name` — name or code of the *subject* workflow being evaluated
-  (the one graded in the telemetry), not this eval (`WF-EVAL-RUN`). If several
-  workflows ran, pass the primary one being graded. Omit if you cannot identify
-  it.
-- `entity_name` — the subject entity name (`{{entity.name}}`). Omit if that
-  tag is blank (no entity in scope).
-- `unit_of_work_name` — the unit of work title or name if you can identify it
-  from the telemetry. Omit if you cannot identify it.
+- `status` — always **`PENDING`**
+- `source` — `WF-EVAL-RUN`
+- `workflow_name` — the subject run's workflow, taken from the telemetry
+- `entity_name` — the subject entity name (`{{entity.name}}`) when present
+- `unit_of_work_name` — the subject run's unit of work, taken from the
+  telemetry
 
-Do **not** invent values for `workflow_name`, `entity_name`, or
-`unit_of_work_name`. If a field is unavailable, omit it rather than guess.
+Omit a field only when the telemetry (or entity tag) does not have it.
 
-Capture the returned **entry reference** (8-character code). You need it for the
-next step and optionally for Step 6.
-
-### 5b. Create inbox task(s) for schema updates
-
-For skill and tool/workflow learnings you **must** call `add_inbox_task` with
-`WF-UPDATE-SKILL` or `WF-UPDATE-WORKFLOW` (see table above).
-
-For each task:
-
-- `inbox_entry_reference` — the reference from step 5a
-- `workflow_code` — `WF-UPDATE-SKILL` or `WF-UPDATE-WORKFLOW` (must match the
-  learning kind)
-- `instructions` — short triage intent only (e.g. which skill code or tool name
-  to edit and the essence of the change). Do **not** paste the full entry body —
-  the update workflow reads `{{inboxEntry.*}}` plus `{{task.*}}`.
-
-Usually one task per learning is enough. Create additional tasks only when the
-same learning clearly requires more than one independent schema update (each
-with the correct `workflow_code`).
-
-Omit `add_inbox_task` only when there is no schema apply-path (record the
-`EVAL` entry alone). The inbox entry **is** the learning record; the task is the
-apply-path (BRA404 / BRA405).
+Capture the returned **entry reference** (8-character code) for Step 6.
 
 ## Step 6: Persist the grade
 
@@ -257,12 +188,12 @@ Call `set_run_grading` **exactly once** with:
   Guid `runId` from telemetry.
 - `grading` — the integer 0–100 from Step 4
 - `inbox_entry_reference` — optional; the primary learning's reference from
-  Step 5a when one exists (links the traffic-light grade tag to that finding)
+  Step 5 when one exists (links the traffic-light grade tag to that finding)
 
 Re-evaluation overwrites the previous grade.
 
 ## Step 7: Reply
 
-Reply with one or two lines: the integer grade and band, a short rationale, how
-many inbox learnings you recorded, and how many tasks you created. Do not create
-duplicate entries for the same learning.
+Reply with one or two lines: the integer grade and band, a short rationale, and
+how many inbox learnings you recorded. Do not create duplicate entries for the
+same learning.

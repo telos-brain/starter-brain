@@ -3,12 +3,13 @@ name: Inbox Triage
 code: WF-TRIAGE
 description: >-
   Triages every new inbox entry for maintenance learnings, research requests,
-  and blueprint domain concepts. First scans recent open entries for duplicates
+  and blueprint domain concepts — including PENDING EVAL learnings filed by
+  WF-EVAL-RUN (no tasks yet). First scans recent open entries for duplicates
   or related signals and clusters them when a clear pattern exists. Then routes
   skill craft, workflow/tool fixes, brain self-management, and research asks to
   the matching workflows, and creates review_blueprint tasks for clear category
   matches — without repeating the entry body into maintenance task instructions.
-version: 10
+version: 12
 # Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
 # compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
@@ -58,6 +59,22 @@ create maintenance or blueprint tasks on it (sources become `COMPLETED`; the
 new cluster entry is triaged separately). If you only flag a partial signal or
 find no relationship, continue with existing routing unchanged.
 
+Work is dispatched **on the task**. Each `add_inbox_task` names a
+`workflow_code`; auto-run vs `AWAITING_APPROVAL` is decided from that linked
+workflow, not from the entry's `routing_type`.
+
+`source` is provenance (where the signal came from — e.g. `WF-EVAL-RUN`).
+It is immutable. Do not try to change it.
+
+`routing_type` is a single create-time summary label (list UI, filters,
+`{{inboxEntry.routingType}}`). Stage-1 `inbox:…` matching already ran at
+create. Changing it later does not create, cancel, or re-route tasks. Leave
+it as filed (eval entries stay `EVAL`).
+
+**Eval learnings:** `WF-EVAL-RUN` files each finding as `PENDING` with
+`routing_type: EVAL` and `source: WF-EVAL-RUN`. This workflow clusters those
+entries and creates their apply tasks.
+
 Maintenance/research routing and blueprint detection are independent and
 additive. Blueprint detection must not change maintenance/research routing, and
 vice versa.
@@ -67,12 +84,12 @@ only; all operating rules are above the body.
 
 ## Maintenance destinations
 
-| Signal | `routing_type` | Workflow code |
-|---|---|---|
-| Transferable skill / craft knowledge | `SKILL_UPDATE` | `WF-UPDATE-SKILL` |
-| Workflow instruction or tool-definition fix | `WORKFLOW_UPDATE` or `TOOL_UPDATE` | `WF-UPDATE-WORKFLOW` |
-| Subagents, wiring, structural self-heal / self-manage | `SYSTEM_CHANGE` | `WF-UPDATE-BRAIN` |
-| Explicit external research / look-up request | `RESEARCH` | `WF-RESEARCH` |
+| Signal | Workflow code |
+|---|---|
+| Transferable skill / craft knowledge | `WF-UPDATE-SKILL` |
+| Workflow instruction or tool-definition fix | `WF-UPDATE-WORKFLOW` |
+| Subagents, wiring, structural self-heal / self-manage | `WF-UPDATE-BRAIN` |
+| Explicit external research / look-up request | `WF-RESEARCH` |
 
 An entry may warrant **more than one** maintenance task when distinct signals are
 present. Create one task per matching destination. Do not merge unrelated
@@ -91,6 +108,19 @@ run; otherwise brain-global). Use **only** these for blueprint tasks:
 
 ## Decision criteria — maintenance
 
+### Eval findings (`source: WF-EVAL-RUN` / `WF-EVAL`)
+
+These are already-extracted learnings (title + recommended change). Create
+tasks from the recommended change. Leave `source` and `routing_type` as filed.
+
+- Skill / agent behaviour → `WF-UPDATE-SKILL`
+- Tool description, usage, or workflow steps → `WF-UPDATE-WORKFLOW`
+- Structural / subagent / self-manage → `WF-UPDATE-BRAIN`
+- Blueprint-only fact → blueprint pass only
+
+Eval findings are usually one discrete learning — prefer a single maintenance
+destination unless the body clearly contains two.
+
 ### Route to `WF-UPDATE-SKILL` when
 
 - Reusable practices, standards, processes or domain knowledge
@@ -103,9 +133,6 @@ run; otherwise brain-global). Use **only** these for blueprint tasks:
 - A tool's description, parameters or YAML definition should change
 - A small new tool/workflow is needed to fix runtime behaviour (not a subagent
   programme)
-
-Use `routing_type` `TOOL_UPDATE` when the dominant fix is a tool definition;
-otherwise `WORKFLOW_UPDATE`. Both still create a task for `WF-UPDATE-WORKFLOW`.
 
 ### Route to `WF-UPDATE-BRAIN` when
 
@@ -161,9 +188,10 @@ signal is clear, well-evidenced, and not over-fitted to a single eval.
 ### Grouping signals (strongest first)
 
 1. Same `WorkflowName` — strongest for eval-generated entries
-2. Same `EntityName` and/or `UnitOfWorkName` — same execution context
-3. Timestamp proximity — same agent / sub-agent batch
-4. Semantic similarity of title and body — your judgement; no vector search
+2. Same `Source` (`WF-EVAL-RUN`) plus similar title/body — repeat eval seeds
+3. Same `EntityName` and/or `UnitOfWorkName` — same execution context
+4. Timestamp proximity — same agent / sub-agent batch
+5. Semantic similarity of title and body — your judgement; no vector search
 
 ### Outcomes
 
@@ -206,7 +234,7 @@ standalone learning. Continue with existing routing unmodified.
 - Do not call `create_inbox_cluster` on entries that are already `COMPLETED`
 - Do not close an entry as `COMPLETED` yourself to "merge" — clustering does
   that atomically. Use `update_inbox_entry` only to annotate a partial signal
-  (or later, in the routing pass, to set `routing_type` / `PROCESSED`)
+  on `body`. Never change `source`. Do not change `routing_type`.
 
 ## Decision criteria — blueprint (additive)
 
@@ -233,7 +261,7 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
    `Date`, and title, pick at most the **2–3** most relevant candidates and
    load only those with `get_inbox_entry`. Then apply Cluster / Partial signal
    / No action from **Decision criteria — clustering**. If you clustered, skip
-   steps 3–6 and go to step 7.
+   steps 3–5 and go to step 6.
 3. **Maintenance pass** — decide which maintenance destinations apply (zero or
    more), including `WF-RESEARCH` when criteria match. Skip any destination
    whose workflow code already has a non-`CANCELLED` / non-`FAILED` task. For
@@ -256,20 +284,9 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
    - `instructions` = exactly this format (em dash):
      `review blueprint: {category name} — {short concept description}`
      Example: `review blueprint: Business Concepts — billboard sites`
-5. Set entry classification with `update_inbox_entry`:
-   - Prefer a maintenance `routing_type` when any maintenance destination
-     applies, using priority
-     `SYSTEM_CHANGE` > `TOOL_UPDATE` / `WORKFLOW_UPDATE` > `SKILL_UPDATE` > `RESEARCH`
-     (structural before craft before research).
-   - If **only** a research task was created (no other maintenance destination),
-     set `routing_type` = `RESEARCH`.
-   - If **only** blueprint tasks were created (no maintenance destination), set
-     `routing_type` = `MEMORY_UPDATE`.
-   - If the entry is still `PENDING` and you created at least one task of any
-     kind, set `status` = `PROCESSED`.
-6. If neither pass produces tasks: leave the entry for other routing. Do not
+5. If neither pass produces tasks: leave the entry for other routing. Do not
    dismiss solely because it lacks signal.
-7. Reply in a few lines: clustering outcome (clustered / partial signal / none),
+6. Reply in a few lines: clustering outcome (clustered / partial signal / none),
    maintenance destinations (including research), blueprint task count, and any
    skips for duplicates.
 
@@ -285,6 +302,7 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
 - Prefer a missed blueprint concept over force-fitting a category
 - Prefer a missed cluster over force-fitting unrelated entries
 - Never close an entry as COMPLETED except via `create_inbox_cluster`
+- Never change `source`. Leave `routing_type` as filed.
 
 ## Inbox entry
 

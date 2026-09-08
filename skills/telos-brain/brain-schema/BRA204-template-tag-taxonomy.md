@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings.
-version: 15
+version: 16
 ---
 
 # Template Tag Taxonomy
@@ -499,9 +499,14 @@ Notes:
 | `inboxEntry.date` | Source-event timestamp (`yyyy-MM-dd HH:mm:ss UTC`) |
 | `inboxEntry.source` | Free-text producing-system identifier (nullable) |
 | `inboxEntry.title` | Entry title |
-| `inboxEntry.body` | Full signal content (markdown) |
-| `inboxEntry.status` | Lifecycle status (`PENDING`, `REVIEWING`, `APPLIED`, `DISMISSED`) |
+| `inboxEntry.body` | Full signal content (markdown), prepended with Workflow name, Entity name, Unit of work name, Weight, and Cluster so workflows that only inject the body still see those fields |
+| `inboxEntry.status` | Lifecycle status (`PENDING`, `PROCESSED`, `COMPLETED`) |
 | `inboxEntry.routingType` | Routing classification (nullable until triaged) |
+| `inboxEntry.workflowName` | Source-context workflow being graded (nullable) |
+| `inboxEntry.entityName` | Source-context entity name (nullable) |
+| `inboxEntry.unitOfWorkName` | Source-context unit of work (nullable) |
+| `inboxEntry.weight` | Ranking weight (integer; default 1) |
+| `inboxEntry.clusterReference` | 8-character reference of the cluster entry this signal belongs to (nullable; never a UUID) |
 
 Notes:
 
@@ -521,6 +526,11 @@ Notes:
 **Source:** {{inboxEntry.source}}
 **Status:** {{inboxEntry.status}}
 **Routing:** {{inboxEntry.routingType}}
+**Workflow:** {{inboxEntry.workflowName}}
+**Entity:** {{inboxEntry.entityName}}
+**Unit of work:** {{inboxEntry.unitOfWorkName}}
+**Weight:** {{inboxEntry.weight}}
+**Cluster:** {{inboxEntry.clusterReference}}
 
 ## Body
 
