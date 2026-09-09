@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 19
+version: 20
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -350,13 +350,20 @@ Response `200 OK`:
   "workflowId": "9c1a...",
   "entityId": "3f0c...",
   "unitOfWorkId": "7b2d...",
+  "workflowName": "Sales chat",
+  "entityName": "Acme",
+  "unitOfWorkName": "Onboard",
   "status": "Completed",
   "createdAt": "2026-07-09T07:10:00Z",
   "completedAt": "2026-07-09T07:10:04Z",
   "resource": {
     "gen_ai.system": "telos-brain",
     "gen_ai.request.model": "anthropic/claude-sonnet-4-6",
-    "telos.thinking.mode": "effort"
+    "telos.thinking.mode": "effort",
+    "telos.workflow.name": "Sales chat",
+    "telos.workflow.code": "WF-SALES",
+    "telos.entity.name": "Acme",
+    "telos.unit_of_work.name": "Onboard"
   },
   "totals": {
     "gen_ai.usage.input_tokens": 1820,
@@ -376,6 +383,10 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 | `gen_ai.request.model` | Fully-qualified model the run executed against (`provider/model`) |
 | `gen_ai.embeddings.count` | Embeddings generated in the run (always present on `totals`). OTEL standardises `gen_ai.embeddings.dimension.count` (vector size) only; this is the count of embeddings produced. |
 | `telos.thinking.mode` | Workflow thinking mode (`none` \| `adaptive` \| `extended` \| `effort`) |
+| `telos.workflow.name` | Workflow title (falls back to code). Also on the payload as `workflowName`. |
+| `telos.workflow.code` | Workflow deploy code |
+| `telos.entity.name` | Entity name the run executed against (nullable) |
+| `telos.unit_of_work.name` | Unit-of-work title the run executed against (nullable) |
 | `telos.turns.used` | Completed assistant loop steps (excludes retries / `max_tokens` attempts) |
 | `telos.turns.max` | Effective max-turns cap for the run (workflow value or engine default 10) |
 

@@ -9,7 +9,7 @@ description: >-
   skill craft, workflow/tool fixes, brain self-management, and research asks to
   the matching workflows, and creates review_blueprint tasks for clear category
   matches — without repeating the entry body into maintenance task instructions.
-version: 12
+version: 13
 # Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
 # compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
@@ -54,10 +54,11 @@ You are triaging a single inbox entry. You do **not** apply changes. You only:
 3. Detect **blueprint** domain concepts that clearly fit a category and create
    `review_blueprint` tasks for them.
 
-Clustering is an additive pre-pass. If you cluster this entry, stop — do not
-create maintenance or blueprint tasks on it (sources become `COMPLETED`; the
-new cluster entry is triaged separately). If you only flag a partial signal or
-find no relationship, continue with existing routing unchanged.
+Clustering is an additive pre-pass. If you cluster, create tasks **immediately**
+on the **new cluster** entry (its reference is in the tool result). Do not
+create tasks on the source entries — they are `COMPLETED` and their open tasks
+are cancelled. If you only flag a partial signal or find no relationship,
+create tasks on this entry as usual.
 
 Work is dispatched **on the task**. Each `add_inbox_task` names a
 `workflow_code`; auto-run vs `AWAITING_APPROVAL` is decided from that linked
@@ -195,21 +196,23 @@ signal is clear, well-evidenced, and not over-fitted to a single eval.
 
 ### Outcomes
 
-**Cluster** — call `create_inbox_cluster` when two or more open entries
-(including this one) carry the same or closely related learning, or when
-granular weight-1 fragments can be stated as one generalised learning.
+**Cluster** — call `create_inbox_cluster` when related open entries (including
+this one) carry the same or closely related learning, or when granular
+weight-1 fragments can be stated as one generalised learning. Include **every**
+related open reference — a cluster may contain any number of entries (the
+tool requires two or more; two is a minimum, not a target).
 
 ```
 create_inbox_cluster(
-  inbox_entry_references: "<this reference plus related refs, comma-separated>",
+  inbox_entry_references: "<this reference plus every related ref, comma-separated>",
   cluster_title: "<short generalised title>",
   cluster_description: "<consolidated learning; name the source refs and the pattern>"
 )
 ```
 
-Include **this** entry's reference. Need at least two references. After a
-successful cluster, **stop** — do not run maintenance or blueprint passes on
-this entry.
+Include **this** entry's reference. Capture the new cluster **reference** from
+the result. Then run the maintenance and blueprint passes **immediately**
+against that cluster reference — do not wait for another triage run.
 
 **Flag as partial signal** — the current entry looks like a fragment, but
 there are not enough related entries to generalise confidently. Call
@@ -229,8 +232,9 @@ standalone learning. Continue with existing routing unmodified.
 - Never force-fit unrelated entries into a cluster
 - Never invent relatedness from timestamp alone
 - Skip this entry's own row when reading `list_inbox_entries`
-- Load at most the **2–3** most relevant candidates with `get_inbox_entry`
-  (avoid fetching every open entry)
+- From the list, include **all** related references in the cluster. Use
+  `get_inbox_entry` only when title/metadata is not enough to confirm a
+  relationship — do not cap the cluster at two entries.
 - Do not call `create_inbox_cluster` on entries that are already `COMPLETED`
 - Do not close an entry as `COMPLETED` yourself to "merge" — clustering does
   that atomically. Use `update_inbox_entry` only to annotate a partial signal
@@ -256,17 +260,17 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
 1. Read the entry body and the **Existing tasks** list at the end of this
    prompt — do not call a tool to list tasks; they are already injected.
 2. **Clustering pass** — call `list_inbox_entries` once (omit `status` and
-   `count` so you get the default 20 open entries). Ignore this entry's own
+   `count` so you get the default 50 open entries). Ignore this entry's own
    `Reference`. From `WorkflowName`, `EntityName`, `UnitOfWorkName`, `Source`,
-   `Date`, and title, pick at most the **2–3** most relevant candidates and
-   load only those with `get_inbox_entry`. Then apply Cluster / Partial signal
-   / No action from **Decision criteria — clustering**. If you clustered, skip
-   steps 3–5 and go to step 6.
+   `Date`, and title, collect **every** related open entry. Then apply Cluster
+   / Partial signal / No action from **Decision criteria — clustering**.
+   After a cluster, the task target is the **new cluster reference**; otherwise
+   it is `{{inboxEntry.reference}}`.
 3. **Maintenance pass** — decide which maintenance destinations apply (zero or
    more), including `WF-RESEARCH` when criteria match. Skip any destination
    whose workflow code already has a non-`CANCELLED` / non-`FAILED` task. For
    each new destination, call `add_inbox_task` with:
-   - `inbox_entry_reference` = `{{inboxEntry.reference}}`
+   - `inbox_entry_reference` = the task target from step 2
    - `workflow_code` = the destination workflow code
    - `instructions` = one short routing line only (what to do, not the content).
      Examples:
@@ -279,7 +283,7 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
 4. **Blueprint pass** — independently list candidate concepts that clearly fit a
    category. If none: create no blueprint tasks (do not invent any). For each
    candidate, call `add_inbox_task` with:
-   - `inbox_entry_reference` = `{{inboxEntry.reference}}`
+   - `inbox_entry_reference` = the task target from step 2
    - `workflow_code` = `WF-REVIEW-BLUEPRINT`
    - `instructions` = exactly this format (em dash):
      `review blueprint: {category name} — {short concept description}`

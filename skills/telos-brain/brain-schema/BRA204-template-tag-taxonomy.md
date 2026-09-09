@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings.
-version: 16
+version: 17
 ---
 
 # Template Tag Taxonomy
@@ -188,7 +188,10 @@ Notes:
 | Field | Description |
 | --- | --- |
 | `run.reference` | Subject run's 8-character AI-facing reference for `set_run_grading` (BRA406) |
-| `run.telemetry` | OTEL GenAI telemetry for the subject run as indented JSON (same shape as `GET /runs/{id}/telemetry`, compacted for eval prompts) |
+| `run.workflowName` | Subject workflow **title** (falls back to code; not the eval workflow) |
+| `run.entityName` | Entity name the subject run executed against (nullable) |
+| `run.unitOfWorkName` | Unit-of-work **title** the subject run executed against (nullable) |
+| `run.telemetry` | OTEL GenAI telemetry for the subject run as indented JSON (same shape as `GET /runs/{id}/telemetry`, compacted for eval prompts). Includes `workflowName`, `entityName`, and `unitOfWorkName` alongside the ids. |
 
 Notes:
 
@@ -212,6 +215,9 @@ Notes:
 ```markdown
 ## Subject run
 Reference: {{run.reference}}
+Workflow: {{run.workflowName}}
+Entity: {{run.entityName}}
+Unit of work: {{run.unitOfWorkName}}
 
 ## Run telemetry
 {{run.telemetry}}

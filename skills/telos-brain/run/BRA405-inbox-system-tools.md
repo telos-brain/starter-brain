@@ -1,7 +1,7 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 11
+version: 12
 description: The in-brain system tools for operating the learning-signal inbox
   — create_inbox_entry, create_inbox_cluster, list_inbox_entries,
   get_inbox_entry, update_inbox_entry, list_inbox_tasks, add_inbox_task and
@@ -74,7 +74,7 @@ Intended flows:
 | `create_inbox_entry` | `title`, `body`, `routing_type` | Required |
 | `create_inbox_entry` | `source` | Optional producing-system label |
 | `create_inbox_entry` | `workflow_name`, `entity_name`, `unit_of_work_name` | Optional source-context labels for triage grouping (BRA323) |
-| `create_inbox_cluster` | `inbox_entry_references` | Required; comma-separated, at least two |
+| `create_inbox_cluster` | `inbox_entry_references` | Required; comma-separated, two or more (no upper limit) |
 | `create_inbox_cluster` | `cluster_title`, `cluster_description` | Required |
 | `list_inbox_entries` | `status`, `routing_type`, `count` | All optional; see below |
 | `get_inbox_entry` | `inbox_entry_reference` | Required |
@@ -104,12 +104,13 @@ Optional: `source`, `status`, and source-context labels for triage grouping:
 
 | Parameter | Notes |
 | --- | --- |
-| `workflow_name` | Name or code of the *subject* workflow being evaluated (not the eval workflow itself) |
-| `entity_name` | Entity the subject workflow ran against |
-| `unit_of_work_name` | Unit of work the subject workflow ran against |
+| `workflow_name` | Subject workflow **code**. When omitted on a run eval, filled from the subject run |
+| `entity_name` | Entity name. When omitted, filled from the subject run (or the eval run's entity) |
+| `unit_of_work_name` | Unit-of-work **title**. When omitted, filled from the subject run (or the eval run's unit of work) |
 
-Omit any label that is not available — do not invent a value. Eval workflows
-(WF-EVAL) should pass these when they can identify them (BRA326).
+On a `workflowrun:complete` eval, omit these three — `create_inbox_entry` copies
+them from the run being graded. They are also present on `{{run.telemetry}}`.
+Do not invent values.
 
 | `status` | Behaviour |
 | --- | --- |
@@ -138,7 +139,7 @@ Canonical YAML: `tools/inbox/create-inbox-entry.yml`.
 
 ## `create_inbox_cluster`
 
-Consolidates related inbox entries into one higher-weight cluster entry. Full
+Consolidates related inbox entries into one PROCESSED cluster entry. Full
 contract, when-to-use guidance, and atomic behaviour: **BRA413**.
 
 Canonical YAML: `tools/inbox/create-inbox-cluster.yml`.
@@ -153,11 +154,16 @@ Optional filters:
 | --- | --- |
 | `status` | Omit for open entries (`PENDING` and `PROCESSED`). Pass `ALL` for every status, a single status, or a comma-separated list |
 | `routing_type` | Optional exact filter |
-| `count` | Maximum rows after sort; defaults to `20` when omitted or not a positive integer |
+| `count` | Maximum rows after sort; defaults to `50` when omitted or not a positive integer |
 
-Sorted by **Weight** descending, then **Date** descending. Returns CSV:
+Sorted by **Weight** descending, then **Date** descending. Clustered source
+entries (`ClusterId` set) are omitted from the default open list — they have
+been absorbed. Returns a count line (`N inbox entries` or
+`N inbox entries (showing M)`) then CSV:
 
-`Reference,Date,Title,Status,RoutingType,Source,WorkflowName,EntityName,UnitOfWorkName,Weight,ClusterReference`
+`Reference,Date,Title,Source,WorkflowName,EntityName,UnitOfWorkName,Weight`
+
+`Date` is `d MMM yy, HH:mm` (e.g. `1 Jul 26, 09:00`).
 
 Use `get_inbox_entry` for the body.
 

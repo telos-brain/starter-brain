@@ -1,8 +1,8 @@
 name: list_inbox_entries
-version: 2
+version: 3
 description: >-
   Lists this brain's inbox entries (learning signals). Defaults to open entries
-  (PENDING and PROCESSED), highest Weight first, limited to 20. Returns a CSV
+  (PENDING and PROCESSED), highest Weight first, limited to 50. Returns a CSV
   summary keyed by reference; use get_inbox_entry for an entry's full body and
   tasks.
 system:
@@ -25,6 +25,6 @@ parameters:
     param: count
     description: >-
       Optional. Maximum number of entries to return after sorting by Weight
-      then Date (both descending). Defaults to 20 when omitted or not a
+      then Date (both descending). Defaults to 50 when omitted or not a
       positive integer.
     type: string

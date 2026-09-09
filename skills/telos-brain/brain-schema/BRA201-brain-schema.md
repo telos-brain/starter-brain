@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 47
+version: 48
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -548,7 +548,8 @@ parameters:
     description: >-                     # REQUIRED
       The ticket reference, e.g. "XXX037".
     type: string                       # outbound value type (see below)
-    required: true                     # advisory flag — not enforced by the server
+    required: true                     # omit or false = optional; true = required
+                                       #   in the LLM input schema
 
   # A parameter with a hardcoded `value` is FIXED and hidden from the LLM.
   # (legacy aliases: `api-value`, `apiValue`)
@@ -568,6 +569,12 @@ parameters:
 Key behaviour: a parameter is **exposed to the LLM only when it has no `value`,
 `secret`, `entity`, `unitofwork`, `input` or `header`**. Set `value` to pin a
 param and hide it. `name` and `description` are required on every parameter.
+
+`required` is **false when omitted**. Set `required: true` for parameters the
+model must supply (for example `url` on `transcribe_image`). Leave it off — or
+set `required: false` — for optional parameters (for example `prompt`). The
+flag is presented to the LLM in the tool input schema; the server does not
+reject a missing argument at dispatch.
 
 #### Parameter `type` (outbound coercion)
 
@@ -602,7 +609,9 @@ dispatch so typed APIs receive numbers/dates rather than `"1"`.
 
 Parse failures return a clear tool error to the agent (e.g. could not convert
 parameter `order` to type `int`) and the HTTP call is not made. Headers always
-remain strings regardless of `type`. `required` remains advisory only.
+remain strings regardless of `type`. `required` is omitted/`false` by default
+and is presented to the model only — the server does not reject a missing
+argument at dispatch.
 
 #### Injecting a secret / API key (api tools)
 
@@ -1015,6 +1024,7 @@ version: 1.1                           # optional (see §9)
 type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM | SIMULATION | COMPACTION (default RUNNABLE)
 # trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list
 # trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier: low|medium|high
+# trigger: inbox:SKILL_UPDATE:high:5   # optional weight threshold (positive integer)
 # trigger:
 #   - inbox:SKILL_UPDATE
 #   - inbox:WORKFLOW_UPDATE:medium
@@ -1080,15 +1090,20 @@ Rules:
   `workflowrun:complete` (workflow-run learning eval, **BRA207**).
 - **Inbox triggers** (two stages — full rules in **BRA404**):
   - **Entry create:** `inbox:<RoutingType>` or `inbox:*` (optional
-    `:low|medium|high` learning-mode qualifier) selects which
-    `TRIGGERED` workflows get a `PENDING` inbox task when an entry is created.
-    Qualifiers use `off < low < medium < high` (brain mode must meet or exceed
-    the qualifier; unqualified inbox triggers always fire).
+    `:low|medium|high` learning-mode qualifier, optional `:<weight-threshold>`
+    positive integer) selects which `TRIGGERED` workflows get a `PENDING`
+    inbox task when an entry is created. Qualifiers use
+    `off < low < medium < high` (brain mode must meet or exceed the qualifier;
+    unqualified inbox triggers always fire). A weight threshold fires only when
+    the entry's `Weight` meets or exceeds that value; absent defaults to no
+    weight gate. Weight is evaluated at entry creation only — clustering that
+    later raises a source entry's weight does not re-fire that entry's triggers.
   - **Task auto-run:** once a task exists, the **workflow linked on that task**
     is authoritative. If that workflow has an inbox trigger whose learning-mode
     qualifier is satisfied, the task auto-runs (`PENDING → RUNNING`); otherwise
-    it moves to `AWAITING_APPROVAL`. Entry routing is not re-checked at this
-    stage. `trigger-mode` does **not** control inbox task approval.
+    it moves to `AWAITING_APPROVAL`. Entry routing and weight are not
+    re-checked at this stage. `trigger-mode` does **not** control inbox task
+    approval.
 - For `workflowrun:complete`, `trigger-mode: automatic` enqueues on Completed;
   `trigger-mode: manual` (or omitted) is kicked off from the admin **Run eval**
   button. Use `{{run.telemetry}}` (BRA204) for OTEL GenAI telemetry of the

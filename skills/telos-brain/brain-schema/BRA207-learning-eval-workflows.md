@@ -1,7 +1,7 @@
 ---
 name: Learning Eval Workflows
 code: BRA207
-version: 7
+version: 8
 description: How to author TRIGGERED learning-eval workflows that grade a
   completed unit of work or workflow run, inject telemetry via template tags,
   persist a 0–100 score with set_run_grading, and create inbox learnings with
@@ -20,7 +20,7 @@ There are two eval surfaces:
 | Surface | Trigger | Telemetry in instructions | Typical code |
 | --- | --- | --- | --- |
 | Unit of work | `unitofwork:complete` | `{{#unitOfWork.context}}` / `{{#unitOfWork.data}}` (BRA204) | `WF-EVAL` |
-| Workflow run | `workflowrun:complete` | `{{run.telemetry}}` + `{{run.reference}}` (BRA204) | `WF-EVAL-RUN` |
+| Workflow run | `workflowrun:complete` | `{{run.telemetry}}` + `{{run.reference}}` / `{{run.workflowName}}` / `{{run.entityName}}` / `{{run.unitOfWorkName}}` (BRA204) | `WF-EVAL-RUN` |
 
 This skill focuses on **authoring** those workflows in the brain schema. For the
 `set_run_grading` tool contract, see **BRA406**. For the inbox lifecycle after
@@ -96,11 +96,12 @@ Reference (use this exact value for set_run_grading): {{run.reference}}
 3. Identify discrete, actionable learnings. If nothing to improve, create no
    entries.
 4. For each learning, call `create_inbox_entry` exactly once with:
-   - `title`, `body`, `routing_type: EVAL`
-   - `status: PENDING` so `inbox:*` (WF-TRIAGE) clusters and creates apply
-     tasks — do **not** pass `PROCESSED` or call `add_inbox_task`
-   - optional `workflow_name`, `entity_name`, `unit_of_work_name` when known
-     (subject workflow / entity / unit of work — omit rather than guess)
+   - `title`, `body`, `routing_type`
+   - optional `status: PROCESSED` when the finding should not fire inbox
+     trigger workflows (typical for grade-linked findings)
+   - omit `workflow_name`, `entity_name`, `unit_of_work_name` — the tool fills
+     them from the subject run (workflow code, entity name, unit-of-work title).
+     Those names are also on `{{run.telemetry}}`.
 5. Call `set_run_grading` exactly once with:
    - `run_reference` — the subject reference shown above ({{run.reference}})
    - `grading` — the integer 0–100
@@ -121,10 +122,10 @@ Runs inside the brain — no outbound HTTP. Declare under
 | --- | --- |
 | `title`, `body`, `routing_type` | Required |
 | `source` | Optional producing-system label |
-| `status` | Optional: `PENDING` (default — triggers fire, then auto-`PROCESSED`) or `PROCESSED` (skip triggers). Run evals (`WF-EVAL-RUN`) must use `PENDING` so WF-TRIAGE can cluster and create tasks. |
-| `workflow_name` | Optional. Subject workflow being evaluated (not WF-EVAL itself) |
-| `entity_name` | Optional. Entity the subject workflow ran against |
-| `unit_of_work_name` | Optional. Unit of work the subject workflow ran against |
+| `status` | Optional: `PENDING` (default — triggers fire, then auto-`PROCESSED`) or `PROCESSED` (skip triggers) |
+| `workflow_name` | Optional. Subject workflow **code**. When omitted on a run eval, filled from the subject run |
+| `entity_name` | Optional. Entity name. When omitted, filled from the subject run (or the eval run's entity on a unit-of-work eval) |
+| `unit_of_work_name` | Optional. Unit-of-work **title**. When omitted, filled from the subject run (or the eval run's unit of work) |
 
 #### `set_run_grading` (BRA406)
 

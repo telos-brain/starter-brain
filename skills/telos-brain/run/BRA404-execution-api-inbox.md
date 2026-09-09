@@ -60,19 +60,23 @@ on the task row. Inbox work uses them in two distinct stages:
 
 | Stage | When | What is matched | Outcome |
 | --- | --- | --- | --- |
-| **Entry create** | `POST /inbox` / `create_inbox_entry` with status `PENDING` | Each `TRIGGERED` workflow's `inbox:…` pattern against the **entry's `routingType`** and the brain's **`learning-mode`** | Matching workflows each get a new `InboxTask` (`PENDING`, linked to that workflow) |
+| **Entry create** | `POST /inbox` / `create_inbox_entry` with status `PENDING` | Each `TRIGGERED` workflow's `inbox:…` pattern against the **entry's `routingType`**, the brain's **`learning-mode`**, and the entry's **`weight`** | Matching workflows each get a new `InboxTask` (`PENDING`, linked to that workflow) |
 | **Task auto-run** | A `PENDING` task that has a linked workflow is picked up | That **task's linked workflow** only — does it have an inbox trigger whose learning-mode qualifier is satisfied? | Yes → `PENDING → RUNNING` and the workflow runs. No → `PENDING → AWAITING_APPROVAL` |
 
 ### Stage 1 — which tasks get created
 
 Pattern shape: `inbox:<RoutingType>` or `inbox:*`, optionally with a learning-mode
-qualifier:
+qualifier and an optional weight threshold:
 
 ```text
+inbox:<RoutingType>[:<learning-mode>[:<weight-threshold>]]
+
 inbox:SKILL_UPDATE
 inbox:*
 inbox:SKILL_UPDATE:low
 inbox:WORKFLOW_UPDATE:medium
+inbox:SKILL_UPDATE:high:5
+inbox:*:medium:3
 ```
 
 - `inbox:*` matches any routing type (including null).
@@ -83,6 +87,17 @@ inbox:WORKFLOW_UPDATE:medium
   when the brain's `learning-mode` **meets or exceeds** the qualifier.
   Unqualified inbox triggers always pass the learning-mode check (including when
   the brain mode is omitted / off).
+- Optional fourth segment is a positive integer **weight threshold** (BRA333).
+  The trigger fires only when the entry's `Weight` **meets or exceeds** that
+  value. Absent fourth segment defaults to no weight gate (always fires,
+  regardless of weight). The fourth segment is only valid when the third
+  (learning-mode) segment is also present.
+- Routing type, learning-mode qualifier, and weight threshold are AND-gated:
+  all present gates must pass.
+- Weight is evaluated **once**, at entry creation (when the PENDING entry is
+  created). Post-creation clustering that raises a source entry's weight does
+  **not** re-fire that entry's triggers. A new cluster entry is itself created
+  and evaluated at *its* creation time, with the summed cluster weight.
 - Creating an entry as `PROCESSED` skips this stage entirely (no tasks).
 
 ### Stage 2 — whether a PENDING task auto-runs
@@ -167,7 +182,7 @@ GET /inbox?status=PENDING&created_since=2026-07-01T00:00:00Z
 
 | Query param | Notes |
 |---|---|
-| `status` | Optional. Filters to one entry status. |
+| `status` | Optional. Filters to one entry status. Omitted: open, unclustered entries only (`PENDING` / `PROCESSED`, `ClusterId` null). |
 | `created_since` | Optional ISO 8601 lower bound (`CreatedAt >= created_since`), for polling since a last poll. |
 
 Response `200 OK` — a summary array (most recent source event first). The `body`
