@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 48
+version: 49
 description: How to setup a brain schema using yml and markdown
 ---
 
@@ -400,6 +400,10 @@ api:
   path: https://go.telosready.com/tool-api/add-ticket-comment   # REQUIRED (the webhook URL)
 ```
 
+Write `{parameter-name}` in `api.path` to put that parameter in the URL
+(see §5.3). Relative paths on a connector work the same way
+(`path: /v5/entities/{code}`).
+
 The `api.path` host must satisfy the shared outbound allowlist in §4.3
 (`allowed-callback-domains`) when that list is configured. `https` is required
 outside Development; private and metadata IP ranges are always blocked.
@@ -570,6 +574,65 @@ Key behaviour: a parameter is **exposed to the LLM only when it has no `value`,
 `secret`, `entity`, `unitofwork`, `input` or `header`**. Set `value` to pin a
 param and hide it. `name` and `description` are required on every parameter.
 
+#### Putting a parameter in the URL
+
+Any parameter can go in the URL. Write `{name}` in `api.path` — or `{param}`
+if you set `param:`. The value is filled in when the tool runs and is **not**
+also sent as a query string (GET) or JSON field (POST).
+
+```yaml
+name: get_nzbn_entity
+description: Gets an NZBN entity by number.
+api:
+  method: GET
+  path: https://api.business.govt.nz/gateway/nzbn/v5/entities/{nzbn}
+parameters:
+  - name: nzbn
+    description: The NZBN number.
+    required: true
+```
+
+At run time `{nzbn}` becomes the value the model supplied, e.g.
+`…/entities/9429052360992`.
+
+You can use more than one placeholder, including on a connector-relative path:
+
+```yaml
+api:
+  method: GET
+  connector: nzbn
+  path: /v5/entities/{nzbn}/directors/{directorId}
+parameters:
+  - name: nzbn
+    description: The NZBN number.
+    required: true
+  - name: directorId
+    description: The director to return.
+    required: true
+```
+
+If the URL token must differ from the AI-facing name, set `param:` to the
+token:
+
+```yaml
+api:
+  method: GET
+  path: https://api.example.com/entities/{nzbn}
+parameters:
+  - name: nzbn_number
+    param: nzbn
+    description: The NZBN number.
+    required: true
+```
+
+Optional: write `path: nzbn` on the parameter (instead of `param: nzbn`) to
+mark that it belongs in the URL. Do not set both `path:` and `header:` on the
+same parameter.
+
+This works for ordinary parameters and for `secret:`, `entity:`,
+`unitofwork:`, and `input:` parameters — put `{name}` or `{param}` in
+`api.path` and the resolved value is placed there.
+
 `required` is **false when omitted**. Set `required: true` for parameters the
 model must supply (for example `url` on `transcribe_image`). Leave it off — or
 set `required: false` — for optional parameters (for example `prompt`). The
@@ -634,10 +697,12 @@ parameters:
 - `value:` (with `secret:`) is a template where `{secret}` is replaced by the
   decrypted value; with no `value:`, the raw secret is injected as-is.
 - `header:` chooses **where** the value goes:
-  - **with** `header:` → sent as that named HTTP header (target key = the header
-    name);
+  - **with** `header:` → sent as that named HTTP header;
   - **without** `header:` → sent in the request payload, i.e. the **query
-    string** for a GET tool or the **JSON body** for a POST tool.
+    string** for a GET tool or the **JSON body** for a POST tool — unless
+    `api.path` contains `{name}` or `{param}`, in which case it goes in the
+    URL instead (see **Putting a parameter in the URL** above).
+- Do not set both `header:` and `path:` on the same parameter.
 
 Only `api` tools inject secrets — `mcp`/`system`/`workflow`/`native` tools make
 no authenticated outbound HTTP call, so these fields have no effect there.
@@ -666,7 +731,8 @@ parameters:
 - Like `secret` and `value`, an `entity`-bound parameter is **hidden from the
   LLM**.
 - `header:` still chooses placement: with `header:` the value is sent as that
-  HTTP header; without it, it goes in the query string (GET) or JSON body (POST).
+  HTTP header; without it, it goes in the query string (GET) or JSON body
+  (POST) — or in the URL if `api.path` contains `{name}` or `{param}`.
 - **If the current entity has no value for the key** (or the run has no entity in
   scope), the parameter is **omitted** from the request — never sent blank. Set
   the value via the Execution API (BRA402) so it resolves.
@@ -694,9 +760,10 @@ parameters:
   looks up the value for that key on the run's current unit of work (the unit of
   work the workflow run is scoped to) and injects it under `param`.
 - Semantics match `entity:` exactly: the parameter is **hidden from the LLM**,
-  `header:` still chooses placement, and **if the current unit of work has no
-  value for the key** (or the run has no unit of work in scope) the parameter is
-  **omitted** from the request rather than sent blank.
+  `header:` still chooses placement (or put `{name}` / `{param}` in
+  `api.path` to send it in the URL), and **if the current unit of work has no
+  value for the key** (or the run has no unit of work in scope) the parameter
+  is **omitted** from the request rather than sent blank.
 - A single tool may mix `entity:`- and `unitofwork:`-bound parameters; each
   resolves against its own scope.
 
@@ -1024,7 +1091,7 @@ version: 1.1                           # optional (see §9)
 type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM | SIMULATION | COMPACTION (default RUNNABLE)
 # trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list
 # trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier: low|medium|high
-# trigger: inbox:SKILL_UPDATE:high:5   # optional weight threshold (positive integer)
+# trigger: inbox:SKILL_UPDATE:high:10  # optional weight threshold (positive integer)
 # trigger:
 #   - inbox:SKILL_UPDATE
 #   - inbox:WORKFLOW_UPDATE:medium
@@ -1100,10 +1167,13 @@ Rules:
     later raises a source entry's weight does not re-fire that entry's triggers.
   - **Task auto-run:** once a task exists, the **workflow linked on that task**
     is authoritative. If that workflow has an inbox trigger whose learning-mode
-    qualifier is satisfied, the task auto-runs (`PENDING → RUNNING`); otherwise
-    it moves to `AWAITING_APPROVAL`. Entry routing and weight are not
-    re-checked at this stage. `trigger-mode` does **not** control inbox task
-    approval.
+    qualifier **and** optional weight threshold are satisfied (weight is the
+    parent entry's **current** `Weight`), the task auto-runs
+    (`PENDING → RUNNING`); otherwise it moves to `AWAITING_APPROVAL`. Entry
+    routing is not re-checked at this stage. `trigger-mode` does **not**
+    control inbox task approval. Apply-learning workflows that should only
+    auto-run on a well-evidenced signal use `inbox:*:high:10` (canonical:
+    `WF-INBOX-ENTRY-CONTEXT`).
 - For `workflowrun:complete`, `trigger-mode: automatic` enqueues on Completed;
   `trigger-mode: manual` (or omitted) is kicked off from the admin **Run eval**
   button. Use `{{run.telemetry}}` (BRA204) for OTEL GenAI telemetry of the

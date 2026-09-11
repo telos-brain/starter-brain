@@ -10,12 +10,15 @@ version: 10
 # compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 
-# Tasks are usually created by WF-TRIAGE (add_inbox_task). Declaring an inbox
-# trigger with :high makes those tasks auto-run when brain learning-mode is
-# high (BRA404 stage 2). Stage 1 also creates a task if an entry is posted
-# already routed as SKILL_UPDATE while learning-mode >= high.
+# Tasks are usually created by WF-TRIAGE (add_inbox_task). :high:5 gates
+# both stages (BRA404): Stage 1 creates a task only when learning-mode >=
+# high AND weight >= 5; Stage 2 auto-runs when those same gates pass
+# against the parent entry's current Weight (routing ignored). Below
+# weight 5, triage-created tasks park at AWAITING_APPROVAL for manual
+# processing. Keep SKILL_UPDATE (not inbox:*) so Stage 1 does not attach
+# this workflow to every high-weight entry.
 type: TRIGGERED
-trigger: inbox:SKILL_UPDATE:high
+trigger: inbox:SKILL_UPDATE:high:5
 
 system-prompt-code: WF-BRAIN-SYSTEM
 

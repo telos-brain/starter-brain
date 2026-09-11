@@ -1,12 +1,11 @@
 ---
 name: Create Inbox Cluster System Tool
 code: BRA413
-version: 2
-description: The create_inbox_cluster system tool — consolidate any number of
-  related inbox entries (two or more) into a single PROCESSED cluster entry.
-  Source entries become COMPLETED and their open tasks are cancelled. The
-  caller adds apply tasks to the new cluster immediately. Complements the
-  inbox tools in BRA405.
+version: 1
+description: The create_inbox_cluster system tool — consolidate related inbox
+  entries into a single PROCESSED cluster entry. Source entries become
+  COMPLETED and their open tasks are cancelled. Complements the inbox tools
+  in BRA405.
 tools:
   - create_inbox_cluster
 ---
@@ -31,10 +30,10 @@ UUID.
 ## Purpose
 
 Clustering reduces noise: related or near-duplicate signals become one
-inbox entry. A cluster may include **any number** of sources (two or more).
-Weight is computed automatically. The cluster is created as `PROCESSED`
-with no trigger tasks — the caller (WF-TRIAGE) adds apply tasks to the
-**new cluster reference immediately**.
+inbox entry. Weight is the sum of the source entries' current weights
+(manual overrides included) and is not recalculated afterwards. The
+cluster is created as `PROCESSED` with no trigger tasks — triage adds
+tasks afterwards.
 
 ---
 
@@ -52,7 +51,7 @@ All parameters are strings. `BrainId` is harness-injected — never a parameter.
 
 | Parameter | Required | Notes |
 | --- | --- | --- |
-| `inbox_entry_references` | Yes | Comma-separated 8-character references. Two or more; no upper limit. Whitespace is trimmed. |
+| `inbox_entry_references` | Yes | Comma-separated 8-character references (at least two). Whitespace is trimmed. |
 | `cluster_title` | Yes | Title for the new cluster entry (max 500 characters). |
 | `cluster_description` | Yes | Body/description for the new cluster entry (markdown). |
 
@@ -70,9 +69,8 @@ how many sources were consolidated, for example:
    (`ClusterId` set) references are **ignored** — they do not fail the call
    and they do not contribute to the new cluster's weight.
 2. Creates a new `PROCESSED` inbox entry (`cluster_title` /
-   `cluster_description`). Trigger matching is skipped. The caller must add
-   apply tasks to this new entry immediately (it will not be re-triaged).
-   Fails only when fewer than two clusterable sources remain.
+   `cluster_description`). Trigger matching is skipped — triage adds tasks
+   after create. Fails only when fewer than two clusterable sources remain.
 3. Stamps each source's `ClusterId` to the new entry (internal self-FK — not
    shown to the AI).
 4. Cancels open source tasks (`PENDING`, `AWAITING_APPROVAL` → `CANCELLED`).

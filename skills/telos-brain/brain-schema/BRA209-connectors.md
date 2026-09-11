@@ -289,6 +289,9 @@ api:
   connector: example-api-key # optional — Connectors.Name for this brain
 ```
 
+Write `{parameter-name}` in `path` to put a parameter in the URL
+(`path: /v5/entities/{nzbn}`). See **BRA201** §5.3.
+
 ```yaml
 name: search_documents
 version: 1

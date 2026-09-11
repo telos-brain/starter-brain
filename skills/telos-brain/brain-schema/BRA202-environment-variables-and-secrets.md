@@ -147,7 +147,9 @@ This is expressed with these parameter fields:
   decrypted value is injected.
 - `header:` — *(optional)* the **HTTP header name** to place it in (e.g.
   `Authorization`). A parameter with `header:` is sent as a request header;
-  **without** `header:` the value goes into the request payload instead (§3.3).
+  **without** `header:` the value goes into the request payload instead
+  (§3.3) — or into the URL if `api.path` contains `{name}` or `{param}`
+  (BRA201 §5.3).
 - `value:` (optional) — a **template** in which the placeholder `{secret}` is
   replaced by the resolved secret, so you can format things like
   `"Bearer {secret}"`. With `secret:` but **no** `value:`, the raw secret is
@@ -241,7 +243,7 @@ parameters:
 > (see BRA201 §5.3). Adding `header:` moves it to a request header; adding
 > `secret:` sources its value from a stored variable instead of hardcoding it.
 
-### 3.3 Where the secret goes: header, query or body
+### 3.3 Where the secret goes: header, query, body or URL
 
 `header:` is only one placement. When a parameter has **no** `header:`, its
 resolved value joins the request **payload**, and the HTTP method decides how:
@@ -249,6 +251,10 @@ resolved value joins the request **payload**, and the HTTP method decides how:
 - **GET** — payload parameters are appended to the URL as the **query string**
   (`?key=value`, url-encoded).
 - **POST / other** — payload parameters are serialised into the **JSON body**.
+- **URL path** — write `{name}` (or `{param}`) in `api.path` to put the value
+  in the path instead of the query string or JSON body. See BRA201 §5.3.
+
+Do not set both `header:` and `path:` on the same parameter.
 
 So an API keyed by a query parameter or a body field (rather than a header)
 still injects the secret with `secret:` — just omit `header:`:

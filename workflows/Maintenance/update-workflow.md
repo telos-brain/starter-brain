@@ -4,16 +4,21 @@ code: WF-UPDATE-WORKFLOW
 description: >-
   Autonomously applies learnings to workflow instructions and tool definitions
   (create or update). Triggered for WORKFLOW_UPDATE and TOOL_UPDATE at high
-  learning mode.
+  learning mode when inbox weight is 5 or higher.
 version: 7
 # Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
 # compose llm-model wins when that credential exists (BRA210).
 model: anthropic/claude-sonnet-4-6
 
+# :high:5 gates Stage 1 (task create) and Stage 2 (auto-run on the parent
+# entry's current Weight). Below weight 5, triage-created tasks park at
+# AWAITING_APPROVAL for manual processing. Routing-specific patterns —
+# not inbox:* — so Stage 1 does not attach this workflow to every
+# high-weight entry.
 type: TRIGGERED
 trigger:
-  - inbox:WORKFLOW_UPDATE:high
-  - inbox:TOOL_UPDATE:high
+  - inbox:WORKFLOW_UPDATE:high:5
+  - inbox:TOOL_UPDATE:high:5
 
 system-prompt-code: WF-BRAIN-SYSTEM
 

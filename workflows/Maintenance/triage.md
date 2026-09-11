@@ -315,6 +315,7 @@ finance, etc.). This is memory for the business — not agent-quality improvemen
 - **Source:** {{inboxEntry.source}}
 - **Status:** {{inboxEntry.status}}
 - **Routing:** {{inboxEntry.routingType}}
+- **Weight:** {{inboxEntry.weight}}
 - **Date:** {{inboxEntry.date}}
 
 ### Existing tasks on this entry
