@@ -29,7 +29,7 @@ short description, and full markdown content.
 ## Codes and progressive disclosure
 
 Skill codes are stable identifiers. Skills use them to refer to other skills
-(e.g. "see **BRA201** §6") without embedding that material. That is progressive
+(e.g. "see **BRA215**") without embedding that material. That is progressive
 disclosure: an agent discovers a skill, loads only what it needs, then follows
 codes to related skills when deeper detail is required. Codes make the book
 traversable — searchable, loadable by id, and linkable — rather than a flat dump
@@ -71,5 +71,5 @@ packages — composable, versioned, and purpose-built.
 ## Related skills
 
 - **BRA208** — designing a book's category set and ranges
-- **BRA201** §6 — encoding skillbooks in a brain schema (`skillbook.yml` and
+- **BRA215** — encoding skillbooks in a brain schema (`skillbook.yml` and
   skill markdown)

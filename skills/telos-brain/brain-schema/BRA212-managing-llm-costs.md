@@ -75,7 +75,7 @@ The cache prefix must be **byte-stable** across turns of the same run:
 - Prefer `available-skills` / `available-tools` over stuffing the prefix
   (see §7). Discovery tools load depth on demand; the prefix stays small
   and stable.
-- Fetch structured context with `input-tools` (**BRA201** §8.0a) rather than
+- Fetch structured context with `input-tools` (**BRA217**) rather than
   rewriting the system prompt per run. Pre-called results land in a user
   block *after* the cacheable prefix.
 - Reuse chat sessions (`POST /workflows/{code}/run/sync`, then continue the
@@ -146,7 +146,7 @@ response-markdown: |
 error-markdown: |
   Could not list widgets: {{result.error}}
 
-  Load **BRA201** §5 if the call shape looks wrong. Do not retry with a
+  Load **BRA214** if the call shape looks wrong. Do not retry with a
   different parameter name.
 ```
 
@@ -166,7 +166,7 @@ Rules:
 **Tool definitions are mini-skills.** They sit in the system prompt (and
 therefore in the cache prefix). Prefer fixing the tool YAML — description,
 parameter names/descriptions, `response-markdown`, `error-markdown` — over
-teaching the tool only in a skill (**BRA105**, **BRA201** §5).
+teaching the tool only in a skill (**BRA105**, **BRA214**).
 
 Every failed call is a billed turn (full prompt + output) plus another billed
 turn for the retry. A vague tool that the model mis-invokes twice can cost
@@ -181,10 +181,10 @@ more than the successful work.
 | Parameter `type` | `int` / `decimal` / `date` / `datetime` so the router coerces before dispatch — parse failures become a clear tool error instead of a bad HTTP call. |
 | Hidden bindings | Tenant ids, API keys, and run inputs are **not** LLM-facing. Bind them; do not ask the model to copy a UUID. |
 | `response-markdown` | Compact success text. Tell the model what happened and the reference to use next. |
-| `error-markdown` | Name the skill to load (`get_skill BRA201`), then stop. Do not invite a guessed retry. |
+| `error-markdown` | Name the skill to load (`get_skill BRA215`), then stop. Do not invite a guessed retry. |
 
 Canonical pattern — `create_skill` (**BRA203**): success returns the new
-code; failure points at **BRA203** / **BRA208** / **BRA201** instead of
+code; failure points at **BRA203** / **BRA208** / **BRA215** instead of
 dumping a parser stack.
 
 ```yaml
@@ -195,7 +195,7 @@ error-markdown: |
 
   - **BRA203** — `create_skill` parameters
   - **BRA208** — categories and ranges
-  - **BRA201** — skill file format
+  - **BRA215** — skill file format
 
   Do not pass `brain_id` — it is harness-injected.
 ```
@@ -314,7 +314,7 @@ Give every workflow a budget and refuse work that exceeds it. Raise a
 limit only when the work needs more, never because the model asked
 (**BRA105**).
 
-### Per-workflow (frontmatter — **BRA201** §8.1)
+### Per-workflow (frontmatter — **BRA217**)
 
 ```yaml
 model: xai/grok-4.5
@@ -336,7 +336,7 @@ max-recursion-depth: 5
 | `thinking` / `thinking-effort` / `thinking-budget` | thinking off | Claude-only at request time (**BRA210** §5). `thinking-effort` is the spend lever — Anthropic bills tokens *generated*, not `output-tokens`. Prefer `adaptive` + `low` over `extended`. |
 | `max-runs-per-hour` | `50` | Rolling-hour cap per workflow. Heartbeats and eval batches set this *up*; user-facing tools should stay low. |
 | `max-recursion-depth` | `5` | Caps `run_workflow` / workflow-tool nesting before a child `WorkflowRun` is created. |
-| `session-timeout` | `30` (minutes) | Closes idle chat sessions so they stop accruing and become eligible for eval (**BRA201** §8.2). |
+| `session-timeout` | `30` (minutes) | Closes idle chat sessions so they stop accruing and become eligible for eval (**BRA217**). |
 
 `output-tokens` and `max-turns` apply on every provider. Do not copy
 `WF-CHAT`'s `max-turns: 50` onto a triggered or tool workflow.
@@ -400,14 +400,14 @@ split when it covers too much, and point at related codes (`see **BRA201**
 
 Tool definitions sit in the system prompt. A workflow with only `tools:`
 and no `available-tools` injects **every** listed tool on every turn
-(**BRA201** §8).
+(**BRA217**).
 
 | Frontmatter | What the model sees | Cost |
 |---|---|---|
 | `tools` | Full tool schema (name, description, parameters) every turn | High — inject only discovery tools plus tools used on most turns |
 | `available-tools` | Permission envelope only — not in the prompt until surfaced | Low until discovered or promoted |
 
-How an available tool becomes callable (**BRA201** §6.3):
+How an available tool becomes callable (**BRA215**):
 
 1. **`find_available_tools`** — semantic search over the workflow's
    `available-tools` pool (`query` → names and descriptions). Inject this
@@ -517,7 +517,9 @@ Checklist when reviewing a brain for cost:
 
 - **BRA103** — skill codes and progressive disclosure
 - **BRA105** — budget principle and “keep each skill short” (always inject when editing the brain)
-- **BRA201** §5 — tool YAML; §6.3 skill-declared tool promotion; §8 `tools` / `available-tools`; §8.0a `input-tools`; §8.1 LLM execution settings
+- **BRA214** — tool YAML
+- **BRA215** — skill-declared tool promotion
+- **BRA217** — workflow `tools` / `available-tools`, `input-tools`, LLM execution settings
 - **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`
 - **BRA203** — schema tools (`update_schema_file` to apply these fields)
 - **BRA204** §3.5 — `{{result.*}}` in `response-markdown` / `error-markdown`

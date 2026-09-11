@@ -21,19 +21,19 @@ tools:
 
 # Schema System Tools
 
-BRA201 covers authoring the schema as files and deploying them with the CLI. This
+**BRA201** is the schema overview (which skill to load for each file type). This
 skill covers the complementary runtime capability: a **running brain editing its
 own schema**. Six `system` tools expose the brain's configuration-as-code as a
 virtual filesystem — list, search, read, edit and create workflow, skill, tool,
 blueprint and connector files — without any outbound HTTP call. This is how a
 learning-review workflow applies an approved learning back into the brain.
 
-These are ordinary `system` tools (see BRA201 §5.2): they are declared with a
+These are ordinary `system` tools (see BRA214): they are declared with a
 `system:` block and added to a workflow's tool lists like any other tool. They
 run inside the brain — no webhook URL, MCP server or API key is involved.
 
 This skill declares those tools in its own frontmatter `tools:` list
-(BRA201 §6.3). When a workflow keeps them under `available-tools` and the agent
+(BRA215). When a workflow keeps them under `available-tools` and the agent
 calls `get_skill` for `BRA203`, matching tools are promoted into the run's Claude
 declarations for the rest of that run — see `WF-SKILL-UPDATE` for the wiring.
 
@@ -125,7 +125,7 @@ Requires `skillbook_code`, `category_title`, `title`, `description`, and
 (deleted codes stay reserved), defaults version to 1, and returns the new
 code (e.g. `BRA209`). Prefer this over `create_schema_file` for skills.
 
-On failure, load **BRA208** (skill-book design) and **BRA201** §6 (skill format)
+On failure, load **BRA208** (skill-book design) and **BRA215** (skill format)
 before retrying. Example tool definition: `tools/brain-schema/create-skill.yml`.
 
 ## `create_schema_file`
@@ -150,9 +150,9 @@ incoming version is less than the stored version.
 
 On failure, the tool's `error-markdown` (see
 `tools/brain-schema/create-schema-file.yml`) names the skills that define each
-file type's format — typically **BRA201**, plus **BRA208** for skills and
-**BRA204** when template tags are involved. Load those with `get_skill`, fix the
-content, and retry.
+file type's format — **BRA217** (workflows), **BRA214** (tools), **BRA215** +
+**BRA208** (skills), **BRA216** (blueprints), plus **BRA204** when template tags
+are involved. Load those with `get_skill`, fix the content, and retry.
 
 ---
 
@@ -191,7 +191,8 @@ parameters:
     required: true
 error-markdown: |
   Could not create schema file: {{result.result}}
-  Load BRA201 (file formats) and BRA203 (this skill) via get_skill, then retry.
+  Load BRA217 / BRA214 / BRA215 / BRA216 (file formats) and BRA203 (this skill)
+  via get_skill, then retry.
 ```
 
 `create_skill` and `create_schema_file` example definitions (with full

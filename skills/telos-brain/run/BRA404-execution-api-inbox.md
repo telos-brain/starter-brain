@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Inbox Entries & Tasks"
 code: BRA404
-version: 10
+version: 11
 description: How to create, list, read and update inbox entries and their tasks
   via the Execution API — the learning-signal intake surface. Covers the entry and
   task lifecycles, inbox trigger matching (entry create vs task auto-run), learning
@@ -55,21 +55,21 @@ example workflow: `WF-INBOX-ENTRY-CONTEXT`.
 
 ## Inbox triggers (two stages)
 
-Triggers live on **workflows** (`trigger:` in frontmatter — see BRA201 §8), not
+Triggers live on **workflows** (`trigger:` in frontmatter — see BRA217), not
 on the task row. Inbox work uses them in two distinct stages:
 
 | Stage | When | What is matched | Outcome |
 | --- | --- | --- | --- |
 | **Entry create** | `POST /inbox` / `create_inbox_entry` with status `PENDING` | Each `TRIGGERED` workflow's `inbox:…` pattern against the **entry's `routingType`**, the brain's **`learning-mode`**, and the entry's **`weight`** | Matching workflows each get a new `InboxTask` (`PENDING`, linked to that workflow) |
-| **Task auto-run** | A `PENDING` task that has a linked workflow is picked up | That **task's linked workflow** only — does it have an inbox trigger whose learning-mode qualifier **and** optional weight threshold are satisfied (weight is the parent entry's **current** `Weight`)? | Yes → `PENDING → RUNNING` and the workflow runs. No → `PENDING → AWAITING_APPROVAL` |
+| **Task auto-run** | A `PENDING` task that has a linked workflow is picked up | That **task's linked workflow** only — does it have an inbox trigger whose learning-mode qualifier, optional weight threshold, and optional fifth-segment routing code are satisfied (weight / routing are the parent entry's **current** values)? | Yes → `PENDING → RUNNING` and the workflow runs. No → `PENDING → AWAITING_APPROVAL` |
 
 ### Stage 1 — which tasks get created
 
 Pattern shape: `inbox:<RoutingType>` or `inbox:*`, optionally with a learning-mode
-qualifier and an optional weight threshold:
+qualifier, an optional weight threshold, and an optional routing-code filter:
 
 ```text
-inbox:<RoutingType>[:<learning-mode>[:<weight-threshold>]]
+inbox:<RoutingType>[:<learning-mode>[:<weight-threshold>[:<routing-code>]]]
 
 inbox:SKILL_UPDATE
 inbox:*
@@ -78,6 +78,7 @@ inbox:WORKFLOW_UPDATE:medium
 inbox:SKILL_UPDATE:high:10
 inbox:*:medium:3
 inbox:*:high:10
+inbox:*:high:10:SKILL_UPDATE
 ```
 
 - `inbox:*` matches any routing type (including null).
@@ -93,8 +94,13 @@ inbox:*:high:10
   value. Absent fourth segment defaults to no weight gate (always fires,
   regardless of weight). The fourth segment is only valid when the third
   (learning-mode) segment is also present.
-- Routing type, learning-mode qualifier, and weight threshold are AND-gated:
-  all present gates must pass.
+- Optional fifth segment is a **routing-code** filter. When omitted (or `*`),
+  the trigger matches every routing type (subject to the second-segment
+  pattern). When present, the entry's `routingType` must match that code
+  exactly. The fifth segment is only valid when the fourth (weight) segment
+  is also present.
+- Routing type, learning-mode qualifier, weight threshold, and routing-code
+  filter are AND-gated: all present gates must pass.
 - Weight is evaluated **once**, at entry creation (when the PENDING entry is
   created). Post-creation clustering that raises a source entry's weight does
   **not** re-fire that entry's triggers. A new cluster entry is itself created
@@ -108,10 +114,11 @@ Once a task exists, **the workflow already linked on that task is authoritative*
 entry's routing type.
 
 - Auto-run when the linked workflow has **at least one** `inbox:…` trigger whose
-  learning-mode qualifier **and** optional weight threshold are satisfied
-  (routing segment ignored at this stage). Weight is the parent entry's
-  **current** `Weight`, so a later vote or a cluster-then-`add_inbox_task`
-  can unlock auto-run after the entry was created.
+  learning-mode qualifier, optional weight threshold, and optional
+  fifth-segment routing code are satisfied (second-segment routing pattern
+  ignored at this stage). Weight and routing code use the parent entry's
+  **current** values, so a later vote or a cluster-then-`add_inbox_task` can
+  unlock auto-run after the entry was created.
 - Otherwise the task moves to `AWAITING_APPROVAL` for human sign-off (admin UI,
   `PATCH` approve, or `update_inbox_task` — see below / BRA405).
 - A task with **no** linked workflow cannot auto-run; it parks at
@@ -298,7 +305,7 @@ fields are supplied.
 
 ## See also
 
-- **BRA201** §8 — workflow `trigger` / `learning-mode` authoring
+- **BRA217** — workflow `trigger` / `learning-mode` authoring
 - **BRA405** — inbox system tools (`create_inbox_entry`, `add_inbox_task`, …)
 - **BRA207** — learning-eval workflows (`trigger-mode` for `workflowrun:complete`)
 - **BRA204** — `{{inboxEntry.*}}` / `{{task.*}}` / `{{#inboxTasks}}` template tags

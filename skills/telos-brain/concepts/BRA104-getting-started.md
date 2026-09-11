@@ -27,8 +27,8 @@ the user, stop and load **BRA211** (auto-build) instead.
 **Background (do not re-explain — load if needed):**
 
 - **BRA106** — local Docker stack (`brain start` / deploy / host.docker.internal)
-- **BRA201** — brain schema structure (`brain-compose.yml`, entities, units of
-  work, blueprints, skillbooks)
+- **BRA201** — schema overview (layout, deploy, versioning; links to file-type skills)
+- **BRA213** — `brain-compose.yml` (entities, units of work, variables)
 - **BRA210** — LLM providers and example `model` codes for workflows
   (`anthropic/…`, `openai/…`, `xai/…`)
 - **BRA208** — skill-book category design and numeric ranges

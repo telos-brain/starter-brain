@@ -22,7 +22,7 @@ endpoint. Connectors are configuration-as-code files under `connectors/`, listed
 from `brain-compose.yml`, and deployed with `brain deploy`.
 
 This skill is the authoring guide. The full schema reference also lives in
-**BRA201** §5A. Secret storage and `.env` upload are in **BRA202**. Runtime
+**BRA209**. Secret storage and `.env` upload are in **BRA202**. Runtime
 schema edit tools are in **BRA203**.
 
 ---
@@ -124,7 +124,7 @@ value is:
 
 | `type` | Used for |
 |---|---|
-| `elevenlabs` | ElevenLabs Conversational AI. Pair with a workflow that sets `deployment-type: elevenlabs_conversational_ai` (**BRA201** §8.3). Bind the `xi-api-key` with `secret:` on the `api-key` parameter (or omit `secret:` to use the connector's default client-secret variable). |
+| `elevenlabs` | ElevenLabs Conversational AI. Pair with a workflow that sets `deployment-type: elevenlabs_conversational_ai` (**BRA217**). Bind the `xi-api-key` with `secret:` on the `api-key` parameter (or omit `secret:` to use the connector's default client-secret variable). |
 
 A brain should declare **at most one** connector of each platform type. The
 deployment handler picks the first by name and logs a warning if several match.
@@ -273,7 +273,7 @@ ELEVENLABS_API_KEY=xi-...
 ```
 
 Workflows that should be projected as ElevenLabs agents also need
-`deployment-type: elevenlabs_conversational_ai` — see **BRA201** §8.3.
+`deployment-type: elevenlabs_conversational_ai` — see **BRA217**.
 
 ### 4.7 Referencing a connector from a tool
 
@@ -290,7 +290,7 @@ api:
 ```
 
 Write `{parameter-name}` in `path` to put a parameter in the URL
-(`path: /v5/entities/{nzbn}`). See **BRA201** §5.3.
+(`path: /v5/entities/{nzbn}`). See **BRA214**.
 
 ```yaml
 name: search_documents
@@ -358,6 +358,7 @@ Schema system tools (**BRA203**) treat connectors as first-class schema files:
 
 | Skill | Topic |
 |---|---|
-| **BRA201** | Full brain schema authoring reference (connectors in §5A; workflow `deployment-type` in §8.3) |
+| **BRA201** | Schema overview (which skill to load for each file type) |
+| **BRA217** | Workflow `deployment-type` / `elevenlabs-agent-id` |
 | **BRA202** | Environment variables, encryption, secret injection into tools |
 | **BRA203** | Schema system tools (list / get / update connector files) |

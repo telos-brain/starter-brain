@@ -21,7 +21,7 @@ is one of the most important steps in setting up a Skill Book.
 
 This skill covers **how to design** that structure. For what a Skill Book is and
 how agents work with skills, see **BRA103**. For the YAML file format and deploy
-rules, see **BRA201** §6.
+rules, see **BRA215**.
 
 ---
 
@@ -228,7 +228,7 @@ numbers randomly.
 ## 6. Encode in the schema
 
 Once the structure is agreed, encode it in `skills/<book>/skillbook.yml`
-(BRA201 §6.1):
+(BRA215):
 
 ```yaml
 name: Engineering Practices

@@ -1,7 +1,7 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 13
+version: 14
 description: The in-brain system tools for operating the learning-signal inbox
   — create_inbox_entry, create_inbox_cluster, list_inbox_entries,
   get_inbox_entry, update_inbox_entry, list_inbox_tasks, add_inbox_task and
@@ -34,7 +34,7 @@ identifies an entry or task uses an **8-character lowercase alphanumeric
 reference** (`[a-z0-9]{8}`). Do **not** pass UUIDs. Linked workflows are named by
 **`workflow_code`**, not `workflow_id`.
 
-These are ordinary `system` tools (BRA201 §5.2). Declarations live under
+These are ordinary `system` tools (BRA214). Declarations live under
 `tools/inbox/` in the brain schema (and sample brains). This skill lists them in
 frontmatter `tools:` so a workflow that keeps them under `available-tools` can
 promote them via `get_skill` (same pattern as BRA203 / `WF-SKILL-UPDATE`).
@@ -200,13 +200,15 @@ reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204), and
 Creates status `PENDING` and returns the new task's **reference**.
 
 **Auto-run:** the engine decides from the **workflow named by
-`workflow_code`**, not from the entry's routing type. If that workflow has an
-`inbox:…` trigger whose learning-mode qualifier **and** optional weight
-threshold are satisfied (weight is the parent entry's **current** `Weight`),
-the task moves `PENDING → RUNNING` and runs. Otherwise it moves to
-`AWAITING_APPROVAL` for human sign-off. Full rules: **BRA404** (Inbox triggers
-— two stages). Workflow `trigger-mode` does not control this path. Apply-
-learning workflows typically declare `inbox:*:high:10`.
+`workflow_code`**, not from the second-segment routing pattern. If that
+workflow has an `inbox:…` trigger whose learning-mode qualifier, optional
+weight threshold, and optional fifth-segment routing code are satisfied
+(weight / routing are the parent entry's **current** values), the task moves
+`PENDING → RUNNING` and runs. Otherwise it moves to `AWAITING_APPROVAL` for
+human sign-off. Full rules: **BRA404** (Inbox triggers — two stages). Workflow
+`trigger-mode` does not control this path. Apply-learning workflows typically
+declare `inbox:*:high:10`; add `:<RoutingType>` to limit auto-run to one
+routing code.
 
 To assign an **existing** task, use `assign_task_to_user` (**BRA408**) instead
 of recreating it.
@@ -269,7 +271,7 @@ parameters:
 
 - **BRA404** — Execution API inbox (HTTP; Guid paths) and **inbox trigger stages**
   (entry create vs task auto-run, learning-mode qualifiers, weight thresholds)
-- **BRA201** §8 — authoring `trigger: inbox:…` / learning-mode / weight on workflows
+- **BRA217** — authoring `trigger: inbox:…` / learning-mode / weight on workflows
 - **BRA207** — learning-eval workflows that call `create_inbox_entry`
 - **BRA413** — `create_inbox_cluster` (consolidate related entries)
 - **BRA406** — `set_run_grading` (persist 0–100 score on a WorkflowRun)

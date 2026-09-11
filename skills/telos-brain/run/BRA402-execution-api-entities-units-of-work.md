@@ -18,9 +18,9 @@ See BRA401 for authentication and conventions.
 An entity is a brain-scoped identifier for a real business record held by the harness application (e.g. a customer, a project). Each entity has an immutable entity type, referenced by its deploy **code**.
 
 An entity can also hold **variables** — key/value pairs keyed by the variable
-keys its type declares in the brain schema (see BRA201 §4.1). Variables are how
+keys its type declares in the brain schema (see BRA213). Variables are how
 per-entity data (e.g. an external `organisationId`) is stored so a tool parameter
-can inject it automatically at dispatch (BRA201 §5.3).
+can inject it automatically at dispatch (BRA214).
 
 ### `POST /entities` — create an entity
 
@@ -104,10 +104,10 @@ Two append-only logs hang off each unit of work:
 Both logs are insert-only — there is no update or delete path.
 
 A unit of work can also hold **variables** — key/value pairs keyed by the variable
-keys its type declares in the brain schema (see BRA201 §4.1). These work exactly
+keys its type declares in the brain schema (see BRA213). These work exactly
 like entity variables, but scope the value to a single piece of work (e.g. the
 external `jobId` created for this job) so a tool parameter bound with
-`unitofwork:` can inject it automatically at dispatch (BRA201 §5.3).
+`unitofwork:` can inject it automatically at dispatch (BRA214).
 
 ### `POST /units-of-work` — create a unit of work
 

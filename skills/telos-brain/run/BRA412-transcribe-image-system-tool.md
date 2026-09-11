@@ -17,7 +17,7 @@ This skill covers the complementary **AI-facing system tool**: a running brain
 fetching an image from a URL and returning the transcript — no webhook URL or
 API key on the tool call.
 
-This is an ordinary `system` tool (BRA201 §5.2). Declaration lives under
+This is an ordinary `system` tool (BRA214). Declaration lives under
 `tools/system-tools/transcribe-image.yml`. This skill lists it in frontmatter
 `tools:` so a workflow that keeps it under `available-tools` can promote it via
 `get_skill`.
@@ -94,6 +94,6 @@ Do **not** use this tool for pages of HTML — use the native `web_fetch` tool. 
 ## See also
 
 - **BRA410** — Execution API file transcription (`POST /transcription`)
-- **BRA201** — `transcription-model` in `brain-compose.yml`; system tool YAML
+- **BRA213** — `transcription-model` in `brain-compose.yml`; **BRA214** — system tool YAML
 - **BRA202** — `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` naming
 - **BRA411** — skill discovery (`get_skill` can promote this tool)

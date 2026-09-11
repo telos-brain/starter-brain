@@ -149,7 +149,7 @@ This is expressed with these parameter fields:
   `Authorization`). A parameter with `header:` is sent as a request header;
   **without** `header:` the value goes into the request payload instead
   (§3.3) — or into the URL if `api.path` contains `{name}` or `{param}`
-  (BRA201 §5.3).
+  (BRA214).
 - `value:` (optional) — a **template** in which the placeholder `{secret}` is
   replaced by the resolved secret, so you can format things like
   `"Bearer {secret}"`. With `secret:` but **no** `value:`, the raw secret is
@@ -240,7 +240,7 @@ parameters:
 
 > Header vs value/query: a parameter with a hardcoded `value:` **and no**
 > `secret:`/`header:` is still a fixed body/query parameter hidden from the LLM
-> (see BRA201 §5.3). Adding `header:` moves it to a request header; adding
+> (see BRA214). Adding `header:` moves it to a request header; adding
 > `secret:` sources its value from a stored variable instead of hardcoding it.
 
 ### 3.3 Where the secret goes: header, query, body or URL
@@ -252,7 +252,7 @@ resolved value joins the request **payload**, and the HTTP method decides how:
   (`?key=value`, url-encoded).
 - **POST / other** — payload parameters are serialised into the **JSON body**.
 - **URL path** — write `{name}` (or `{param}`) in `api.path` to put the value
-  in the path instead of the query string or JSON body. See BRA201 §5.3.
+  in the path instead of the query string or JSON body. See BRA214.
 
 Do not set both `header:` and `path:` on the same parameter.
 
@@ -275,7 +275,7 @@ parameters:
 ```
 
 The `param:` field renames the wire key when it must differ from the AI-facing
-`name` (BRA201 §5.3) — e.g. `param: apiKey` sends `apiKey=…` while the parameter
+`name` (BRA214) — e.g. `param: apiKey` sends `apiKey=…` while the parameter
 is still authored as `api_key`. Either way the secret parameter stays hidden
 from the model.
 

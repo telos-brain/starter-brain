@@ -17,7 +17,7 @@ applies its rubric, call `set_run_grading` once per subject run so operators can
 see the grade on the run list / detail pages and on the workflow Grading tab
 chart.
 
-This is an ordinary `system` tool (BRA201 §5.2). Declaration lives under
+This is an ordinary `system` tool (BRA214). Declaration lives under
 `tools/inbox/set-run-grading.yml`. This skill lists it in frontmatter `tools:`
 so a workflow that keeps it under `available-tools` can promote it via
 `get_skill`.

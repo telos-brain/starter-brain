@@ -83,7 +83,7 @@ Any other extension returns `400` with an unsupported-type error.
 For image uploads the service resolves a vision provider in this order:
 
 1. **Brain `transcriptionModel`** (set in Brain Settings or via
-   `transcription-model` in `brain-compose.yml` — see **BRA201**) when a
+   `transcription-model` in `brain-compose.yml` — see **BRA213**) when a
    matching provider API key is available
 2. Else **`ANTHROPIC_API_KEY`** → default Claude vision model
 3. Else **`OPENAI_API_KEY`** → default OpenAI vision model
@@ -140,5 +140,5 @@ than calling this HTTP path as a tool.
 - **BRA401** — authentication, error envelope, common status codes
 - **BRA202** — `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` naming and upload rules
 - **BRA404** — inbox intake (a common destination for transcribed text)
-- **BRA201** — `transcription-model` in `brain-compose.yml`
+- **BRA213** — `transcription-model` in `brain-compose.yml`
 - **BRA412** — `transcribe_image` system tool (URL + optional prompt)

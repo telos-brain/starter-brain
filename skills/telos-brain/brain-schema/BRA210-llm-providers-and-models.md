@@ -277,7 +277,7 @@ model: claude-haiku-4-5
 ## 6. LLM settings by provider
 
 Optional LLM execution fields on the workflow (`max-turns`, `output-tokens`,
-`caching`, `thinking`, …) are documented in **BRA201** §8.1.
+`caching`, `thinking`, …) are documented in **BRA217**.
 
 | Setting | Anthropic | OpenAI | xAI | OpenRouter | Azure | Local |
 | ------- | --------- | ------ | --- | ---------- | ----- | ----- |
@@ -310,7 +310,7 @@ unknown capabilities. Declared and system tools still work on every provider.
 
 ## 8. Related skills
 
-- **BRA201** §8 — workflow frontmatter, including LLM execution settings
+- **BRA217** — workflow frontmatter, including LLM execution settings
 - **BRA202** — `.env` upload, cloud LLM keys, `DEFAULT_LLM_MODEL`, and `LOCAL_LLM_N_BASE_URL`
 - **BRA106** §8 — local Docker stack: Ollama env vars and `host.docker.internal`
 - **BRA212** — managing LLM costs (caching, cheaper models, budgets, spend limits)

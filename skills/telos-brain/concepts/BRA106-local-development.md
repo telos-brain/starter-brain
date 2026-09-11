@@ -464,7 +464,7 @@ brain start --image telos-brain:local
 
 - **BRA104** — guided interview to configure a new schema after `brain init`
 - **BRA211** — auto-build a schema from an existing application
-- **BRA201** — brain schema file format
+- **BRA201** — schema overview; **BRA213–BRA217** for file formats
 - **BRA202** — `.env` upload, system keys, secret injection
 - **BRA209** — connectors, `url` vs `url-env`
 - **BRA210** — LLM providers and model codes

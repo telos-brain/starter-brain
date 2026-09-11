@@ -92,7 +92,7 @@ and async endpoints accept the same optional `variables` object.
 1. The map is persisted on the run before execution starts.
 2. Template tags `{{input.<key>}}` resolve to those values in workflow
    Instructions, system prompts, tool response markdown, and `input-tools`
-   parameter mappings (see **BRA201** §8.0a / **BRA409**).
+   parameter mappings (see **BRA217** / **BRA409**).
 3. Nested `run_workflow` / workflow-tool child runs inherit the parent's
    variables automatically.
 4. Missing keys render blank (never an error). Omitting `variables` leaves
@@ -231,7 +231,7 @@ Content-Type: application/json
 #### Async callback SSRF rules
 
 Outbound `callbackUrl` delivery is SSRF-hardened (same rules as declared-tool
-`api.path` webhooks — see BRA201 §4.3):
+`api.path` webhooks — see BRA213):
 
 | Rule | Behaviour |
 |---|---|
@@ -313,11 +313,12 @@ To close the session after stopping, call `POST /runs/{runId}/complete`.
 ### `POST /runs/{runId}/complete` — close a session
 
 Closes an open session, transitioning it to `Completed` so it becomes eligible for
-learning evaluation (**BRA207**). If the brain has a `workflowrun:complete`
-workflow with `trigger-mode: automatic`, an eval is enqueued. If only
-`trigger-mode: manual` (or omitted) is configured, use the admin UI **Run eval**
-button on the run detail page (or `POST /brains/{instance}/runs/{runId}/eval` on
-the Management API).
+learning evaluation (**BRA207**). If the brain has a matching
+`workflowrun:complete` workflow with `trigger-mode: automatic` (optional
+workflow-code and learning-mode qualifiers — BRA351), an eval is enqueued. If
+only `trigger-mode: manual` (or omitted) is configured, use the admin UI **Run
+eval** button on the run detail page (or `POST /brains/{instance}/runs/{runId}/eval`
+on the Management API).
 
 Response `200 OK`:
 
@@ -332,7 +333,7 @@ Idempotent: closing an already-`Completed` session also returns `200`. Returns `
 
 ### Session timeout
 
-An open session that is neither continued nor closed is swept to `Completed` once its `expiresDateUtc` passes, so abandoned chats do not linger. The inactivity window is set per workflow via the `session-timeout` frontmatter field (in minutes; see BRA201); when a workflow declares none, the engine default of **30 minutes** applies. The window is measured from the end of the most recent turn and re-armed on every continuation.
+An open session that is neither continued nor closed is swept to `Completed` once its `expiresDateUtc` passes, so abandoned chats do not linger. The inactivity window is set per workflow via the `session-timeout` frontmatter field (in minutes; see **BRA217**); when a workflow declares none, the engine default of **30 minutes** applies. The window is measured from the end of the most recent turn and re-armed on every continuation.
 
 ---
 
@@ -351,6 +352,7 @@ Response `200 OK`:
   "entityId": "3f0c...",
   "unitOfWorkId": "7b2d...",
   "workflowName": "Sales chat",
+  "workflowPath": "workflows/sales-chat.md",
   "entityName": "Acme",
   "unitOfWorkName": "Onboard",
   "status": "Completed",
@@ -362,6 +364,7 @@ Response `200 OK`:
     "telos.thinking.mode": "effort",
     "telos.workflow.name": "Sales chat",
     "telos.workflow.code": "WF-SALES",
+    "telos.workflow.path": "workflows/sales-chat.md",
     "telos.entity.name": "Acme",
     "telos.unit_of_work.name": "Onboard"
   },
@@ -385,6 +388,7 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 | `telos.thinking.mode` | Workflow thinking mode (`none` \| `adaptive` \| `extended` \| `effort`) |
 | `telos.workflow.name` | Workflow title (falls back to code). Also on the payload as `workflowName`. |
 | `telos.workflow.code` | Workflow deploy code |
+| `telos.workflow.path` | Brain-root-relative schema path of the executed workflow (e.g. `workflows/ask-for-advice.md`). Prefers the path captured at deploy; falls back to `workflows/{code}.md`. Also on the payload as `workflowPath`. |
 | `telos.entity.name` | Entity name the run executed against (nullable) |
 | `telos.unit_of_work.name` | Unit-of-work title the run executed against (nullable) |
 | `telos.turns.used` | Completed assistant loop steps (excludes retries / `max_tokens` attempts) |
@@ -404,7 +408,7 @@ Span attributes:
 | `gen_ai.request.max_tokens` | The output token cap the attempt ran with; doubles per output-token retry |
 | `error.message` | Present only on a failed / truncated assistant attempt |
 
-An output-token retry (see BRA201 `output-tokens`, the ordered per-attempt cap list) is not merged away: each attempt is its own assistant span carrying its `finish_reason` (`max_tokens` on a truncated attempt), the `max_tokens` cap it used and its consumed tokens, so a three-cap list that keeps truncating yields two truncated attempt spans before the final one. If that final attempt is still `max_tokens`, the run status is `Failed`.
+An output-token retry (see **BRA217** `output-tokens`, the ordered per-attempt cap list) is not merged away: each attempt is its own assistant span carrying its `finish_reason` (`max_tokens` on a truncated attempt), the `max_tokens` cap it used and its consumed tokens, so a three-cap list that keeps truncating yields two truncated attempt spans before the final one. If that final attempt is still `max_tokens`, the run status is `Failed`.
 
 Returns `404 Not Found` if the run does not belong to the brain.
 

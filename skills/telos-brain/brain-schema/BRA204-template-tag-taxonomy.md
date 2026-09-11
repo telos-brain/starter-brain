@@ -361,9 +361,9 @@ Notes:
 
 - **API variables** — pass `{ "variables": { "widget_reference": "WID-001" } }`
   on the run body. Use in Instructions as `{{input.widget_reference}}`, in
-  workflow `input-tools` parameter mappings the same way (BRA201 §8.0a), and on
+  workflow `input-tools` parameter mappings the same way (BRA217), and on
   a tool parameter as `input: widget_reference` to inject it hidden from the
-  model (BRA201 §5.3).
+  model (BRA214).
 - **Workflow-tool params** — declare parameters on the **workflow tool** YAML
   (`parameters:` under the tool that has `workflow: code: …`). Each `name`
   becomes an `input` key. Exposed (model-supplied) params, hardcoded `value:`
@@ -375,7 +375,7 @@ Notes:
   variables automatically.
 - For workflow-tool children, the same values are still rendered as markdown on
   the child input message (`## name\nvalue`) for backwards compatibility —
-  prefer `{{input.*}}` in new Instructions. See **BRA201** §5.2.
+  prefer `{{input.*}}` in new Instructions. See **BRA214**.
 
 **Example — Execution API variables:**
 

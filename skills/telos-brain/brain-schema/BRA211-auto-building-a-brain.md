@@ -61,7 +61,7 @@ the jobs that start and finish.
 | **Unit of work** | A job that starts and finishes, with context that lasts for that job | Proposal, campaign, job, ticket |
 
 Multi-tenancy usually maps to the entity. Scoped memory and tool variables
-follow from that (see **BRA102**, **BRA201** §4.1).
+follow from that (see **BRA102**, **BRA213**).
 
 Write the entity type and unit-of-work type into `brain-compose.yml`, with
 `scope: entity:<entity-code>` on the unit of work. Declare entity / unit-of-work
@@ -114,7 +114,7 @@ Look for one **asynchronous** action that is contextual and useful (a button,
 For each workflow you add:
 
 - Write default instructions that are specific to this application.
-- Set LLM boundaries on the workflow (**BRA105**, **BRA201** §8.1): `max-turns`,
+- Set LLM boundaries on the workflow (**BRA105**, **BRA217**): `max-turns`,
   `output-tokens`, thinking budget, `max-runs-per-hour`. Give the model a
   budget; do not leave it on free rein.
 - Keep starter workflows. New workflows sit beside them.
@@ -134,7 +134,7 @@ AI API layer.
 Put an HTTP API in front of them, with an API key. The brain calls that API;
 the harness authenticates. Tenant and security IDs are **not** LLM-facing
 parameters — they come from entity / unit-of-work variables or secrets
-(**BRA201** §5.3, **BRA202**).
+(**BRA214**, **BRA202**).
 
 ### If it does not
 
@@ -162,7 +162,7 @@ These APIs are for an LLM, not a SPA.
 - Do not default to JSON payloads “because it is an API”.
 
 Use tool `description`, parameter descriptions, and `response-markdown` /
-`error-markdown` as the mini-skill (**BRA105**, **BRA201** §5). Point errors
+`error-markdown` as the mini-skill (**BRA105**, **BRA214**). Point errors
 at skill codes to load, not at a wall of explanation.
 
 ### How to take the tool work (plan, then back-fill)
@@ -226,7 +226,7 @@ Before firing the run:
    `unitOfWorkId` on the run request.
 
 Set `allowed-callback-domains` in compose if you use async `callbackUrl`
-(**BRA201** §4.3).
+(**BRA213**).
 
 ---
 

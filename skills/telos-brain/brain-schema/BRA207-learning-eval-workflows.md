@@ -1,11 +1,12 @@
 ---
 name: Learning Eval Workflows
 code: BRA207
-version: 8
+version: 9
 description: How to author TRIGGERED learning-eval workflows that grade a
   completed unit of work or workflow run, inject telemetry via template tags,
   persist a 0–100 score with set_run_grading, and create inbox learnings with
-  create_inbox_entry — including manual Run eval and automatic trigger modes.
+  create_inbox_entry — including manual Run eval, automatic trigger modes, and
+  optional subject-workflow / learning-mode trigger qualifiers.
 ---
 
 # Learning Eval Workflows
@@ -66,7 +67,7 @@ tools:
 | Field | Required value | Why |
 | --- | --- | --- |
 | `type` | `TRIGGERED` | Eval is event-driven, not a chat session |
-| `trigger` | `workflowrun:complete` | Fires when a workflow run completes |
+| `trigger` | `workflowrun:complete` (optional `:<workflow-code>` / `:<learning-mode>`) | Fires when a matching workflow run completes. Bare form = any subject workflow. See §2.1. |
 | `trigger-mode` | `manual` (or omit — null is treated as manual) | Shows **Run eval** on the run detail page; does **not** auto-enqueue |
 | `tools` | must include `create_inbox_entry` and `set_run_grading` | System tools (BRA405 / BRA406) |
 | `max-runs-per-hour` | elevated (e.g. `500`) | Avoids throttling under batch review |
@@ -145,7 +146,7 @@ Persists the quality score on the **subject** WorkflowRun. Declare under
 2. Open a **Completed** or **Failed** workflow run in the admin UI
    (`/brains/{instance}/runs/{runId}`).
 3. Click **Run eval** (visible when at least one `workflowrun:complete` workflow
-   with manual / null `trigger-mode` exists).
+   with manual / null `trigger-mode` matches this run's workflow code).
 4. When the eval finishes: learnings appear in the inbox; the run shows a
    traffic-light grade when `set_run_grading` succeeded.
 
@@ -156,24 +157,62 @@ Re-evaluation is allowed — the button can be used again on the same run
 
 ## 2. Automatic workflow-run eval
 
-Same as §1, but set:
+Same as §1, but set `trigger-mode: automatic`. Restrict *which* runs auto-eval
+with optional trigger segments (same colon convention as inbox triggers):
 
 ```markdown
+# Any completed run, any learning mode (can be noisy)
 trigger: workflowrun:complete
 trigger-mode: automatic
+
+# Any completed run, only when the brain is in high learning mode
+trigger: workflowrun:complete:high
+trigger-mode: automatic
+
+# Specific workflows, only at high learning mode
+trigger:
+  - workflowrun:complete:WF-REVIEW:high
+  - workflowrun:complete:WF-CHAT:high
+trigger-mode: automatic
 ```
+
+### 2.1 Trigger segments
+
+| Pattern | Subject workflows | Learning-mode gate (automatic only) |
+| --- | --- | --- |
+| `workflowrun:complete` | All | None — fires even when learning mode is off |
+| `workflowrun:complete:high` | All (`*` implied) | Brain mode must be `high` |
+| `workflowrun:complete:WF-REVIEW` | `WF-REVIEW` only | None |
+| `workflowrun:complete:WF-REVIEW:high` | `WF-REVIEW` only | Brain mode must be `high` |
+| `workflowrun:complete:*:high` | All | Brain mode must be `high` |
+
+A third segment that is `low`, `medium`, or `high` is the learning-mode
+qualifier. Any other third segment is a workflow **code**. Use a fourth segment
+when you need both. Multiple YAML list entries are OR — the eval fires if any
+pattern matches. `low|medium|high` cannot be a bare third-segment workflow
+code; write `workflowrun:complete:low:high` to mean workflow `low` at high
+mode.
+
+Learning-mode qualifiers use `off < low < medium < high` (brain mode must meet
+or exceed the qualifier), matching inbox triggers (**BRA217**).
 
 **Behaviour:**
 
 - When a workflow run reaches `Completed` (one-shot finish, session `complete`,
   or inactivity timeout), every matching **automatic** eval is enqueued.
-- Runs of workflows that themselves have `trigger: workflowrun:complete` are
+- Runs of workflows that themselves have a `workflowrun:complete` trigger are
   **not** auto-evaluated (prevents eval-of-eval loops).
 - Prefer fixing known issues before enabling automatic mode — continuous evals
   against an unfixed problem spam the inbox with the same learning.
+- Typical production shape: one **automatic** eval limited to trusted workflows
+  at `high`, plus a catch-all **manual** eval (`trigger: workflowrun:complete`
+  / `trigger-mode: manual`) so an admin can still grade anything.
 
-The admin **Run eval** button is driven only by **manual** (or null) evals. You
-may keep both a manual and an automatic eval workflow if you need both paths.
+The admin **Run eval** button is driven only by **manual** (or null) evals
+whose workflow-code filter matches the subject run. Manual enqueue **ignores**
+the learning-mode qualifier (operator override) but still honours the workflow
+filter. You may keep both a manual and an automatic eval workflow if you need
+both paths.
 
 ---
 
@@ -249,7 +288,7 @@ Avoid:
 
 | Resource | Role |
 | --- | --- |
-| **BRA201** §8 | Workflow frontmatter (`type`, `trigger`, `trigger-mode`, tools) |
+| **BRA217** | Workflow frontmatter (`type`, `trigger`, `trigger-mode`, tools) |
 | **BRA204** | `run.reference`, `run.telemetry`, `unitOfWork.*` tag taxonomy |
 | **BRA403** | OTEL run telemetry shape; session close → eligible for eval |
 | **BRA404** | Inbox HTTP surface; inbox trigger stages (entry create vs task auto-run) |

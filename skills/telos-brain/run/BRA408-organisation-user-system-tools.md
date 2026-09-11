@@ -20,7 +20,7 @@ to a named person. These two system tools cover that without outbound HTTP
 (Clerk is never called from a system tool — name/email come from local Member
 rows; free-text role profiles come from org Membership).
 
-These are ordinary `system` tools (BRA201 §5.2). Declarations live under
+These are ordinary `system` tools (BRA214). Declarations live under
 `tools/organisation/` in the brain schema. This skill lists them in frontmatter
 `tools:` so a workflow that keeps them under `available-tools` can promote them
 via `get_skill` (same pattern as BRA405 / BRA406).

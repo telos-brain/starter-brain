@@ -6,7 +6,7 @@ description: How harness apps pass string variables into a workflow run via the
   Execution API, how those values surface as {{input.*}} template tags, and how
   workflows declare input-tools to call tools automatically at startup using
   those variables. Companion to BRA403 (run endpoints), BRA204 (input scope),
-  and BRA201 §8.0a (YAML schema).
+  and BRA217 (YAML schema).
 ---
 
 # Workflow run variables & pre-called input-tools
@@ -20,7 +20,7 @@ from outside the brain schema:
    with parameters filled from those same `{{input.*}}` tags.
 
 See **BRA403** for the full run-endpoint contract, **BRA204** §3.6 for the
-`input` scope taxonomy, and **BRA201** §8.0a for the YAML field reference.
+`input` scope taxonomy, and **BRA217** for the YAML field reference.
 
 ---
 
@@ -231,6 +231,6 @@ curl -sS -X POST "$TELOS_API_URL/workflows/WF-INPUT-VARIABLES/run/sync" \
 | --- | --- |
 | **BRA403** | Run endpoints; `variables` on the shared request body |
 | **BRA204** §3.6 | `input` scope taxonomy (API variables + tool params) |
-| **BRA201** §8.0a | YAML `input-tools` schema reference |
+| **BRA217** | YAML `input-tools` schema reference |
 | `WF-INPUT-VARIABLES` | Live example workflow in `workflows/` |
 | `WF-ASK-QUESTION` | Child workflow used by the `ask_question` tool (`{{input.question}}`) |

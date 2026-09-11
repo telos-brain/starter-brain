@@ -16,7 +16,7 @@ BRA405 covers the inbox system tools for creating, listing, and updating
 individual entries. This skill covers **`create_inbox_cluster`**: collapsing
 related or near-duplicate signals into one stronger entry before human review.
 
-This is an ordinary `system` tool (BRA201 §5.2). Declaration lives under
+This is an ordinary `system` tool (BRA214). Declaration lives under
 `tools/inbox/create-inbox-cluster.yml`. This skill lists it in frontmatter
 `tools:` so a workflow that keeps it under `available-tools` can promote it via
 `get_skill`.

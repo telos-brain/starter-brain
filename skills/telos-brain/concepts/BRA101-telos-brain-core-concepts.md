@@ -34,7 +34,7 @@ Everything is wired together from a single entry-point manifest (`brain-compose.
 These are used deliberately and are not interchangeable:
 
 - **YAML** — for *structured wiring*: manifests, endpoints, parameters, categories, scopes.
-- **Markdown with YAML frontmatter** — for *long-form content*: skills, blueprint entries, and workflow instructions. The frontmatter carries metadata; the markdown body is the content itself. Skills may optionally declare a `tools:` list of tool names they need when loaded via `get_skill` (see BRA201 §6.3).
+- **Markdown with YAML frontmatter** — for *long-form content*: skills, blueprint entries, and workflow instructions. The frontmatter carries metadata; the markdown body is the content itself. Skills may optionally declare a `tools:` list of tool names they need when loaded via `get_skill` (see BRA215).
 
 ---
 
@@ -61,4 +61,7 @@ Entity and unit-of-work codes must match declarations in `brain-compose.yml`.
 
 ---
 
-See **BRA201** for the full schema authoring reference, including file formats, field requirements, and the versioning rules.
+See **BRA201** for the schema overview (layout, deploy, versioning) and which
+skill to load next. File formats: **BRA213** (compose), **BRA214** (tools),
+**BRA215** (skills), **BRA216** (blueprints), **BRA217** (workflows),
+**BRA209** (connectors).
