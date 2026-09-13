@@ -2,7 +2,7 @@
 name: Learning Eval (Run)
 code: WF-EVAL-RUN
 version: 6
-type: TRIGGERED
+type: EVAL
 description: >-
   Manual workflow-run learning eval (BRA207 / BRA406). Grades a Completed run
   from {{run.telemetry}} against a 0–100 rubric (job done efficiently 40 /

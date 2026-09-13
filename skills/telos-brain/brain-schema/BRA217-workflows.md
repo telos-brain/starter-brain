@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 1
+version: 3
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, and external agent deployment. Load this when creating or editing a
@@ -23,14 +23,13 @@ name: Review Blueprint                 # REQUIRED (workflow title)
 code: WF-REVIEW                        # REQUIRED (unique workflow code)
 description: Reviews a blueprint submission and posts findings to the ticket.  # optional
 version: 1.1                           # optional (see **BRA201** versioning)
-type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | SYSTEM | SIMULATION | COMPACTION (default RUNNABLE)
+type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | EVAL | SYSTEM | SIMULATION | COMPACTION | MCP (default RUNNABLE)
 # trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list
 # trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier: low|medium|high
 # trigger: inbox:SKILL_UPDATE:high:10  # optional weight threshold (positive integer)
 # trigger: inbox:*:high:10:SKILL_UPDATE  # optional routing-code filter after weight
-# trigger: workflowrun:complete         # run-eval: any subject workflow
-# trigger: workflowrun:complete:high    # run-eval: any workflow, only when learning mode is high
-# trigger: workflowrun:complete:WF-REVIEW:high  # run-eval: one subject workflow + mode
+# trigger: workflowrun:complete:high    # EVAL only — automatic, any subject workflow at high
+# trigger: workflowrun:complete:WF-REVIEW:high  # EVAL only — automatic, one subject workflow + mode
 # trigger:
 #   - inbox:SKILL_UPDATE
 #   - inbox:WORKFLOW_UPDATE:medium
@@ -89,8 +88,8 @@ Rules:
 
 - `name` and `code` are required; the markdown **body must not be empty** (it's
   the instructions).
-- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `SYSTEM`, `SIMULATION`, `COMPACTION`;
-  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when `trigger` matches, `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the active workflow of this type (not a specific code) handles intercepted API/MCP tools on a simulation run. `COMPACTION` = context summariser for auto-compaction and the `compact_context` system tool; at most one active per brain.
+- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `EVAL`, `SYSTEM`, `SIMULATION`, `COMPACTION`, `MCP`;
+  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when an inbox / unit-of-work `trigger` matches, `EVAL` = workflow-run learning eval (the **Run eval** button; `trigger` is automatic-only — **BRA207**), `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the active workflow of this type (not a specific code) handles intercepted API/MCP tools on a simulation run. `COMPACTION` = context summariser for auto-compaction and the `compact_context` system tool; at most one active per brain. `MCP` = publishable Brain MCP endpoint.
 - Well-known `trigger` values include `inbox:<RoutingType>` / `inbox:*` (inbox
   learning loop), `unitofwork:complete` (unit-of-work learning eval), and
   `workflowrun:complete[:<workflow-code>|*][:<learning-mode>]` (workflow-run
@@ -118,15 +117,15 @@ Rules:
     Apply-learning workflows that should only auto-run on a well-evidenced
     signal use `inbox:*:high:10` (canonical: `WF-INBOX-ENTRY-CONTEXT`); add
     `:<RoutingType>` when the workflow should handle only one routing code.
-- For `workflowrun:complete`, `trigger-mode: automatic` enqueues on Completed
-  when the optional subject-workflow filter and learning-mode qualifier match;
-  `trigger-mode: manual` (or omitted) is kicked off from the admin **Run eval**
-  button (workflow filter applies; learning-mode qualifier is ignored — operator
-  override). A third segment that is `low|medium|high` is the learning-mode
-  qualifier with an implicit `*` workflow filter (`workflowrun:complete:high`);
-  any other third segment is a workflow code (`workflowrun:complete:WF-REVIEW`).
-  Add a fourth segment for both (`workflowrun:complete:WF-REVIEW:high`). Use a
-  YAML list for several subject workflows (OR). Use `{{run.telemetry}}` (BRA204)
+- For `type: EVAL`, `trigger` is **automatic only**. A `low|medium|high`
+  qualifier enables automatic enqueue (`workflowrun:complete:high`, or
+  `workflowrun:complete:WF-REVIEW:high`). Unqualified patterns and an omitted
+  trigger never auto-run. The admin **Run eval** button is type-based — it
+  shows on every evaluable run when an `EVAL` workflow exists, and ignores
+  the trigger. `trigger-mode` is ignored for eval. A third segment that is
+  `low|medium|high` is the learning-mode qualifier with an implicit `*`
+  workflow filter; any other third segment is a workflow code. Use a YAML
+  list for several automatic patterns (OR). Use `{{run.telemetry}}` (BRA204)
   for OTEL GenAI telemetry of the subject run. Full authoring guide:
   **BRA207**. Canonical example: `workflows/WF-EVAL-RUN.md`.
 - `tools` (injected) and `available-tools` (searchable / promotable) reference

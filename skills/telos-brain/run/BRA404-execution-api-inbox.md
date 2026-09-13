@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Inbox Entries & Tasks"
 code: BRA404
-version: 11
+version: 12
 description: How to create, list, read and update inbox entries and their tasks
   via the Execution API — the learning-signal intake surface. Covers the entry and
   task lifecycles, inbox trigger matching (entry create vs task auto-run), learning
@@ -124,8 +124,8 @@ entry's routing type.
 - A task with **no** linked workflow cannot auto-run; it parks at
   `AWAITING_APPROVAL`.
 - Workflow `trigger-mode` (`manual` / `automatic`) does **not** control inbox
-  task approval. That field is for eval-style triggers such as
-  `workflowrun:complete` (BRA207).
+  task approval. Eval identity is `type: EVAL`; automatic enqueue is a
+  learning-mode qualifier on `workflowrun:complete` (**BRA207**).
 
 **Authoring tip:** a triage flow that calls `add_inbox_task` with
 `workflow_code: WF-SKILL-UPDATE` only auto-runs if `WF-SKILL-UPDATE` itself declares
@@ -307,5 +307,5 @@ fields are supplied.
 
 - **BRA217** — workflow `trigger` / `learning-mode` authoring
 - **BRA405** — inbox system tools (`create_inbox_entry`, `add_inbox_task`, …)
-- **BRA207** — learning-eval workflows (`trigger-mode` for `workflowrun:complete`)
+- **BRA207** — learning-eval workflows (`workflowrun:complete` triggers)
 - **BRA204** — `{{inboxEntry.*}}` / `{{task.*}}` / `{{#inboxTasks}}` template tags

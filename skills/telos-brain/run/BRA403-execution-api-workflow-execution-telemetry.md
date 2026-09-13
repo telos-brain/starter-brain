@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 20
+version: 21
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -313,12 +313,12 @@ To close the session after stopping, call `POST /runs/{runId}/complete`.
 ### `POST /runs/{runId}/complete` — close a session
 
 Closes an open session, transitioning it to `Completed` so it becomes eligible for
-learning evaluation (**BRA207**). If the brain has a matching
-`workflowrun:complete` workflow with `trigger-mode: automatic` (optional
-workflow-code and learning-mode qualifiers — BRA351), an eval is enqueued. If
-only `trigger-mode: manual` (or omitted) is configured, use the admin UI **Run
-eval** button on the run detail page (or `POST /brains/{instance}/runs/{runId}/eval`
-on the Management API).
+learning evaluation (**BRA207**). If the brain has a `type: EVAL` workflow
+whose `workflowrun:complete` trigger carries a learning-mode qualifier
+(BRA351), an eval is enqueued automatically. Omit the trigger (or leave it
+unqualified) for manual-only — use the admin UI **Run eval** button on the
+run detail page (or `POST /brains/{instance}/runs/{runId}/eval` on the
+Management API). The button is type-based and ignores the trigger.
 
 Response `200 OK`:
 
