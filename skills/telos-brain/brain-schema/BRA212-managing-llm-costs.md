@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 4
+version: 5
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -274,11 +274,24 @@ a cheap one.
 `XAI_API_KEY` in the brain `.env` (**BRA202**) and:
 
 ```yaml
-model: xai/grok-4.5
+model: telosbrain/xai/grok-4.6
 ```
+
+On Telos Cloud that string uses the **platform Grok key** — do not put
+`XAI_API_KEY` on the brain. Token cost is priced at **double** the official
+xAI grok-4.6 short-context API rate (input, output, and cache-read) and
+debited from the organisation's **brain credit**, the same ledger as run
+minutes. Platform `LlmPrices` rows are keyed `provider=telosbrain`,
+`model=xai/grok-4.6` (not `xai` / `grok-4.6`). Direct `xai/grok-4.6` on your
+own key is **not** marked up.
+
+Local Docker has no platform key. Use `xai/grok-4.6` (or `xai/grok-4.5`)
+with `XAI_API_KEY`, or a `local_N/…` runner (**BRA106**).
 
 | `model` | Typical use |
 |---|---|
+| `telosbrain/xai/grok-4.6` | Telos-hosted Grok 4.6 — brain credit at 2× official xAI grok-4.6 API rate |
+| `xai/grok-4.6` | Same model on **your** xAI key — you pay xAI at list |
 | `xai/grok-4.5` | Flagship Grok — agentic / coding, usually cheaper than Claude Sonnet at similar quality |
 | `xai/grok-4.3` | Lower-cost long-context Grok — good for COMPACTION, classification, simple `TOOL` workflows |
 | `anthropic/claude-haiku-4-5` | Fast, cheap Claude turns (compaction, short Q&A) |
@@ -287,13 +300,14 @@ model: xai/grok-4.5
 
 Match the model to the workflow, not the brain:
 
-- Chat / general agent: `xai/grok-4.5` unless you have a Claude-specific
-  reason (native `web_search` / `web_fetch`, thinking modes).
+- Chat / general agent: `telosbrain/xai/grok-4.6` on Telos Cloud, or
+  `xai/grok-4.5` / `xai/grok-4.6` with your own key, unless you have a
+  Claude-specific reason (native `web_search` / `web_fetch`, thinking modes).
 - Compaction, ask-question, routing: Haiku or `xai/grok-4.3`.
 - Do not put Opus on a heartbeat or eval loop.
 
 Native tools (`web_search`, `web_fetch`) are Anthropic-shaped and are
-skipped on OpenAI / xAI (**BRA210** §6). If a workflow needs them, keep
+skipped on OpenAI / xAI / Telos Brain (**BRA210** §6). If a workflow needs them, keep
 Claude for that workflow only.
 
 Organisation `LlmPrices` must include the model you pick. A missing price
@@ -304,7 +318,10 @@ monthly spend limits cannot see the spend. For OpenRouter, add rows with
 OpenRouter runs that persist billed `usage.cost` do not need a matching row
 for `CostCents` to populate. Local runners and Azure OpenAI are bring-your-
 own-billing: do not seed `LlmPrices` for them; `CostCents` stays null.
-Platform credits still apply via `RunSeconds`.
+Platform credits still apply via `RunSeconds`. `telosbrain/…` is the
+exception: token `CostCents` (2× xAI list) is also debited from brain
+credit. Do not add a customer `LlmPrices` row for `telosbrain` — the
+platform seed is authoritative.
 
 ---
 
@@ -503,10 +520,10 @@ Checklist when reviewing a brain for cost:
 - [ ] Tool `error-markdown` names a skill to load — no blind retries
 - [ ] Hidden bindings for secrets, entity, unit-of-work, and input
 - [ ] One `type: COMPACTION` workflow exists; chat sets `auto-compaction`
-- [ ] `model` is Grok / Haiku unless Claude is required
+- [ ] `model` is Grok / Haiku unless Claude is required (`telosbrain/xai/grok-4.6` on Telos Cloud)
 - [ ] `output-tokens` starts small; `max-turns` matches the job
 - [ ] `daily-limit-usd` / `monthly-limit-usd` are set on the compose file
-- [ ] Organisation `LlmPrices` includes every model the brain calls (OpenRouter: provider `openrouter`, catalogue id as the model)
+- [ ] Organisation `LlmPrices` includes every BYO model the brain calls (OpenRouter: provider `openrouter`, catalogue id as the model). Skip `telosbrain` — platform prices at 2× xAI list.
 - [ ] Conversational workflows inject discovery tools (`find_available_skills`,
       `get_skill`, `find_available_tools`) and keep domain skills/tools in
       `available-skills` / `available-tools`
@@ -520,7 +537,7 @@ Checklist when reviewing a brain for cost:
 - **BRA214** — tool YAML
 - **BRA215** — skill-declared tool promotion
 - **BRA217** — workflow `tools` / `available-tools`, `input-tools`, LLM execution settings
-- **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`
+- **BRA202** — `XAI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` (`telosbrain/…` needs none of these)
 - **BRA203** — schema tools (`update_schema_file` to apply these fields)
 - **BRA204** §3.5 — `{{result.*}}` in `response-markdown` / `error-markdown`
 - **BRA210** — provider / model strings and which settings each provider honours

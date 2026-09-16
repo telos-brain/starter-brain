@@ -1,7 +1,7 @@
 ---
 name: Local Development
 code: BRA106
-version: 8
+version: 9
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
   host.docker.internal, and running workflows against a local LLM (Ollama or
@@ -390,6 +390,11 @@ configured", either no default/`model:` is set, or the workflow is still on
 
 `CostCents` is null for local-runner runs (no Telos Brain price row). The UI
 shows `—`. Full provider contract: **BRA210**.
+
+`telosbrain/xai/grok-4.6` is **unavailable** on the local stack (no
+platform `Grok:ApiKey`). Use `xai/grok-4.6` with `XAI_API_KEY`, or a
+`local_N/…` runner. On Telos Cloud that aggregator bills brain credit at
+2× the official xAI grok-4.6 API rate (**BRA212**).
 
 ---
 

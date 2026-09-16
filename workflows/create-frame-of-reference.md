@@ -5,10 +5,7 @@ description: >-
   Builds a grounded frame of reference for a given context using the brain
   glossary and blueprint memory — problem statement, frame, domain model,
   bigger picture, and considerations.
-version: 1
-# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
-# compose llm-model wins when that credential exists (BRA210).
-model: anthropic/claude-sonnet-4-6
+version: 2
 
 # TOOL: callable as a pre-step by other workflows (e.g. via run_workflow or the
 # create_frame_of_reference workflow-tool). Parameters arrive as {{input.*}}.

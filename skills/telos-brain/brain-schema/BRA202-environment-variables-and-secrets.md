@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 20
+version: 21
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -78,7 +78,7 @@ convention** and used automatically:
 | `ANTHROPIC_API_KEY`     | uploaded     | LLM provider key for **Anthropic / Claude**. Resolved automatically for any run whose model is `anthropic/…` (or unprefixed — Anthropic is the default provider). |
 | `OPENAI_API_KEY`        | uploaded     | LLM provider key for **OpenAI**. Resolved for runs whose model is `openai/…`. Also the per-brain embedding key when `embedding-model` is `text-embedding-*`. |
 | `VOYAGE_API_KEY`        | uploaded     | Embedding provider key for **Voyage** (`voyage-*` models, including the default `voyage-3-lite`). Put this in `.env` so semantic search and skill/tool embeddings can run. |
-| `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (**BRA210**).       |
+| `XAI_API_KEY`           | uploaded     | LLM provider key for **xAI / Grok**. Resolved for runs whose model is `xai/…` (**BRA210**). Not used for `telosbrain/…`. |
 | `OPENROUTER_API_KEY`    | uploaded     | LLM provider key for **OpenRouter**. Resolved for runs whose model is `openrouter/…`. Remainder after the first `/` is the OpenRouter model id (**BRA210**). |
 | `AZURE_OPENAI_API_KEY`  | uploaded     | LLM provider key for **Azure OpenAI**. Resolved for runs whose model is `azure/…`. Must be paired with `AZURE_OPENAI_ENDPOINT`. Not `AZURE_API_KEY` (**BRA210**). |
 | `AZURE_OPENAI_ENDPOINT` | uploaded     | Azure OpenAI resource endpoint (e.g. `https://YOUR-RESOURCE.openai.azure.com`). Required for `azure/…` models. Configuration value stored per-brain like other env vars (**BRA210**). |
@@ -99,6 +99,10 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 - `anthropic/claude-sonnet-4-5` → looks up **`ANTHROPIC_API_KEY`**
 - `openai/gpt-…` → looks up **`OPENAI_API_KEY`**
 - `xai/grok-4.5` → looks up **`XAI_API_KEY`**
+- `telosbrain/xai/grok-4.6` → **no brain variable**. Uses the platform
+  `Grok:ApiKey`. Billed to organisation brain credit at 2× the official
+  xAI grok-4.6 API rate (**BRA210**, **BRA212**). Unavailable locally —
+  use `xai/grok-4.6` with `XAI_API_KEY` instead.
 - `openrouter/anthropic/claude-sonnet-4.6` → looks up **`OPENROUTER_API_KEY`**
   (wire model is `anthropic/claude-sonnet-4.6`)
 - `openrouter/auto` → looks up **`OPENROUTER_API_KEY`** (wire model is
@@ -119,12 +123,14 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 
 Always name the Claude key **`ANTHROPIC_API_KEY`** — that is the one and only
 name the platform looks for for Anthropic. Use **`OPENAI_API_KEY`** for OpenAI,
-**`XAI_API_KEY`** for Grok, and **`OPENROUTER_API_KEY`** for OpenRouter. Azure
+**`XAI_API_KEY`** for bring-your-own Grok, and **`OPENROUTER_API_KEY`** for OpenRouter. Azure
 OpenAI uses **`AZURE_OPENAI_API_KEY`** plus **`AZURE_OPENAI_ENDPOINT`**
 (optional **`AZURE_OPENAI_API_VERSION`**). Local
 runners are the other exception to the
-`<PROVIDER>_API_KEY` pattern: they use `LOCAL_LLM_N_BASE_URL`. If a workflow's
-model resolves to a provider whose required variable is not set for the brain,
+`<PROVIDER>_API_KEY` pattern: they use `LOCAL_LLM_N_BASE_URL`.
+`telosbrain/…` is also an exception — it never reads a brain env var.
+If a workflow's model resolves to a provider whose required variable is not
+set for the brain (or, for `telosbrain`, the platform key is missing),
 the run cannot start.
 
 For the full list of supported providers, example workflow `model` codes, and

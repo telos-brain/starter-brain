@@ -1,16 +1,13 @@
 ---
 name: Learning Eval (Run)
 code: WF-EVAL-RUN
-version: 6
+version: 7
 type: EVAL
 description: >-
   Manual workflow-run learning eval (BRA207 / BRA406). Grades a Completed run
   from {{run.telemetry}} against a 0–100 rubric (job done efficiently 40 /
   tool use 35 / skill use 25), persists the score with set_run_grading, and
   files each learning as a PENDING inbox entry (routing_type EVAL).
-# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
-# compose llm-model wins when that credential exists (BRA210).
-model: anthropic/claude-sonnet-4-6
 system-prompt-code: WF-SYSTEM-PROMPT
 trigger: workflowrun:complete
 trigger-mode: manual

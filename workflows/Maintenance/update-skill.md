@@ -5,10 +5,7 @@ description: >-
   Autonomously extracts transferable skill knowledge from an inbox entry and
   creates or updates skills (and rarely categories) via schema tools. Source
   material comes from {{inboxEntry.body}}; skill book structure is injected.
-version: 10
-# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
-# compose llm-model wins when that credential exists (BRA210).
-model: anthropic/claude-sonnet-4-6
+version: 11
 
 # Tasks are usually created by WF-TRIAGE (add_inbox_task). :high:5 gates
 # both stages (BRA404): Stage 1 creates a task only when learning-mode >=

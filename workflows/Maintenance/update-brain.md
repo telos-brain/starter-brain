@@ -6,11 +6,7 @@ description: >-
   exposed as workflow tools), wiring, and other structural schema fixes outside
   skill-craft and simple workflow/tool edits. High learning mode and inbox
   weight 5 or higher.
-version: 7
-# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
-# compose llm-model wins when that credential exists (BRA210).
-model: anthropic/claude-sonnet-4-6
-
+version: 8
 # :high:5 gates Stage 1 (task create) and Stage 2 (auto-run on the parent
 # entry's current Weight). Below weight 5, triage-created tasks park at
 # AWAITING_APPROVAL for manual processing. Keep SYSTEM_CHANGE (not

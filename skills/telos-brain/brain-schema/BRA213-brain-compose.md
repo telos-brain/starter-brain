@@ -1,7 +1,7 @@
 ---
 name: Brain Compose Manifest
 code: BRA213
-version: 1
+version: 2
 description: How to author brain-compose.yml — name, models, entities, units of
   work, variables, checkpoint strategy, and the outbound callback-domain
   allowlist. Load this when creating or editing the compose file.
@@ -22,6 +22,7 @@ name: kappa                      # REQUIRED: the brain's name
 # Optional brain-level settings (persisted on every `brain deploy`):
 # embedding-model: voyage-3-lite # optional; defaults to voyage-3-lite when omitted
 # learning-mode: off             # optional; off | low | medium | high (omit = off)
+# llm-model: telosbrain/xai/grok-4.6  # optional; Telos-hosted Grok (2× xAI list on brain credit)
 # llm-model: local_1/qwen3:8b    # optional; default LLM (omit = workflow model)
 # transcription-model: anthropic/claude-sonnet-4-6  # optional; vision model for image transcription (BRA410)
 # checkpoint-strategy: Daily     # optional; see checkpoint strategy below (omit = Daily)
@@ -74,10 +75,13 @@ Rules:
 - `learning-mode` is optional (`off` | `low` | `medium` | `high`; omit or null is
   treated as `off`). Persisted onto the Brain on every deploy.
 - `llm-model` is optional (a `provider/model` string such as
-  `local_1/qwen3:8b` or `anthropic/claude-sonnet-4-6`). When set and the matching
-  credential exists, every live run uses this model instead of the workflow
-  frontmatter. Omit or blank → each workflow uses its own `model:`. If that is
-  also omitted, the run fails (no silent Anthropic/OpenAI default). A missing
+  `telosbrain/xai/grok-4.6`, `local_1/qwen3:8b`, or `anthropic/claude-sonnet-4-6`).
+  `telosbrain/…` uses the platform Grok key (no brain env var) and bills
+  token cost to brain credit at 2× the official xAI grok-4.6 API rate.
+  When set and the matching credential exists, every live run uses this model
+  instead of the workflow frontmatter. Omit or blank → each workflow uses its
+  own `model:`. If that is also omitted, the run fails (no silent
+  Anthropic/OpenAI default). A missing
   credential for this value falls back to the workflow model. The same default
   can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
   both are present). Simulation `settingsOverride.model` still wins per run.

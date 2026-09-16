@@ -12,21 +12,22 @@ embedding-model: voyage-3-lite
 # Apply workflows also require inbox weight 5 (`inbox:…:high:5`).
 learning-mode: high
 
-# Optional default LLM (provider/model). When set and the matching credential
-# exists, every live run uses this model instead of the workflow frontmatter.
-# Same role as Settings "Default LLM model" and DEFAULT_LLM_MODEL in .env.
-# Omit (and leave DEFAULT_LLM_MODEL blank) to use each workflow's own model.
-# If that is also omitted, the run fails — leftover cloud keys are not used as
-# a silent default. Simulation modelOverride (this run only) still wins; older
-# clients may send settingsOverride.model instead. A missing credential for
-# this value falls back to the workflow model.
-# Compose llm-model wins over DEFAULT_LLM_MODEL at deploy time, so leave this
-# commented if you want Settings / .env to be the switch.
+# Default LLM for every workflow (workflows omit model: and inherit this).
+# Telos Cloud: telosbrain/xai/grok-4.6 uses the platform Grok key — no brain
+# LLM env var. Token cost is billed to organisation brain credit at 2× the
+# official xAI grok-4.6 API rate (BRA210 / BRA212). Add your own provider key
+# and change this value to avoid the markup.
+# Local Docker: telosbrain is unavailable. Change this to a model you have
+# credentials for (e.g. xai/grok-4.6 + XAI_API_KEY, anthropic/… +
+# ANTHROPIC_API_KEY, or local_1/qwen3:8b + LOCAL_LLM_1_BASE_URL) before
+# `brain deploy --env local`. Compose wins over DEFAULT_LLM_MODEL at deploy.
 # llm-model: anthropic/claude-sonnet-4-6
+# llm-model: xai/grok-4.6
 # llm-model: openrouter/anthropic/claude-sonnet-4.6
 # llm-model: openrouter/auto
 # llm-model: azure/gpt-4o-prod
 # llm-model: local_1/qwen3:8b
+llm-model: telosbrain/xai/grok-4.6
 
 # Checkpoints: weekly schedule plus a snapshot before each deploy.
 checkpoint-strategy: Daily,BeforeDeploy

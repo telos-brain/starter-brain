@@ -4,10 +4,7 @@ code: WF-ASK-QUESTION
 description: >-
   Answers a single question by searching the brain's memory blueprint and
   returning only information that answers the question.
-version: 1
-# Fallback when no brain default is set. Settings / DEFAULT_LLM_MODEL /
-# compose llm-model wins when that credential exists (BRA210).
-model: anthropic/claude-sonnet-4-6
+version: 2
 
 # TOOL: not run manually — exposed via tools/execution/qa/ask-question.yml and
 # invoked as its own workflow-run. Parameters arrive as {{input.query}}.

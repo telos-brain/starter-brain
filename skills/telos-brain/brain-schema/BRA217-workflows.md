@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 3
+version: 4
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, and external agent deployment. Load this when creating or editing a
@@ -35,7 +35,8 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 #   - inbox:WORKFLOW_UPDATE:medium
 # model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
 # model: openai/gpt-4o                 # OpenAI
-# model: xai/grok-4.5                  # xAI / Grok
+# model: telosbrain/xai/grok-4.6       # Telos-hosted Grok (brain credit, 2× xAI list)
+# model: xai/grok-4.5                  # xAI / Grok (your key)
 # deployment-type: elevenlabs_conversational_ai  # optional; project this workflow as an external agent
 # elevenlabs-agent-id: agt_xxx         # optional; written back after first ElevenLabs create — omit on first deploy
 
@@ -214,7 +215,7 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 ## 2. Choosing a model (`model`, see **BRA210**)
 
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
-`openai/gpt-4o`, `xai/grok-4.5`). Supported providers, example model codes, and
+`openai/gpt-4o`, `telosbrain/xai/grok-4.6`, `xai/grok-4.5`). Supported providers, example model codes, and
 credential mapping are listed in **BRA210**. Bare model names (no prefix)
 default to Anthropic. Omit `model` to use the brain default (`llm-model` /
 `DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails — leftover
