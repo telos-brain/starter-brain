@@ -1,7 +1,7 @@
 name: Telos Brain
 code: BRA
 prefix: BRA
-version: 45
+version: 46
 categories:
   - name: Concepts
     description: "The foundational theory of Telos Brain: what it is, how it works,
@@ -51,6 +51,18 @@ categories:
       - ./brain-schema/BRA215-skills-file-format.md
       - ./brain-schema/BRA216-blueprints.md
       - ./brain-schema/BRA217-workflows.md
+  - name: Management API
+    description: Using the Telos Brain Management API — the deploy and admin
+      plane consumed by the CLI, admin console, and agent-initiated onboarding.
+      Covers authentication (Clerk organisation JWT and tbk_ organisation API
+      keys), shared conventions (status codes, error shape, instance slugs),
+      public organisation signup, organisation settings, and HTTP contracts for
+      provisioning and configuring brains. Distinct from Brain Schema (200s),
+      which covers authoring the files the CLI uploads, and from Run (400s),
+      which covers the Execution API used to run workflows.
+    index: 300
+    skills:
+      - ./management-api/BRA301-management-api-authentication-conventions.md
   - name: Run
     description: Using the Telos Brain API and MCP to run and interact with a Brain
       — authentication, endpoints, request and response patterns, MCP

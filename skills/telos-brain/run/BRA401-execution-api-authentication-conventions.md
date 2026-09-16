@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Authentication & Conventions"
 code: BRA401
-version: 4
+version: 5
 description: How to authenticate with the Telos Brain Execution API, how tenancy
   is resolved, the brain identity endpoint, and the common conventions (status
   codes, error format, content types) that apply across all endpoints.
@@ -9,7 +9,7 @@ description: How to authenticate with the Telos Brain Execution API, how tenancy
 
 # Execution API: Authentication & Conventions
 
-The Execution API is the runtime surface of a Telos Brain. It is entirely separate from the Management API (the deploy plane used by the CLI) — different middleware, different credentials, different routes.
+The Execution API is the runtime surface of a Telos Brain. It is entirely separate from the Management API (the deploy plane used by the CLI) — different middleware, different credentials, different routes. See **BRA301** for Management API authentication, conventions, and public organisation signup.
 
 | | Management API | Execution API |
 |---|---|---|
