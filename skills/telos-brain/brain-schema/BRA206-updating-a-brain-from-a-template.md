@@ -1,7 +1,7 @@
 ---
 name: Updating a Brain from a Template
 code: BRA206
-version: 4
+version: 5
 description: How to update an existing brain's configuration from a source
   (template) brain via the Management API — POST
   /brains/{targetInstance}/update-from/{sourceInstance} — including version
@@ -72,7 +72,7 @@ endpoints (`/skills`, `/workflows`, `/tools`, `/memory`, `/schema`):
     },
     {
       "resourceType": "Connector",
-      "code": "salesforce",
+      "code": "example-oauth2",
       "action": "Created",
       "incomingVersion": 0,
       "storedVersion": 0,

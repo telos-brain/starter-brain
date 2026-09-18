@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 21
+version: 23
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -301,10 +301,11 @@ this same encrypted store. They are never written into the connector YAML.
 
 - Declare the parameter names on the connector file (schema). For **api-key**
   connectors, set `secret:` on the `api-key` parameter to the `.env` variable
-  name.
+  name. For **oauth2** connectors, set `secret:` on `client-id` and
+  `client-secret` the same way (e.g. `EXAMPLE_CLIENT_ID` / `EXAMPLE_CLIENT_SECRET`).
 - Put the values in `.env` (or upsert via the Management API secrets endpoint,
   which uses connector-scoped keys such as `CONNECTOR_{connectorId}_CLIENT_ID`
-  for OAuth Connect).
+  when `secret:` is omitted).
 - OAuth **access / refresh tokens** are runtime state (the OAuth flow), not
   environment variables — do not put bearer tokens in `.env` for that purpose.
 
@@ -320,8 +321,9 @@ An **api-key** connector may take its **API key** from this store via YAML
 `secret:` on the `api-key` parameter (the same field as tool parameters). Put
 the key in `.env` under that variable name — e.g. `secret: ELEVENLABS_API_KEY`
 with `ELEVENLABS_API_KEY=xi-…` in `.env`. When `secret:` is omitted the
-platform still reads `CONNECTOR_{connectorId}_CLIENT_SECRET`. See **BRA209**
-§4.5.
+platform still reads `CONNECTOR_{connectorId}_CLIENT_SECRET`. An **oauth2**
+connector does the same on `client-id` / `client-secret` (e.g.
+`secret: EXAMPLE_CLIENT_ID`). See **BRA209** §4.1 / §4.5.
 
 See **BRA209** for the connector file format and examples.
 

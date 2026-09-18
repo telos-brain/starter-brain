@@ -1,12 +1,15 @@
 ---
 name: Connectors
 code: BRA209
-version: 9
+version: 15
 description: "How to author connector YAML files for external services (OAuth 2,
   API key, none, or caller-jwt). Covers file layout, brain-compose registration, optional
   platform type (e.g. elevenlabs), parameter declarations vs secret storage,
-  url vs url-env, parameter secret: bindings, deploy behaviour, and worked
-  examples."
+  url vs url-env, parameter secret: bindings, parameter as:/in:/value: for any
+  OAuth names, oauth-request for non-standard flows (json-redirect, JSON token,
+  HMAC), oauth-captures for extra values such as tenant ids, the production
+  OAuth redirect URI https://go.telosbrain.com/oauth/callback, deploy behaviour,
+  and worked examples."
 tools:
   - list_schema_files
   - search_schema_files
@@ -105,7 +108,8 @@ parameters:                         # optional — omit the key entirely when em
 | `type` | no | Optional platform identity. Free text; omit when unused. First convention value: `elevenlabs`. Distinct from `auth-type`. |
 | `scope` | no | Defaults to `brain`. Entity-scoped connectors are out of scope for now. |
 | `api-key-header` | no | For `api-key` auth only. Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
-| `parameters` | no | List of `{ name, description, secret? }`. For `api-key` auth, `secret` on the `api-key` (or `api_key`) parameter names the brain environment variable (same field as tool parameters). When omitted, api-key auth reads `CONNECTOR_{connectorId}_CLIENT_SECRET`. Parsed on every parameter; only api-key dispatch uses it today. Omit the `parameters` key when there are none — do **not** emit `parameters: []`. |
+| `parameters` | no | List of `{ name, description, secret?, as?, in?, value? }`. You may declare **any** parameter names, not only `client-id` / `client-secret`. `secret:` names a brain environment variable. `as:` is the provider-facing OAuth name (`clientId`, `redirectUri`). `in:` is `authorize`, `token`, or `both`. `value:` is a static non-secret. For `api-key` auth `secret:` binds the API key (omit → `CONNECTOR_{connectorId}_CLIENT_SECRET`). For `oauth2` auth `secret:` on `client-id` / `client-secret` binds `.env` names (omit → `CONNECTOR_{connectorId}_CLIENT_ID` / `_CLIENT_SECRET`). Omit the `parameters` key when there are none — do **not** emit `parameters: []`. |
+| `oauth-request` | no | Optional OAuth request customisation for non-RFC providers. See **OAuth request customisation** below. |
 
 ### Auth types
 
@@ -141,10 +145,141 @@ or a tool's execution block.
   endpoint. For **api-key** auth, bind the key with `secret:` on the `api-key`
   parameter (same field as tools). When `secret:` is omitted the platform
   reads `CONNECTOR_{connectorId}_CLIENT_SECRET`.
-- OAuth **client** credentials and access/refresh tokens are still the Connect
-  flow (`CONNECTOR_{connectorId}_CLIENT_ID` / `_CLIENT_SECRET` plus tokens).
-  `secret:` on OAuth parameters is stored but not used at OAuth runtime yet.
+- For **oauth2** auth, bind client credentials the same way: `secret:` on
+  `client-id` and `client-secret` names the `.env` variables (e.g.
+  `EXAMPLE_CLIENT_ID` / `EXAMPLE_CLIENT_SECRET`). Connect and token refresh read
+  those names. When `secret:` is omitted they fall back to
+  `CONNECTOR_{connectorId}_CLIENT_ID` / `_CLIENT_SECRET` (also used by
+  dynamic client registration). OAuth **access / refresh tokens** remain
+  runtime state — do not put bearer tokens in `.env`.
 - Never put client secrets, API keys, or tokens in the connector YAML.
+
+### OAuth 2 redirect URI (register this with the provider)
+
+The Connect button in the admin UI starts a full-page redirect to the
+provider. After consent the provider must send the browser back to the
+Management API callback — **not** a SPA-only path.
+
+The URI is `{ManagementApi:BaseUrl}/oauth/callback` (exact match; no trailing
+slash). Production Telos Brain:
+
+```
+https://go.telosbrain.com/oauth/callback
+```
+
+Register that value as the **Web application** redirect URI in the provider
+console before clicking Connect. Local development uses the
+same path on the configured Management API origin (typically the Vite proxy,
+e.g. `http://localhost:50406/oauth/callback`).
+
+### OAuth captures (extra values after Connect)
+
+Some providers return more than an access token — a tenant id, instance URL,
+account id, and so on. Declare those on the connector as `oauth-captures`.
+After the token exchange each capture is:
+
+1. Read from the **token JSON**, or from an optional follow-up HTTP request
+   (Bearer access token; `path` is relative to the connector `url`)
+2. Extracted with `json-path` (`tenantId`, `$.foo.bar`, `$[0].tenantId`)
+3. Stored **with the token** (same place as the access/refresh token)
+4. Optionally copied to a **brain environment variable** (`store: brain:NAME`
+   or `store: NAME`) or an **entity variable** (`store: entity:key`)
+5. Optionally sent on later connector API calls as `header:`
+
+Entity stores need an entity id on Connect (`POST …/oauth/initiate?entityId=`).
+The admin Connectors page is brain-scoped, so use `brain:` there.
+
+When the extra value is not on the token, add a follow-up request (path
+relative to the connector `url`) and optionally send it as a header on later
+API calls:
+
+```yaml
+oauth-captures:
+  - name: tenant-id
+    json-path: $[0].tenantId
+    request:
+      method: GET
+      path: /connections
+    store: brain:EXAMPLE_TENANT_ID
+    header: x-tenant-id
+```
+
+A value that is already on the token JSON omits `request:`:
+
+```yaml
+oauth-captures:
+  - name: instance-url
+    json-path: instance_url
+    store: brain:EXAMPLE_INSTANCE_URL
+```
+
+### OAuth parameter names (`as:`) — any params you want
+
+Known roles (`client-id`, `client-secret`, `redirect-uri`, `grant-type`,
+`refresh-token`, `code`) are recognised from the parameter `name` (kebab,
+snake, or concatenated). The platform fills those values. **`as:`** is the
+name sent on the wire — use it when the provider rejects RFC names
+(`client_id` / `redirect_uri`) and wants camelCase (`clientId` /
+`redirectUri`).
+
+Any other parameter is an extra. Give it a `secret:` or a static `value:`,
+and optionally `in:` (`authorize`, `token`, or `both`; extras default to
+authorise). Extra params are appended to the authorise query and/or token
+body using `as:` when set, otherwise the declared `name`.
+
+```yaml
+parameters:
+  - name: client-id
+    as: clientId
+    secret: EXAMPLE_CLIENT_ID
+  - name: client-secret
+    secret: EXAMPLE_CLIENT_SECRET
+  - name: redirect-uri
+    as: redirectUri
+  - name: grant-type
+    as: grantType
+  - name: audience
+    as: audience
+    in: authorize
+    value: books
+```
+
+The Management API exposes the same fields as `asName`, `sendIn`, and
+`value` on each connector parameter.
+
+### OAuth request customisation (`oauth-request`)
+
+Standard Connect still redirects the browser to `authorization-url` with
+RFC query names and POSTs `application/x-www-form-urlencoded` to
+`token-url`. Providers that do not speak that dialect declare:
+
+```yaml
+oauth-request:
+  authorize-mode: json-redirect   # GET authorization-url, follow JSON URL
+  authorize-redirect-path: redirectUri
+  token-format: json              # POST JSON instead of form
+  signing: hmac-sha256            # x-client-id, x-timestamp, x-signature
+  hmac-mount: /partners           # stripped from the path before signing
+  refresh-url: https://api.example.com/partners/refresh-user-access-token
+```
+
+| Field | Default | Meaning |
+|---|---|---|
+| `authorize-mode` | `redirect` | `json-redirect` GETs `authorization-url` (with remapped query params) and sends the browser to the URL in the JSON body (or a `3xx Location`). If the response is 2xx/3xx without a URL (for example an HTML consent page), the initiate URL itself is the browser destination. |
+| `authorize-redirect-path` | `redirectUri` then `redirect_uri` / `url` / `consentUrl` | JSON path of the consent URL. |
+| `token-format` | `form` | `json` posts a JSON object. Field names come from parameter `as:`. |
+| `signing` | `none` | `hmac-sha256` signs token, refresh, capture, and tool calls. Base string is `METHOD:path:timestamp:bodyHash` (SHA-256 hex of the body for POST/PUT/PATCH). |
+| `hmac-mount` | (none) | Prefix removed from the path before signing (`/partners/grant-access-token` → `/grant-access-token`). |
+| `refresh-url` | `token-url` | Use when refresh is a different endpoint. |
+
+`json-redirect` omits `response_type`, PKCE, and `resource` — those extra
+RFC params are what non-standard initiate endpoints reject. Token HMAC
+sends only `code` / `refresh-token` / `grant-type` (plus extras with
+`in: token`) — client credentials go in the HMAC headers, not the body.
+
+Token JSON may use camelCase (`accessToken`, `refreshToken`,
+`accessTokenExpiresAt`, `workspaceName`); Connect accepts both that and
+RFC snake_case.
 
 ---
 
@@ -159,11 +294,22 @@ name: example-oauth2
 url: https://api.example.com
 auth-type: oauth2
 scope: brain
+authorization-url: https://auth.example.com/oauth/authorize
+token-url: https://auth.example.com/oauth/token
+oauth-scope: read:example
 parameters:
   - name: client-id
     description: OAuth 2 client ID issued by the external provider.
+    secret: EXAMPLE_CLIENT_ID
   - name: client-secret
     description: OAuth 2 client secret. Store the value as a brain environment variable — never commit it here.
+    secret: EXAMPLE_CLIENT_SECRET
+```
+
+```bash
+# .env — uploaded on deploy (BRA202)
+EXAMPLE_CLIENT_ID=…
+EXAMPLE_CLIENT_SECRET=…
 ```
 
 ### 4.2 API key — `connectors/example-api-key.yml`
@@ -275,7 +421,58 @@ ELEVENLABS_API_KEY=xi-...
 Workflows that should be projected as ElevenLabs agents also need
 `deployment-type: elevenlabs_conversational_ai` — see **BRA217**.
 
-### 4.7 Referencing a connector from a tool
+### 4.7 Non-standard OAuth (custom names, JSON token, HMAC)
+
+Use this when the provider is not RFC OAuth 2: camelCase query names, a
+JSON token body, HMAC request signing, or an initiate URL that is itself
+the browser destination. Register
+`https://go.telosbrain.com/oauth/callback` (or
+`{ManagementApi:BaseUrl}/oauth/callback` locally) with the provider.
+
+```yaml
+name: example-partner
+url: https://api.example.com
+auth-type: oauth2
+scope: brain
+authorization-url: https://api.example.com/oauth/initiate
+token-url: https://api.example.com/oauth/token
+oauth-request:
+  authorize-mode: json-redirect
+  authorize-redirect-path: redirectUri
+  token-format: json
+  signing: hmac-sha256
+  hmac-mount: /partners
+  refresh-url: https://api.example.com/oauth/refresh
+parameters:
+  - name: client-id
+    description: OAuth client ID issued by the provider.
+    secret: EXAMPLE_CLIENT_ID
+    as: clientId
+  - name: client-secret
+    description: OAuth client secret. Store in .env — never commit the value here.
+    secret: EXAMPLE_CLIENT_SECRET
+  - name: redirect-uri
+    description: Registered OAuth callback. Brain fills this with the platform redirect URI.
+    as: redirectUri
+  - name: grant-type
+    description: Token grant type field name.
+    as: grantType
+  - name: refresh-token
+    description: Refresh token field name on token refresh.
+    as: refreshToken
+oauth-captures:
+  - name: workspace-id
+    json-path: workspaceId
+    store: brain:EXAMPLE_WORKSPACE_ID
+```
+
+```bash
+# .env — uploaded on deploy (BRA202)
+EXAMPLE_CLIENT_ID=…
+EXAMPLE_CLIENT_SECRET=…
+```
+
+### 4.8 Referencing a connector from a tool
 
 API and MCP tools may omit a connector (inline URL / server) or point at one:
 
@@ -343,9 +540,10 @@ Schema system tools (**BRA203**) treat connectors as first-class schema files:
 1. Create `connectors/{name}.yml` with `name`, exactly one of `url` / `url-env`,
    and `auth-type`. Set `type` when the connector backs a platform (e.g.
    `elevenlabs`).
-2. Add declared `parameters` (`name` + `description`; optional `secret:` for
-   api-key env-var bindings) when the connector needs credentials; omit the
-   key when it does not.
+2. Add declared `parameters` (`name` + `description`; optional `secret:`,
+   `as:`, `in:`, `value:`) when the connector needs credentials or extra
+   OAuth fields; omit the key when it does not. Use `oauth-request` when
+   the provider is not standard OAuth 2.
 3. List the path under `connectors:` in `brain-compose.yml`.
 4. Put secret **values**, any `url-env` URL values, and any parameter `secret:`
    values in `.env` (or the secrets API) — never in the YAML.
