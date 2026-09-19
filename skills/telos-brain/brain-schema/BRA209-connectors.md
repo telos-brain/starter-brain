@@ -1,15 +1,15 @@
 ---
 name: Connectors
 code: BRA209
-version: 15
+version: 21
 description: "How to author connector YAML files for external services (OAuth 2,
   API key, none, or caller-jwt). Covers file layout, brain-compose registration, optional
   platform type (e.g. elevenlabs), parameter declarations vs secret storage,
-  url vs url-env, parameter secret: bindings, parameter as:/in:/value: for any
-  OAuth names, oauth-request for non-standard flows (json-redirect, JSON token,
-  HMAC), oauth-captures for extra values such as tenant ids, the production
-  OAuth redirect URI https://go.telosbrain.com/oauth/callback, deploy behaviour,
-  and worked examples."
+  url vs url-env, parameter secret: bindings, request-defaults for shared
+  headers and common params, parameter as:/in:/value: for any OAuth names,
+  oauth-request for non-standard flows, oauth-captures, the production OAuth
+  redirect URI https://go.telosbrain.com/oauth/callback, deploy behaviour, and
+  worked examples."
 tools:
   - list_schema_files
   - search_schema_files
@@ -110,6 +110,7 @@ parameters:                         # optional — omit the key entirely when em
 | `api-key-header` | no | For `api-key` auth only. Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
 | `parameters` | no | List of `{ name, description, secret?, as?, in?, value? }`. You may declare **any** parameter names, not only `client-id` / `client-secret`. `secret:` names a brain environment variable. `as:` is the provider-facing OAuth name (`clientId`, `redirectUri`). `in:` is `authorize`, `token`, or `both`. `value:` is a static non-secret. For `api-key` auth `secret:` binds the API key (omit → `CONNECTOR_{connectorId}_CLIENT_SECRET`). For `oauth2` auth `secret:` on `client-id` / `client-secret` binds `.env` names (omit → `CONNECTOR_{connectorId}_CLIENT_ID` / `_CLIENT_SECRET`). Omit the `parameters` key when there are none — do **not** emit `parameters: []`. |
 | `oauth-request` | no | Optional OAuth request customisation for non-RFC providers. See **OAuth request customisation** below. |
+| `request-defaults` | no | Shared headers and query/body values applied to **every** tool call on this connector. Same placement as a tool parameter (`header:`, `secret:`, `value:`). A tool-level declaration of the same header or key wins. See **Request defaults** below. |
 
 ### Auth types
 
@@ -213,6 +214,41 @@ oauth-captures:
     store: brain:EXAMPLE_INSTANCE_URL
 ```
 
+### Request defaults (shared headers and params)
+
+Declare headers and common parameters **once on the connector** instead of
+repeating them on every tool. Placement matches **BRA214**: `header:` sends
+an HTTP header; without it the value is a GET query parameter or POST/PUT
+JSON field. `secret:` reads a brain environment variable; `value:` is a
+static string (`{secret}` works as a template when both are set).
+
+```yaml
+request-defaults:
+  - name: accept
+    header: Accept
+    value: application/json
+  - name: tenant-id
+    header: X-Tenant-Id
+    secret: EXAMPLE_TENANT_ID
+  - name: summary-only
+    value: "true"
+```
+
+- Applied to every `api:` tool (and as headers on `mcp:` tools) that uses
+  this connector.
+- A tool parameter with the same header name or payload key **overrides** the
+  default.
+- One source per header: if an `oauth-captures` entry also sets `header:`
+  for the same name, the capture owns that header. The request-default is
+  ignored (including a `.env` `secret:`). Prefer captures for values
+  collected at Connect; prefer request-defaults for static or `.env` values.
+- A header `secret:` that is not set fails the tool **before** the HTTP
+  call, naming the header and variable. A capture `header:` with no stored
+  value fails the same way and tells the caller to reconnect (follow-up
+  captures are retried on the next tool call first).
+- If Connect ran before captures were declared, the next tool call re-runs
+  follow-up capture requests and stores the values on the token.
+
 ### OAuth parameter names (`as:`) — any params you want
 
 Known roles (`client-id`, `client-secret`, `redirect-uri`, `grant-type`,
@@ -259,8 +295,8 @@ oauth-request:
   authorize-redirect-path: redirectUri
   token-format: json              # POST JSON instead of form
   signing: hmac-sha256            # x-client-id, x-timestamp, x-signature
-  hmac-mount: /partners           # stripped from the path before signing
-  refresh-url: https://api.example.com/partners/refresh-user-access-token
+  hmac-mount: /v1                 # stripped from the path before signing
+  refresh-url: https://api.example.com/oauth/refresh
 ```
 
 | Field | Default | Meaning |
@@ -269,17 +305,27 @@ oauth-request:
 | `authorize-redirect-path` | `redirectUri` then `redirect_uri` / `url` / `consentUrl` | JSON path of the consent URL. |
 | `token-format` | `form` | `json` posts a JSON object. Field names come from parameter `as:`. |
 | `signing` | `none` | `hmac-sha256` signs token, refresh, capture, and tool calls. Base string is `METHOD:path:timestamp:bodyHash` (SHA-256 hex of the body for POST/PUT/PATCH). |
-| `hmac-mount` | (none) | Prefix removed from the path before signing (`/partners/grant-access-token` → `/grant-access-token`). |
+| `hmac-mount` | (none) | Prefix removed from the path before signing (`/v1/oauth/token` → `/oauth/token`). |
 | `refresh-url` | `token-url` | Use when refresh is a different endpoint. |
+| `token-access-path` | RFC `access_token` plus aliases (`accessToken`, `token`, `jwt`) | JSON path only when the token is not a recognised field. Leave unset for camelCase `accessToken` at the root or under `data` / `result` / `payload`. |
+| `token-refresh-path` | RFC `refresh_token` plus aliases | JSON path of the refresh token. |
+| `token-expires-path` | RFC `expires_in` plus aliases | JSON path of expiry (seconds, unix time, or timestamp). |
 
 `json-redirect` omits `response_type`, PKCE, and `resource` — those extra
 RFC params are what non-standard initiate endpoints reject. Token HMAC
 sends only `code` / `refresh-token` / `grant-type` (plus extras with
 `in: token`) — client credentials go in the HMAC headers, not the body.
 
-Token JSON may use camelCase (`accessToken`, `refreshToken`,
-`accessTokenExpiresAt`, `workspaceName`); Connect accepts both that and
-RFC snake_case.
+Token JSON is read using RFC names first (`access_token`, `refresh_token`,
+`expires_in`), then common aliases (`accessToken`, `token`, `jwt`, expiry
+timestamps) with case-insensitive matching. Nested envelopes (`data`,
+`result`, `payload`, `tokens`, …) are searched recursively. If a token
+field is an object, the parser reads `token` / `jwt` / `value` inside it.
+A string on `data` / `result` / `payload` itself is also accepted.
+Form-encoded token bodies are accepted. If the provider uses a unique
+layout, set `token-access-path` / `token-refresh-path` /
+`token-expires-path`. A failed parse reports the provider `error` /
+`message` or the response keys — never the token values.
 
 ---
 
@@ -441,7 +487,7 @@ oauth-request:
   authorize-redirect-path: redirectUri
   token-format: json
   signing: hmac-sha256
-  hmac-mount: /partners
+  hmac-mount: /v1
   refresh-url: https://api.example.com/oauth/refresh
 parameters:
   - name: client-id
@@ -499,8 +545,15 @@ mcp:
 ```
 
 At API dispatch the Tool Router resolves the connector URL (+ optional path),
-validates it with SSRF guards, and injects OAuth2 / API-key auth. Tools without
-`connector:` keep their inline URL / server behaviour.
+validates it with SSRF guards, and injects that connector's `auth-type`
+(OAuth2 Bearer, API key, or caller JWT). Shared extra headers and params
+come from `request-defaults` and from `oauth-captures` → `header:`. A tool
+may still declare its own `header:` / `secret:` (**BRA214**); those override
+a default with the same name. A brain `.env` value is unused until a tool
+`secret:`, a `request-defaults` `secret:`, or a capture `store:` names it.
+
+Tools without `connector:` keep their inline URL / server behaviour. Header,
+query, body, and path placement for tool parameters is **BRA214**.
 
 ---
 

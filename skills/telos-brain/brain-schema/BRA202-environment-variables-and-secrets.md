@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 23
+version: 26
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -174,6 +174,16 @@ decrypted variable named by `secret:` (substituted into the `{secret}` template
 when `value:` is present); else (2) a hardcoded `value:`; else (3) for an exposed
 parameter, the argument the model supplied under the parameter's `name`. A
 parameter that resolves to nothing is omitted from the request.
+
+`secret:` on **one** tool does not inject that header (or query/body field)
+on other tools. For a value every call needs, declare it once on the
+connector as `request-defaults` (`header:` + `secret:` / `value:`) or as
+`oauth-captures` → `header:` after Connect (**BRA209**). A capture `header:`
+owns that name; a request-default for the same header is ignored. A missing
+connector header secret or capture value fails the tool before the HTTP
+call. A name in `.env` is unused until a tool `secret:`, a `request-defaults`
+`secret:`, or a capture `store:` references it and the value has been
+uploaded.
 
 ### 3.1 Worked example — calling an authenticated API
 

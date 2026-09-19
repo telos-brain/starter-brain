@@ -1,11 +1,11 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 1
+version: 4
 description: How to author tool groups and tool YAML — api, mcp, system,
-  workflow, and native tools, plus parameters (secrets, entity / unit-of-work /
-  input bindings, URL path tokens, and outbound types). Load this when creating
-  or editing a tool.
+  workflow, and native tools, plus parameters (headers vs query vs body vs path,
+  secrets, entity / unit-of-work / input bindings, URL path tokens, and outbound
+  types). Load this when creating or editing a tool.
 ---
 
 # Brain Schema Tools
@@ -221,6 +221,54 @@ Key behaviour: a parameter is **exposed to the LLM only when it has no `value`,
 `secret`, `entity`, `unitofwork`, `input` or `header`**. Set `value` to pin a
 param and hide it. `name` and `description` are required on every parameter.
 
+#### Where a parameter is sent
+
+`header:` and `{name}` in `api.path` choose **placement**. Everything else
+joins the request payload; the HTTP method decides the shape.
+
+| Declaration | Outbound placement | Exposed to the LLM? |
+|---|---|---|
+| `header: Header-Name` | HTTP request header `Header-Name` | No (`header:` always hides it) |
+| `{name}` or `{param}` in `api.path`, or `path:` on the parameter | URL path token | Yes, unless also `secret` / `value` / `entity` / `unitofwork` / `input` |
+| Neither of the above, `method: GET` | Query string (`?key=value`, url-encoded) | Yes if exposed |
+| Neither of the above, `POST` / `PUT` / `PATCH` / … | JSON body field | Yes if exposed |
+
+`param:` (aliases `api-param`, `targetKey`) is the **wire key** — the header
+name is `header:`, the query/body/path key defaults to `name` unless `param:`
+overrides it. Do not set both `header:` and `path:` on the same parameter.
+
+A connector (`api.connector:`) injects **that connector's auth** (OAuth
+Bearer, API key, or caller JWT — **BRA209**) plus any connector
+`request-defaults` and `oauth-captures` → `header:` values. Extra headers
+(organisation or tenant id, `Accept`, API version) belong on the **connector**
+when every tool needs them. Declare them on a single tool only when that
+call is special. A tool-level `header:` / payload key overrides the
+connector default with the same name. An `oauth-captures` `header:` owns
+that header — a `request-defaults` entry for the same name is ignored. A
+missing header secret or capture value fails the tool before the HTTP call
+(**BRA209**).
+
+Putting a name in `.env` does nothing by itself. The value is used only when
+a tool `secret:`, a connector `request-defaults` `secret:`, or a capture
+`store:` names that variable, **and** the value has been uploaded (**BRA202**).
+
+#### Fixed headers (`header:` + `value:`)
+
+Use a hidden header when the API wants a constant (not a model argument and
+not a secret):
+
+```yaml
+parameters:
+  - name: accept
+    description: Request JSON instead of the provider default (often XML).
+    header: Accept
+    value: application/json
+  - name: api-version
+    description: Provider API version header.
+    header: X-Api-Version
+    value: "2"
+```
+
 #### Putting a parameter in the URL
 
 Any parameter can go in the URL. Write `{name}` in `api.path` — or `{param}`
@@ -341,6 +389,9 @@ parameters:
 - `secret:` names a brain environment variable (uploaded from `.env`); its
   decrypted value is injected at dispatch. If the variable is not set, the
   parameter is omitted (logged and skipped), never sent as a placeholder.
+  The HTTP call **still proceeds**. Downstream APIs that require that header
+  typically return 401/403 — Brain does not fail the tool for a missing
+  header secret.
 - `value:` (with `secret:`) is a template where `{secret}` is replaced by the
   decrypted value; with no `value:`, the raw secret is injected as-is.
 - `header:` chooses **where** the value goes:
