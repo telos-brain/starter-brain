@@ -1,7 +1,7 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 6
+version: 8
 description: The in-brain system tools that let a running brain inspect, edit,
   and create its own configuration-as-code schema — list_schema_files,
   search_schema_files, get_schema_file, update_schema_file, create_skill and
@@ -48,7 +48,7 @@ declarations for the rest of that run — see `WF-SKILL-UPDATE` for the wiring.
 | **`get_schema_file`** | Read the full canonical content (YAML or markdown) of one file. | `path` | file content |
 | **`update_schema_file`** | Apply a targeted string-replace edit to one file and persist it. | `path`, `str_replace_old`, `str_replace_new` | success / error |
 | **`create_skill`** | Create a skill in a SkillBook category with an auto-assigned code. | `skillbook_code`, `category_title`, `title`, `description`, `content` | new skill code / error |
-| **`create_schema_file`** | Create any supported schema file via the deploy parse/persist path. | `path`, `content` | resource code / error |
+| **`create_schema_file`** | Create any supported schema file via the deploy parse/persist path. | `path`, `content` | confirmation (path + generated manifests wired) / error |
 
 The intended flow for edits is **list/search → get → update**: discover a path,
 read the file to copy the exact text, then edit it. For creates, prefer
@@ -128,15 +128,33 @@ code (e.g. `BRA209`). Prefer this over `create_schema_file` for skills.
 On failure, load **BRA208** (skill-book design) and **BRA215** (skill format)
 before retrying. Example tool definition: `tools/brain-schema/create-skill.yml`.
 
+## Authoring rules (read before create or update)
+
+These apply to every schema-authoring workflow, including Plan (`WF-PLAN`):
+
+1. **Path rule.** Leaf files may sit in extra grouping folders. Those folders
+   are created automatically — do not flatten a path just to match
+   `workflows/{code}.md`.
+   - Workflows: `workflows/{code}.md` or `workflows/{folder}/{code}.md`
+   - Tools: `tools/{group}/{name}.yml` — a missing group folder is created
+   - Skills: `skills/{book}/{code}-{title}.md` (optional category folders)
+   - Blueprints: `blueprints/{code}/{title}.md`
+2. **Manifest is generated.** Do **not** `create_schema_file` or
+   `update_schema_file` on `brain-compose.yml`, `tools/*/tools.yml`,
+   `skills/*/skillbook.yml`, or `blueprints/*/blueprint.yml`. Creating the
+   leaf tool / skill / entry / workflow file already wires the generated
+   manifest. The only workflow edit usually required is adding the new tool
+   name to the target workflow's `tools:` / `available-tools:` list.
+
 ## `create_schema_file`
 
 Requires `path` and `content` (full file). Supported paths:
 
 | Path | Type |
 |---|---|
-| `workflows/{code}.md` | Workflow |
-| `tools/{group}/{name}.yml` | Tool |
-| `skills/{book}/{code}-{title}.md` | Skill |
+| `workflows/{code}.md` or `workflows/{folder}/{code}.md` | Workflow |
+| `tools/{group}/{name}.yml` | Tool (group folder created if missing) |
+| `skills/{book}/{code}-{title}.md` | Skill (optional category folders) |
 | `blueprints/{code}/{title}.md` | Blueprint entry |
 
 Rejected: `brain-compose.yml` and generated group manifests
@@ -147,6 +165,14 @@ and compose entry, then `brain deploy` (or edit an existing connector with
 
 Omit `version` to default to 1. Version conflicts return a clear error when the
 incoming version is less than the stored version.
+
+On success the tool names the created resource **and** the generated manifests
+that now list it (`brain-compose.yml`, plus `tools/{group}/tools.yml`,
+`skills/{book}/skillbook.yml`, or `blueprints/{code}/blueprint.yml` as
+applicable). Treat that as confirmation that the wiring is done — do not
+follow up with `update_schema_file` on those manifests. For a new tool, the
+confirmation also says how to add it to a workflow's `tools:` /
+`available-tools:` list.
 
 On failure, the tool's `error-markdown` (see
 `tools/brain-schema/create-schema-file.yml`) names the skills that define each
@@ -181,7 +207,7 @@ system:
 parameters:
   - name: path
     param: path
-    description: The schema file path, e.g. "workflows/wf-example.md".
+    description: The schema file path, e.g. "workflows/wf-example.md" or "workflows/jobs/review.md".
     type: string
     required: true
   - name: content
@@ -189,6 +215,8 @@ parameters:
     description: Full file content (YAML or markdown with frontmatter).
     type: string
     required: true
+response-markdown: |
+  {{result.result}}
 error-markdown: |
   Could not create schema file: {{result.result}}
   Load BRA217 / BRA214 / BRA215 / BRA216 (file formats) and BRA203 (this skill)
@@ -207,8 +235,10 @@ error-markdown: |
   listed, read, edited or created.
 - **Exact-one-match edits.** `update_schema_file` refuses zero-match and
   multi-match edits, so an edit can never silently hit the wrong text.
-- **Manifest is read-only.** `brain-compose.yml` is generated and rejected by
-  both `update_schema_file` and `create_schema_file`.
+- **Manifest is read-only.** `brain-compose.yml` and generated group
+  manifests (`tools/*/tools.yml`, `skills/*/skillbook.yml`,
+  `blueprints/*/blueprint.yml`) are rejected by both `update_schema_file` and
+  `create_schema_file`. Creating the leaf file wires the manifest.
 - **Create via dedicated tools.** Prefer `create_skill` / `create_schema_file`.
   The older empty-`str_replace_old` workaround on `update_schema_file` is a
   fallback only for types those tools do not cover.

@@ -1,7 +1,7 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 4
+version: 5
 description: How to author tool groups and tool YAML — api, mcp, system,
   workflow, and native tools, plus parameters (headers vs query vs body vs path,
   secrets, entity / unit-of-work / input bindings, URL path tokens, and outbound
@@ -15,6 +15,12 @@ manifest (`tools.yml`); the manifest points to individual tool files. Overview
 and versioning: **BRA201**. Compose entity / unit-of-work variables that
 parameters can bind to: **BRA213**. Connectors used by API/MCP tools:
 **BRA209**. Secrets: **BRA202**. Schema system tools: **BRA203**.
+
+**Runtime schema tools (`create_schema_file` / `update_schema_file`):** create
+the leaf tool file at `tools/{group}/{name}.yml`. A missing group folder is
+created automatically and the generated `tools.yml` is wired for you. Do
+**not** create or `str_replace` `tools/{group}/tools.yml` — it is a generated
+group manifest. On-disk `brain deploy` still authors `tools.yml` as below.
 
 ## 1. Tool group manifest (`tools/<group>/tools.yml`)
 

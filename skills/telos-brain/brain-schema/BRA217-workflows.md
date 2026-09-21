@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 4
+version: 5
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, and external agent deployment. Load this when creating or editing a
@@ -12,6 +12,8 @@ description: How to author workflow markdown — frontmatter, types, triggers,
 
 A workflow is a **single, self-contained markdown file**. The frontmatter is the
 header and the wiring (tools + skills); the markdown body is the instructions.
+The conventional path is `workflows/{code}.md`; grouping folders are allowed
+(`workflows/jobs/{code}.md`) and `create_schema_file` creates them on the fly.
 Overview and versioning: **BRA201**. Models: **BRA210**. Inbox trigger runtime:
 **BRA404**. Learning-eval authoring: **BRA207**. Skill-declared tool promotion:
 **BRA215**. Template tags: **BRA204**. Run variables / input-tools how-to:

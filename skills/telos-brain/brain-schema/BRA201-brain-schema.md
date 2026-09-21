@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 52
+version: 53
 description: Overview of the brain-schema format — mental model, directory
   layout, deploy, versioning, and which skill to load for each file type. Do
   not load this for field-level authoring; use BRA213–BRA217, BRA209, or
@@ -94,6 +94,8 @@ brain-schema/
 
   workflows/
     review-blueprint.md          # one workflow per markdown file (BRA217)
+    jobs/
+      review-outstanding-debtors.md  # optional grouping folders are allowed
 ```
 
 **Do not commit** `.env` (real credentials), `node_modules/`, or `brain.lock`
