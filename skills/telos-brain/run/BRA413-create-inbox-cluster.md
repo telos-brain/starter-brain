@@ -1,7 +1,7 @@
 ---
 name: Create Inbox Cluster System Tool
 code: BRA413
-version: 1
+version: 2
 description: The create_inbox_cluster system tool — consolidate related inbox
   entries into a single PROCESSED cluster entry. Source entries become
   COMPLETED and their open tasks are cancelled. Complements the inbox tools
@@ -42,7 +42,7 @@ tasks afterwards.
 | | |
 | --- | --- |
 | **Purpose** | Consolidate related inbox entries into one PROCESSED cluster entry |
-| **When** | Related signals from the same recurring failure, near-duplicates found during triage, or groups of weight-1 entries around one pattern |
+| **When** | Related **eval** signals from the same recurring failure, near-duplicate eval seeds found during triage, or groups of weight-1 eval entries around one pattern. Do not cluster operator-provided documents, emails, or transcripts. |
 | **YAML** | `tools/inbox/create-inbox-cluster.yml` |
 
 ### Parameters
@@ -83,12 +83,14 @@ side effects.
 
 ### When to use
 
-- Several granular weight-1 entries about the same recurring failure or pattern
-- Near-duplicate entries identified during triage
-- Groups of signals that together build toward the ~5+ weight threshold
+- Several granular weight-1 **eval** entries about the same recurring failure or pattern
+- Near-duplicate eval seeds identified during triage
+- Groups of eval signals that together build toward the ~5+ weight threshold
 
 ### When not to use
 
+- Operator-provided intake (document upload, inbound email, Granola transcript,
+  admin UI / API add) — triage creates apply tasks on that entry directly
 - A single clear, self-contained learning that should stand alone
 - A list that, after ignoring completed / already-clustered refs, has fewer
   than two remaining sources
