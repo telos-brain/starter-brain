@@ -1,4 +1,5 @@
 .env
+!.env.example
 brain.lock
 node_modules/
 dist/
