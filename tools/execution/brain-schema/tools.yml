@@ -1,0 +1,10 @@
+# Tool group: example definitions for Brain schema system tools (BRA144).
+# These document the in-process create tools for agents and workflows; execution
+# is handled by ISystemTool implementations of the same name.
+name: Brain schema
+description: >-
+  System tools for creating and editing the brain's configuration-as-code schema
+  (skills, workflows, tools, blueprint entries).
+tools:
+  - ./create-skill.yml
+  - ./create-schema-file.yml

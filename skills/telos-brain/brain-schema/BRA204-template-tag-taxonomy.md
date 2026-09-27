@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings.
-version: 17
+version: 18
 ---
 
 # Template Tag Taxonomy
@@ -491,6 +491,39 @@ Notes:
 
 ---
 
+### 3.7a `blueprints`
+
+| | |
+| --- | --- |
+| **Type** | Enumerable list at root |
+| **Sort** | Blueprint `Code` ascending; categories and entries use the same order as `blueprint` |
+| **Resolution** | Same tier as the singular `blueprint` scope (EntityId only — UnitOfWork is not consulted). Every active blueprint at that tier is included. The singular `blueprint` scope remains the first of this list. |
+
+| Path | Iteration | Fields |
+| --- | --- | --- |
+| `blueprints` | `{{#blueprints}}...{{/blueprints}}` | `blueprint.name`, `blueprint.description`, `blueprint.categories`, `blueprint.entries` |
+| `blueprint.categories` | `{{#blueprint.categories}}...{{/blueprint.categories}}` | `category.name`, `category.description`, `category.entries` |
+| `category.entries` / `blueprint.entries` | same as §3.7 | `entry.title`, `entry.version`, `entry.category` |
+
+Inside the loop the current item is bound as `blueprint`, so the category and entry tags match the singular scope. Use this when a brain has more than one blueprint at the resolved tier.
+
+**Example — every blueprint, with its name and categories:**
+
+```markdown
+{{#blueprints}}
+# {{blueprint.name}}
+{{blueprint.description}}
+
+{{#blueprint.categories}}
+### {{category.name}}
+{{category.description}}
+{{/blueprint.categories}}
+
+{{/blueprints}}
+```
+
+---
+
 ### 3.8 `inboxEntry`
 
 | | |
@@ -656,6 +689,7 @@ Notes:
 | `result` | — | `{anyKey}` (flat) |
 | `input` | — | `{key}` (flat; Execution API `variables` + workflow-tool / `run_workflow` params) |
 | `blueprint` | `.categories` → `.entries`; `.entries` | `blueprint.name/description`; `category.name/description`; `entry.title/version/category` |
+| `blueprints` | root → `.categories` → `.entries`; `.entries` | `blueprint.name/description`; `category.name/description`; `entry.title/version/category` |
 | `inboxEntry` | — | `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
 | `inboxTasks` | root | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
 | `task` | — | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |

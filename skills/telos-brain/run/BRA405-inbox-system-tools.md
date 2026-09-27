@@ -1,7 +1,7 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 15
+version: 16
 description: The in-brain system tools for operating the learning-signal inbox
   — create_inbox_entry, create_inbox_cluster, list_inbox_entries,
   get_inbox_entry, update_inbox_entry, list_inbox_tasks, add_inbox_task and
@@ -49,11 +49,11 @@ but documented in **BRA406** — eval workflows typically call both
 
 | Tool | Purpose | Key parameters | Returns |
 |---|---|---|---|
-| **`create_inbox_entry`** | Create a learning signal | `title`, `body`, `routing_type`; optional `source`, `status`, `workflow_name`, `entity_name`, `unit_of_work_name` | Confirmation with new entry **reference** |
+| **`create_inbox_entry`** | Create a learning signal | `title`, `body`, `routing_type`; optional `source`, `status`, `weight`, `workflow_name`, `entity_name`, `unit_of_work_name` | Confirmation with new entry **reference** |
 | **`create_inbox_cluster`** | Consolidate related entries | `inbox_entry_references`, `cluster_title`, `cluster_description` | Confirmation with new cluster **reference** (BRA413) |
 | **`list_inbox_entries`** | List entries (optional filters) | `status`, `routing_type`, `count` | CSV keyed by `Reference` |
 | **`get_inbox_entry`** | Full entry + tasks | `inbox_entry_reference` | Markdown |
-| **`update_inbox_entry`** | Status, routing type, title, and/or body | `inbox_entry_reference`, `status`, `routing_type`, `title`, `body` | Confirmation |
+| **`update_inbox_entry`** | Status, routing type, title, body, and/or absolute weight | `inbox_entry_reference`, `status`, `routing_type`, `title`, `body`, `weight` | Confirmation |
 | **`list_inbox_tasks`** | Tasks for one entry | `inbox_entry_reference` | CSV keyed by `Reference` |
 | **`add_inbox_task`** | Create a task | `inbox_entry_reference`, `workflow_code`, `instructions`, optional `assigned_to` | Confirmation with new task reference |
 | **`update_inbox_task`** | Status / action; approve | `inbox_task_reference`, `status`, `action` | Confirmation |
@@ -62,10 +62,8 @@ Intended flows:
 
 - **Learning evals:** `create_inbox_entry` (once per learning, with source-context
   metadata when available) then `set_run_grading` (BRA406 / BRA207)
-- **Triage / review:** classify intake first. Operator-provided documents,
-  emails, and transcripts skip clustering and get apply tasks immediately.
-  Eval learnings (`WF-EVAL-RUN` / `EVAL`) list entries → cluster related
-  signals (`create_inbox_cluster`, BRA413) when a pattern exists → add tasks.
+- **Triage / review:** list entries → get entry → cluster related signals
+  (`create_inbox_cluster`, BRA413) or overwrite title/body → list/add/update tasks
 
 ---
 
@@ -75,12 +73,14 @@ Intended flows:
 |---|---|---|
 | `create_inbox_entry` | `title`, `body`, `routing_type` | Required |
 | `create_inbox_entry` | `source` | Optional producing-system label |
+| `create_inbox_entry` | `weight` | Optional positive integer. Defaults to 1 when omitted |
 | `create_inbox_entry` | `workflow_name`, `entity_name`, `unit_of_work_name` | Optional source-context labels for triage grouping (BRA323) |
 | `create_inbox_cluster` | `inbox_entry_references` | Required; comma-separated, at least two |
 | `create_inbox_cluster` | `cluster_title`, `cluster_description` | Required |
 | `list_inbox_entries` | `status`, `routing_type`, `count` | All optional; see below |
 | `get_inbox_entry` | `inbox_entry_reference` | Required |
-| `update_inbox_entry` | `inbox_entry_reference` | Required; plus at least one of `status`, `routing_type`, `title`, `body` |
+| `update_inbox_entry` | `inbox_entry_reference` | Required; plus at least one of `status`, `routing_type`, `title`, `body`, `weight` |
+| `update_inbox_entry` | `weight` | Optional positive integer. Sets this entry's absolute weight. Omit to leave it unchanged. Does not recalculate cluster weight |
 | `list_inbox_tasks` | `inbox_entry_reference` | Required |
 | `add_inbox_task` | `inbox_entry_reference` | Required |
 | `add_inbox_task` | `workflow_code` | Optional — workflow **code**, not id |
@@ -102,13 +102,14 @@ API key, no localhost.
 
 Required: `title`, `body`, `routing_type` (`SKILL_UPDATE`, `WORKFLOW_UPDATE`,
 `TOOL_UPDATE`, `MEMORY_UPDATE`, `SYSTEM_CHANGE`, or a brain-defined value).
-Optional: `source`, `status`, and source-context labels for triage grouping:
+Optional: `source`, `status`, `weight` (positive integer, default 1), and source-context labels for triage grouping:
 
 | Parameter | Notes |
 | --- | --- |
 | `workflow_name` | Subject workflow **code**. When omitted on a run eval, filled from the subject run |
 | `entity_name` | Entity name. When omitted, filled from the subject run (or the eval run's entity) |
 | `unit_of_work_name` | Unit-of-work **title**. When omitted, filled from the subject run (or the eval run's unit of work) |
+| `weight` | Absolute signal weight. Omit for the default of 1. Stored before stage-1 trigger matching |
 
 On a `workflowrun:complete` eval, omit these three — `create_inbox_entry` copies
 them from the run being graded. They are also present on `{{run.telemetry}}`.
@@ -179,12 +180,20 @@ reference), full body, and a task list (each task by **reference**, with
 ## `update_inbox_entry`
 
 Requires `inbox_entry_reference` and at least one of `status`, `routing_type`,
-`title`, or `body`. Entry lifecycle is `PENDING → PROCESSED → COMPLETED`.
-Terminal `COMPLETED` cannot be overwritten.
+`title`, `body`, or `weight`. A call that sets only `weight` succeeds. Entry
+lifecycle is `PENDING → PROCESSED → COMPLETED`. Terminal `COMPLETED` cannot be
+overwritten.
 
 `title` (max 500) and `body` are plain overwrites when supplied. Prepend the
 previous body yourself when consolidating history — the tool does not keep a
 revision log.
+
+`weight` is an optional absolute positive integer (1 or greater). It is written
+to this entry's `Weight` before the tool returns, so a following
+`add_inbox_task` reads the new value at stage 2. Omit `weight` to leave the
+stored weight unchanged. The confirmation states the weight that was saved.
+Cluster weight is the sum of source weights taken when the cluster was created
+and is not recalculated here.
 
 ## `list_inbox_tasks`
 

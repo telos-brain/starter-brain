@@ -1,0 +1,31 @@
+name: update_uow_data
+version: 1
+description: >-
+  Updates the body of a unit-of-work data entry on the active unit of work using
+  str_replace. Provide uow_data_reference plus str_replace_old /
+  str_replace_new. str_replace_old must match exactly once (exact match first;
+  whitespace-tolerant fallback if exact finds zero).
+system:
+  tool: update_uow_data
+parameters:
+  - name: uow_data_reference
+    param: uow_data_reference
+    description: >-
+      Required. The 8-character lowercase alphanumeric reference of the data
+      entry to update.
+    type: string
+    required: true
+  - name: str_replace_old
+    param: str_replace_old
+    description: >-
+      Required. The exact text to find in the current body. Must match exactly
+      once — include enough surrounding context to be unique.
+    type: string
+    required: true
+  - name: str_replace_new
+    param: str_replace_new
+    description: >-
+      Required. The replacement text. Use an empty string to delete the matched
+      text.
+    type: string
+    required: true

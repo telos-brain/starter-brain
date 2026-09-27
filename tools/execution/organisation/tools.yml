@@ -1,0 +1,10 @@
+# Tool group: Organisation member listing and InboxTask assignment (BRA191 /
+# BRA408). Scoped to the Brain's Organisation via harness BrainId.
+name: Organisation
+description: >-
+  System tools for listing active Organisation members and assigning InboxTasks
+  to members by email. Identity for tasks is by 8-character reference — never
+  UUID. Organisation scope is harness-injected.
+tools:
+  - ./list-users.yml
+  - ./assign-task-to-user.yml

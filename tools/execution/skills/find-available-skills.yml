@@ -1,6 +1,10 @@
 name: find_available_skills
 version: 2
-description: Always search for relevant skills before starting a task.  This tool returns a list of tool names, codes and descriptions.  Use this information to identify relevant skills and then load the full skill using get_skill.
+description: >-
+  Searches skills by semantic relevance and returns the top matches (code,
+  name, description). Always search before starting a task, then load the
+  full skill with get_skill. Use list_skills when you need the full catalogue
+  for a SkillBook.
 system:
   tool: find_available_skills
 parameters:

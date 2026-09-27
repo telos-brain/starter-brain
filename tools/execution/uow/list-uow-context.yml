@@ -1,0 +1,10 @@
+name: list_uow_context
+version: 1
+description: >-
+  Lists narrative context entries on the currently active unit of work as a CSV
+  summary keyed by reference (Reference, Date, Source, Title, first 200 chars of
+  Message, Tags). Use get_uow_context for full detail. Operates on the active
+  unit of work only.
+system:
+  tool: list_uow_context
+parameters: []

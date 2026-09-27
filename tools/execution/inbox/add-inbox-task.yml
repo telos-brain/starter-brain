@@ -1,29 +1,38 @@
 name: add_inbox_task
-version: 1
+version: 2
 description: >-
-  Creates a PENDING inbox task on an existing entry, optionally linking a
-  workflow by code and storing instructions-only routing intent. Entry content
-  is not copied into the task — triggered workflows read it via
-  {{inboxEntry.*}}.
+  Creates a new task under an inbox entry, optionally targeting a workflow (by
+  code) and optionally assigning an Organisation member. The task is created
+  with status PENDING. Provide the parent inbox_entry_reference; workflow_code,
+  instructions, and assigned_to are optional.
 system:
   tool: add_inbox_task
 parameters:
   - name: inbox_entry_reference
     param: inbox_entry_reference
     description: >-
-      Required. The 8-character reference of the parent inbox entry
-      (e.g. from {{inboxEntry.reference}}). Never pass a UUID.
+      Required. The 8-character lowercase alphanumeric reference of the parent
+      inbox entry.
     type: string
     required: true
   - name: workflow_code
     param: workflow_code
     description: >-
-      Optional. Workflow code to run when this task executes
-      (e.g. "WF-UPDATE-SKILL"). Resolved server-side — never pass a workflow id.
+      Optional. Code of the workflow to run when the task is approved (e.g.
+      inbox-triage). Resolved server-side — do not pass a workflow UUID.
     type: string
   - name: instructions
     param: instructions
     description: >-
-      Optional. Short instructions-only action for the linked workflow. Do not
-      paste the entry body here — the workflow already has {{inboxEntry.body}}.
+      Optional. Instructions-only text stored as the task action and passed as
+      the workflow input when it runs. Does not carry the entry body — workflows
+      read the entry via {{inboxEntry.*}} template tags.
     type: string
+  - name: assigned_to
+    param: assigned_to
+    description: >-
+      Optional email address of an active Organisation member to assign the task
+      to. Pass null or omit to leave the task unassigned. See BRA408
+      (list_users / assign_task_to_user).
+    type: string
+

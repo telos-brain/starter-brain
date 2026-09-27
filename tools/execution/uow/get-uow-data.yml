@@ -1,0 +1,16 @@
+name: get_uow_data
+version: 2
+description: >-
+  Retrieves a single unit-of-work data entry by its 8-character reference,
+  including full body, tags, and effort. Use after list_uow_data. Operates on
+  the active unit of work only.
+system:
+  tool: get_uow_data
+parameters:
+  - name: uow_data_reference
+    param: uow_data_reference
+    description: >-
+      Required. The 8-character lowercase alphanumeric reference of the data
+      entry to retrieve.
+    type: string
+    required: true

@@ -1,0 +1,69 @@
+# Example / declared definition for the create_schema_file system tool
+# (BRA143 / BRA144). BrainId is harness-injected and must never appear as a
+# parameter. Prefer create_skill when creating skills with auto-assigned codes.
+name: create_schema_file
+version: 1
+description: >-
+  Creates a schema file at the given path with full file content. Supports
+  workflows/{code}.md (optional folders, e.g. workflows/jobs/{code}.md),
+  tools/{group}/{name}.yml (group folder created if missing),
+  skills/{book}/{code}-{title}.md (optional category folders), and
+  blueprints/{code}/{title}.md. Routes through deploy parsing, validation,
+  and version precedence; omit version to default to 1. On success, names the
+  generated manifests (brain-compose.yml, tools.yml, …) that now include the
+  file — do not edit those. Prefer create_skill for high-frequency skill
+  creation.
+system:
+  tool: create_schema_file
+parameters:
+  - name: path
+    param: path
+    description: >-
+      Required. Schema file path, e.g. "workflows/wf-example.md",
+      "workflows/jobs/review.md", "tools/core/my-tool.yml",
+      "skills/telos-brain/BRA209-My-Skill.md", or
+      "blueprints/product-brain/my-entry.md". Extra folders are created
+      automatically. Not accepted: generated manifests.
+    type: string
+    required: true
+  - name: content
+    param: content
+    description: >-
+      Required. Full file content (YAML, or markdown with YAML frontmatter).
+      Omit version to default to 1. Match the format for the path's file type
+      (see BRA217 / BRA214 / BRA215 / BRA216).
+    type: string
+    required: true
+
+# Success names the created resource and the generated manifests that now
+# list it. The C# tool already returns that confirmation as result.result.
+response-markdown: |
+  {{result.result}}
+
+  Do not create or edit generated manifests. Path type formats: **BRA217**
+  (workflows), **BRA214** (tools), **BRA215** (skills), **BRA216**
+  (blueprints). Schema system tools: **BRA203**.
+
+# On error, point the agent at the skills that define each file type's format.
+error-markdown: |
+  Could not create schema file: {{result.result}}
+
+  Load the skill for the file type you are creating (`get_skill`), then fix the
+  path/content and retry:
+
+  | Path pattern | Format skill |
+  |---|---|
+  | `workflows/{code}.md` or `workflows/{folder}/{code}.md` | **BRA217** (workflow frontmatter + markdown body) |
+  | `tools/{group}/{name}.yml` | **BRA214** (tool YAML). Creating the tool file creates the group; do not edit `tools.yml` |
+  | `skills/{book}/{code}-{title}.md` | Prefer **`create_skill`**. Else **BRA215** + **BRA208** (category ranges) |
+  | `blueprints/{code}/{title}.md` | **BRA216** (entry frontmatter needs `category` + `name`) |
+
+  Also load:
+
+  - **BRA203** — Schema System Tools (supported paths, create vs update, version conflicts)
+  - **BRA204** — Template Tag Taxonomy (if the file uses `{{…}}` tags)
+
+  Rejected paths: `brain-compose.yml` and generated manifests
+  (`tools/*/tools.yml`, `skills/*/skillbook.yml`, `blueprints/*/blueprint.yml`).
+  Do **not** pass `brain_id`. On version conflict, bump `version` above the
+  stored value or use `update_schema_file` for an edit.

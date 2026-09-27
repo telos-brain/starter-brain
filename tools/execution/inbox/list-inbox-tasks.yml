@@ -1,15 +1,16 @@
 name: list_inbox_tasks
 version: 1
 description: >-
-  Lists tasks for one inbox entry as CSV keyed by Reference. Use before adding
-  a task to avoid duplicates.
+  Lists the tasks belonging to a single inbox entry (identified by
+  inbox_entry_reference), oldest first. Returns a CSV summary keyed by
+  reference. This lists tasks for one entry only, not across the whole brain.
 system:
   tool: list_inbox_tasks
 parameters:
   - name: inbox_entry_reference
     param: inbox_entry_reference
     description: >-
-      Required. The 8-character reference of the parent inbox entry. Never pass
-      a UUID.
+      Required. The 8-character lowercase alphanumeric reference of the parent
+      inbox entry whose tasks to list.
     type: string
     required: true

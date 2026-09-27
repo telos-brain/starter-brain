@@ -1,0 +1,33 @@
+# Tool definition: self-contained description of a single brain tool.
+# The owning group is defined by the tools.yml in this folder.
+name: transcribe_image
+version: 1.0
+description: >-
+  Loads an image from a URL and returns the transcribed text via the brain's
+  vision transcription service (Claude or OpenAI). Provide an optional prompt
+  to guide what to extract; omit it to transcribe all visible text with no
+  commentary.
+
+# This is a system tool: it is executed by an in-brain system tool rather than an
+# external API or MCP server. Parameters map to the system tool's own params.
+system:
+  tool: transcribe_image
+
+parameters:
+  - name: url
+    param: url
+    description: >-
+      Required. HTTPS URL of the image to transcribe (png, jpg, jpeg, or webp).
+    type: string
+    required: true
+  - name: prompt
+    param: prompt
+    description: >-
+      Optional. Instruction for the vision model describing what to extract.
+      When omitted, all visible text is transcribed with no commentary.
+    type: string
+
+on-error: |
+  Confirm the URL is a public HTTPS image (png, jpg, jpeg, or webp) and that
+  this brain has ANTHROPIC_API_KEY or OPENAI_API_KEY (or a transcription-model
+  in Brain Settings). Private, loopback, and metadata addresses are blocked.

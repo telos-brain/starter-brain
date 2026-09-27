@@ -2,8 +2,8 @@ name: get_sample_tool_results
 version: 1
 description: >-
   Returns historical tool call/response pairs for a tool name from the
-  simulation source Brain, as XML <tool_call> blocks. Used by the SIMULATION
-  workflow to synthesise a plausible simulated tool response.
+  simulation source Brain, as XML <tool_call> blocks. Used by WF-SIM to
+  synthesise a plausible simulated tool response.
 system:
   tool: get_sample_tool_results
 parameters:

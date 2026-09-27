@@ -5,7 +5,7 @@ description: >-
   Autonomously applies learnings to workflow instructions and tool definitions
   (create or update). Triggered for WORKFLOW_UPDATE and TOOL_UPDATE at high
   learning mode when inbox weight is 5 or higher.
-version: 8
+version: 10
 
 # :high:5 gates Stage 1 (task create) and Stage 2 (auto-run on the parent
 # entry's current Weight). Below weight 5, triage-created tasks park at

@@ -1,0 +1,10 @@
+name: list_users
+version: 1
+description: >-
+  Lists all active Organisation members for the current Brain's Organisation.
+  Returns a CSV with columns name, email, and role (the free-text profile
+  description; empty when unset). Use this to discover who can be assigned
+  InboxTasks. No parameters — Organisation is resolved from the harness BrainId.
+system:
+  tool: list_users
+parameters: []

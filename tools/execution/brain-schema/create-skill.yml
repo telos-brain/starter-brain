@@ -1,0 +1,65 @@
+# Example / declared definition for the create_skill system tool (BRA142 / BRA144).
+# BrainId is harness-injected and must never appear as a parameter.
+name: create_skill
+version: 1
+description: >-
+  Creates a new skill in an existing SkillBook category and returns the
+  auto-assigned skill code (e.g. TS404). Prefer this over create_schema_file when
+  you only need a new skill — it resolves the category by title and assigns the
+  next code. On failure, load BRA203 (schema tools) and BRA208 (skill-book design)
+  / BRA215 (skill file format) before retrying.
+system:
+  tool: create_skill
+parameters:
+  - name: skillbook_code
+    param: skillbook_code
+    description: >-
+      Required. The code of the target SkillBook (e.g. "BRA", "TS", "ENG").
+    type: string
+    required: true
+  - name: category_title
+    param: category_title
+    description: >-
+      Required. The title of an existing category in that SkillBook
+      (case-insensitive), e.g. "Brain Schema" or "Run".
+    type: string
+    required: true
+  - name: title
+    param: title
+    description: Required. Human-readable title of the new skill.
+    type: string
+    required: true
+  - name: description
+    param: description
+    description: >-
+      Required. Brief description of when and how to use the skill.
+    type: string
+    required: true
+  - name: content
+    param: content
+    description: >-
+      Required. Full markdown instruction body of the skill (no YAML frontmatter
+      required — the tool stores title/description/content as fields).
+    type: string
+    required: true
+
+# Success returns the new skill code as plain text (e.g. BRA209).
+response-markdown: |
+  Skill created with code **{{result.result}}**.
+
+  Load it with `get_skill` using that code. For skill-book structure and category
+  ranges see skill **BRA208**; for skill file format see **BRA215**.
+
+# On error, point the agent at the skills that define correct skill authoring.
+error-markdown: |
+  Could not create skill: {{result.result}}
+
+  Before retrying, load the relevant skills with `get_skill`:
+
+  - **BRA203** — Schema System Tools (`create_skill` parameters and when to use it)
+  - **BRA208** — Designing Skill Books (categories, ranges, prefixes)
+  - **BRA215** — Skills File Format (skillbook.yml and skill markdown)
+  - **BRA103** — What is a Skill Book (concepts)
+
+  Do **not** pass `brain_id` — it is harness-injected. Confirm `skillbook_code`
+  and `category_title` match an existing book/category from the catalogue.

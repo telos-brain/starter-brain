@@ -1,0 +1,26 @@
+# Tool definition: self-contained description of a single brain tool.
+# The owning group is defined by the tools.yml in this folder.
+name: list_skills
+version: 1.0
+description: >-
+  Lists every active skill in a SkillBook as CSV with columns
+  code,name,description. Use when you need the full catalogue for a book;
+  use find_available_skills for semantic search, and get_skill to load a
+  skill's full instructions.
+
+# This is a system tool: it is executed by an in-brain system tool rather than an
+# external API or MCP server. Parameters map to the system tool's own params.
+system:
+  tool: list_skills
+
+parameters:
+  - name: skillbook_code
+    param: skillbook_code
+    description: >-
+      Required. The code of the SkillBook to list (e.g. "BRA", "ENG").
+    type: string
+    required: true
+
+on-error: |
+  Before retrying, load the relevant skill with `get_skill`:
+  - **BRA411** — Skill Discovery System Tools (`list_skills` parameters and when to use it)

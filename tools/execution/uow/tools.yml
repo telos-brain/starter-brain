@@ -1,0 +1,16 @@
+# Tool group: in-brain unit-of-work context/data system tools (BRA090 / BRA407).
+# Identity is always by 8-character reference — never UUID. All tools operate on
+# the harness-injected active Unit of Work (no unit-of-work parameter).
+name: Unit of work
+description: >-
+  System tools for adding, listing, reading and updating context and data
+  entries on the currently active unit of work. Entries are addressed by short
+  alphanumeric references.
+tools:
+  - ./add-uow-context.yml
+  - ./add-uow-data.yml
+  - ./update-uow-data.yml
+  - ./list-uow-context.yml
+  - ./list-uow-data.yml
+  - ./get-uow-context.yml
+  - ./get-uow-data.yml

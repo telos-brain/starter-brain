@@ -1,29 +1,33 @@
 name: update_inbox_entry
-version: 2
+version: 3
 description: >-
-  Updates an inbox entry's status, routing type, title, and/or body. Status
-  transitions are forward-only. Identify the entry by reference — never by UUID.
-  Title and body are plain overwrites; prepend previous body yourself when
-  consolidating entries.
+  Updates an inbox entry's status, routing type, title, body, and/or absolute
+  weight. Status transitions are forward-only. Identify the entry by reference
+  — never by UUID. Title and body are plain overwrites; prepend previous body
+  yourself when consolidating entries. Weight replaces the stored weight on
+  this entry only; cluster weight is not recalculated.
 system:
   tool: update_inbox_entry
 parameters:
   - name: inbox_entry_reference
     param: inbox_entry_reference
     description: >-
-      Required. The 8-character inbox entry reference. Never pass a UUID.
+      Required. The 8-character lowercase alphanumeric reference of the inbox
+      entry to update.
     type: string
     required: true
   - name: status
     param: status
     description: >-
-      Optional. Forward-only status: PENDING, PROCESSED, or COMPLETED.
+      Optional. New status (forward progression): PENDING → PROCESSED →
+      COMPLETED. At least one of status, routing_type, title, body, or weight
+      is required.
     type: string
   - name: routing_type
     param: routing_type
     description: >-
-      Optional. Routing classification such as SKILL_UPDATE, WORKFLOW_UPDATE,
-      TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
+      Optional. Override routing type (e.g. SKILL_UPDATE). At least one of
+      status, routing_type, title, body, or weight is required.
     type: string
   - name: title
     param: title
@@ -36,6 +40,14 @@ parameters:
     param: body
     description: >-
       Optional. Full signal content in Markdown. Overwrites the existing body
-      when supplied. Prepend previous content yourself when history must be
-      preserved. Omit to leave the body unchanged.
+      when supplied. Callers are responsible for prepending previous content
+      before overwriting when history must be preserved. Omit to leave the
+      body unchanged.
+    type: string
+  - name: weight
+    param: weight
+    description: >-
+      Optional. Absolute signal weight as a positive integer (1 or greater).
+      Replaces the stored weight on this entry when supplied. Omit to leave
+      the stored weight unchanged. Does not recalculate a cluster's weight.
     type: string

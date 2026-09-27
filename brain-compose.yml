@@ -1,7 +1,8 @@
 name: Starter Brain
 description: >-
   A clean starter brain schema with the Telos Brain skillbook, execution tools
-  (skills, memory, Q&A) and management tools (schema maintenance).
+  (skills, memory, Q&A, inbox, organisation, unit of work, brain schema) and
+  management tools (schema list/read/edit).
 
 # Embedding model for semantic search (find_available_skills, blueprint search).
 # The API key comes from this brain's own .env (VOYAGE_API_KEY for voyage-*).
@@ -61,13 +62,18 @@ connectors:
   - connectors/my-app.yml
 
 # Tools are split into execution (runtime) and management (brain maintenance).
+# Unlisted tool-group manifests are not deployed. Tool names must be unique
+# across groups.
 tools:
   - tools/execution/skills/tools.yml
   - tools/execution/memory/tools.yml
   - tools/execution/qa/tools.yml
   - tools/execution/native/tools.yml
   - tools/execution/inbox/tools.yml
+  - tools/execution/organisation/tools.yml
+  - tools/execution/uow/tools.yml
   - tools/execution/simulation/tools.yml
+  - tools/execution/brain-schema/tools.yml
   - tools/execution/my-app/tools.yml
   - tools/management/schema/tools.yml
 

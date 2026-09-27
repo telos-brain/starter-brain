@@ -1,0 +1,46 @@
+name: add_uow_data
+version: 2
+description: >-
+  Adds a structured data entry to the currently active unit of work (source,
+  type, body). Optional date, comma-separated tags, and effort in seconds.
+  Operates on the active unit of work only — no unit-of-work reference is
+  required. Returns the new entry's 8-character reference.
+system:
+  tool: add_uow_data
+parameters:
+  - name: source
+    param: source
+    description: >-
+      Required. Free-form label for the producing actor (e.g. agent, tool,
+      system).
+    type: string
+    required: true
+  - name: type
+    param: type
+    description: >-
+      Required. Payload category key used by eval queries (e.g. tool_trace,
+      snapshot).
+    type: string
+    required: true
+  - name: body
+    param: body
+    description: Required. Structured payload body (often JSON or markdown).
+    type: string
+    required: true
+  - name: date
+    param: date
+    description: >-
+      Optional. Event timestamp as an ISO-8601 UTC string. Defaults to now when
+      omitted.
+    type: string
+  - name: tags
+    param: tags
+    description: >-
+      Optional. Comma-separated tags stored with the entry (e.g. "trace,retry").
+    type: string
+  - name: effort
+    param: effort
+    description: >-
+      Optional. Effort in seconds (integer). Accepts a number or numeric string.
+      Stored as-is; omit for null.
+    type: string

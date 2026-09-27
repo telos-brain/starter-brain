@@ -1,15 +1,18 @@
+# Tool group: in-brain inbox / learning-loop system tools (BRA038 / BRA084 /
+# BRA405 / BRA406). Identity is always by 8-character reference — never UUID.
+# Paths are relative to this folder.
 name: Inbox
 description: >-
-  System tools for the learning-signal inbox — create entries, cluster related
-  entries, list/read/update entries and tasks, route work by adding
-  workflow-linked tasks, and persist run grading scores from eval workflows.
+  System tools for creating, listing, reading and updating inbox entries and
+  their tasks, plus recording a run quality grade. Entries, tasks and runs are
+  addressed by short alphanumeric references.
 tools:
-  - create-inbox-entry.yml
-  - create-inbox-cluster.yml
-  - list-inbox-entries.yml
-  - get-inbox-entry.yml
-  - update-inbox-entry.yml
-  - list-inbox-tasks.yml
-  - add-inbox-task.yml
-  - update-inbox-task.yml
-  - set-run-grading.yml
+  - ./list-inbox-entries.yml
+  - ./get-inbox-entry.yml
+  - ./create-inbox-entry.yml
+  - ./create-inbox-cluster.yml
+  - ./update-inbox-entry.yml
+  - ./list-inbox-tasks.yml
+  - ./add-inbox-task.yml
+  - ./update-inbox-task.yml
+  - ./set-run-grading.yml

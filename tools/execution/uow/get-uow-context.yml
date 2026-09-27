@@ -1,0 +1,16 @@
+name: get_uow_context
+version: 1
+description: >-
+  Retrieves a single unit-of-work context entry by its 8-character reference,
+  including full message and tags. Use after list_uow_context. Operates on the
+  active unit of work only.
+system:
+  tool: get_uow_context
+parameters:
+  - name: uow_context_reference
+    param: uow_context_reference
+    description: >-
+      Required. The 8-character lowercase alphanumeric reference of the context
+      entry to retrieve.
+    type: string
+    required: true

@@ -1,0 +1,38 @@
+name: add_uow_context
+version: 1
+description: >-
+  Adds a narrative context entry to the currently active unit of work (title,
+  message, source). Optional date and comma-separated tags. Operates on the
+  active unit of work only — no unit-of-work reference is required. Returns the
+  new entry's 8-character reference.
+system:
+  tool: add_uow_context
+parameters:
+  - name: title
+    param: title
+    description: Required. Short title for the context entry.
+    type: string
+    required: true
+  - name: message
+    param: message
+    description: Optional. Longer narrative body for the context entry.
+    type: string
+  - name: source
+    param: source
+    description: >-
+      Required. Free-form label for the producing actor (e.g. agent, tool, user,
+      system).
+    type: string
+    required: true
+  - name: date
+    param: date
+    description: >-
+      Optional. Event timestamp as an ISO-8601 UTC string. Defaults to now when
+      omitted.
+    type: string
+  - name: tags
+    param: tags
+    description: >-
+      Optional. Comma-separated tags stored with the entry (e.g.
+      "decision,customer").
+    type: string

@@ -1,10 +1,12 @@
 name: list_inbox_entries
-version: 3
+version: 4
 description: >-
-  Lists this brain's inbox entries (learning signals). Defaults to open entries
-  (PENDING and PROCESSED), highest Weight first, limited to 50. Returns a CSV
-  summary keyed by reference; use get_inbox_entry for an entry's full body and
-  tasks.
+  Lists this brain's inbox entries (learning signals). Defaults to open,
+  unclustered entries (PENDING and PROCESSED), highest Weight first, limited
+  to 50. Clustered source entries are omitted. Returns a count line plus a CSV
+  summary keyed by reference (Reference, Date, Title, Source, WorkflowName,
+  EntityName, UnitOfWorkName, Weight); use get_inbox_entry for an entry's
+  full body and tasks.
 system:
   tool: list_inbox_entries
 parameters:

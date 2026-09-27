@@ -1,0 +1,10 @@
+name: list_uow_data
+version: 2
+description: >-
+  Lists structured data entries on the currently active unit of work as a CSV
+  summary keyed by reference (Reference, Date, Source, Type, first 200 chars of
+  Body, Tags, Effort). Use get_uow_data for full detail. Operates on the active
+  unit of work only.
+system:
+  tool: list_uow_data
+parameters: []

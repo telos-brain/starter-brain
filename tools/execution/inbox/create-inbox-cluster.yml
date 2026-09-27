@@ -1,11 +1,11 @@
 name: create_inbox_cluster
 version: 2
 description: >-
-  Consolidates two or more related inbox entries (no upper limit) into a
-  single PROCESSED cluster entry. Pass comma-separated source references, a
-  cluster title, and a cluster description. Source entries become COMPLETED
-  and their open tasks are cancelled. Add apply tasks to the new cluster
-  reference immediately.
+  Consolidates related inbox entries into a single cluster entry. Pass
+  comma-separated source references, a cluster title, and a cluster
+  description. Already-completed or already-clustered references are ignored.
+  Remaining sources become COMPLETED and leave the open inbox. The new cluster
+  is PROCESSED.
 system:
   tool: create_inbox_cluster
 parameters:
@@ -13,7 +13,7 @@ parameters:
     param: inbox_entry_references
     description: >-
       Required. Comma-separated 8-character lowercase alphanumeric references of
-      the inbox entries to cluster (two or more; no upper limit).
+      the inbox entries to cluster (at least two).
     type: string
     required: true
   - name: cluster_title

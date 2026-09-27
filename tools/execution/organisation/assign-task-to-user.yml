@@ -1,0 +1,24 @@
+name: assign_task_to_user
+version: 1
+description: >-
+  Assigns an InboxTask to an active Organisation member by email. Provide
+  task_reference and email. Returns an error if the email is not an active
+  member of the Brain's Organisation. Assignment is storage-only (no
+  notification).
+system:
+  tool: assign_task_to_user
+parameters:
+  - name: task_reference
+    param: task_reference
+    description: >-
+      Required. The 8-character lowercase alphanumeric reference of the
+      InboxTask to assign.
+    type: string
+    required: true
+  - name: email
+    param: email
+    description: >-
+      Required. Email address of an active Organisation member to assign the
+      task to.
+    type: string
+    required: true

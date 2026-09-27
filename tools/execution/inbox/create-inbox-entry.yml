@@ -1,12 +1,17 @@
 name: create_inbox_entry
-version: 2
+version: 6
 description: >-
   Creates a single inbox entry recording one learning signal. Call this once per
-  learning. Provide title, body, and routing_type; source, status, workflow_name,
-  entity_name, and unit_of_work_name are optional. Status defaults to PENDING
-  (fires inbox triggers, then auto-promotes to PROCESSED). Pass status PROCESSED
-  to skip entry-create triggers when tasks will be added directly via
-  add_inbox_task.
+  learning. Provide title, body, and routing_type; source, status, weight,
+  workflow_name, entity_name, and unit_of_work_name are optional. Weight
+  defaults to 1; pass a positive integer to override it. When those three names
+  are omitted during a run eval they are taken from the subject run (workflow
+  code, entity name, unit-of-work title). Status defaults to PENDING (inbox
+  triggers fire, then the entry becomes PROCESSED). Pass status=PROCESSED to
+  create without firing inbox triggers — preferred when the entry is only a
+  grading finding for set_run_grading. Depth defaults to 1; when this tool runs
+  from a workflow whose run is linked to an inbox entry (entry/task-triggered),
+  Depth is set to that parent entry's Depth + 1.
 system:
   tool: create_inbox_entry
 parameters:
@@ -25,9 +30,8 @@ parameters:
   - name: routing_type
     param: routing_type
     description: >-
-      Required. Where the learning should be routed. One of: SKILL_UPDATE,
-      WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, SYSTEM_CHANGE, or a
-      brain-defined value such as EVAL.
+      Required. Where the learning should be routed after human review. One of:
+      SKILL_UPDATE, WORKFLOW_UPDATE, TOOL_UPDATE, MEMORY_UPDATE, or SYSTEM_CHANGE.
     type: string
     required: true
   - name: source
@@ -38,8 +42,8 @@ parameters:
   - name: status
     param: status
     description: >-
-      Optional. PENDING (default — fires inbox entry triggers) or PROCESSED
-      (skip entry-create triggers; use when attaching tasks via add_inbox_task).
+      Optional. PENDING (default) runs inbox trigger matching then auto-promotes
+      to PROCESSED. PROCESSED creates the entry without firing inbox triggers.
     type: string
   - name: workflow_name
     param: workflow_name
@@ -55,4 +59,10 @@ parameters:
     param: unit_of_work_name
     description: >-
       Optional. The name of the unit of work the subject workflow ran against.
+    type: string
+  - name: weight
+    param: weight
+    description: >-
+      Optional. Absolute signal weight as a positive integer. Defaults to 1
+      when omitted.
     type: string
