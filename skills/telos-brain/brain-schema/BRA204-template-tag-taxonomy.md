@@ -447,13 +447,14 @@ Template-scope resolution (EntityId only — UnitOfWork is not consulted):
 
 | Path | Iteration | Fields |
 | --- | --- | --- |
-| `blueprint` | — | `blueprint.name`, `blueprint.description` |
+| `blueprint` | — | `blueprint.code`, `blueprint.name`, `blueprint.description` |
 | `blueprint.categories` | `{{#blueprint.categories}}...{{/blueprint.categories}}` | `category.name`, `category.description`, `category.entries` |
 | `category.entries` | `{{#category.entries}}...{{/category.entries}}` | `entry.title`, `entry.version`, `entry.category` |
 | `blueprint.entries` | `{{#blueprint.entries}}...{{/blueprint.entries}}` | `entry.title`, `entry.version`, `entry.category` |
 
 Notes:
 
+- `blueprint.code` is the folder name (for example `company`, `crm`, `jobs`). `blueprint.name` is the title (for example Company, CRM, Job). Pass `blueprint.code` as the `blueprint` argument on the memory tools when a tier has more than one blueprint.
 - `category.entries` and `blueprint.entries` share the **same entry field names**.
 - `entry.category` is the parent category **name** (string), not a nested object.
 - `entry.version` is the entry's centrality integer (default `1`).
@@ -501,7 +502,7 @@ Notes:
 
 | Path | Iteration | Fields |
 | --- | --- | --- |
-| `blueprints` | `{{#blueprints}}...{{/blueprints}}` | `blueprint.name`, `blueprint.description`, `blueprint.categories`, `blueprint.entries` |
+| `blueprints` | `{{#blueprints}}...{{/blueprints}}` | `blueprint.code`, `blueprint.name`, `blueprint.description`, `blueprint.categories`, `blueprint.entries` |
 | `blueprint.categories` | `{{#blueprint.categories}}...{{/blueprint.categories}}` | `category.name`, `category.description`, `category.entries` |
 | `category.entries` / `blueprint.entries` | same as §3.7 | `entry.title`, `entry.version`, `entry.category` |
 
@@ -511,7 +512,7 @@ Inside the loop the current item is bound as `blueprint`, so the category and en
 
 ```markdown
 {{#blueprints}}
-# {{blueprint.name}}
+# {{blueprint.name}} (`{{blueprint.code}}`)
 {{blueprint.description}}
 
 {{#blueprint.categories}}
@@ -688,8 +689,8 @@ Notes:
 | `now` | — | `utcDate`, `utcTime`, `utcDayOfWeek`, `localDate`, `localTime`, `localDayOfWeek` |
 | `result` | — | `{anyKey}` (flat) |
 | `input` | — | `{key}` (flat; Execution API `variables` + workflow-tool / `run_workflow` params) |
-| `blueprint` | `.categories` → `.entries`; `.entries` | `blueprint.name/description`; `category.name/description`; `entry.title/version/category` |
-| `blueprints` | root → `.categories` → `.entries`; `.entries` | `blueprint.name/description`; `category.name/description`; `entry.title/version/category` |
+| `blueprint` | `.categories` → `.entries`; `.entries` | `blueprint.code/name/description`; `category.name/description`; `entry.title/version/category` |
+| `blueprints` | root → `.categories` → `.entries`; `.entries` | `blueprint.code/name/description`; `category.name/description`; `entry.title/version/category` |
 | `inboxEntry` | — | `reference`, `date`, `source`, `title`, `body`, `status`, `routingType` |
 | `inboxTasks` | root | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
 | `task` | — | `reference`, `action`, `response`, `status`, `workflowCode`, `expertOpinion` |
