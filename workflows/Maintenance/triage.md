@@ -10,7 +10,7 @@ description: >-
   fixes, brain self-management, and research asks to the matching workflows,
   and creates review_blueprint tasks for clear category matches — without
   repeating the entry body into maintenance task instructions.
-version: 15
+version: 16
 
 type: TRIGGERED
 trigger: inbox:*
@@ -103,13 +103,20 @@ destinations into a single task.
 
 ## Blueprint categories
 
-Categories in the current scope (entity-scoped when an entity is present on the
-run; otherwise brain-global). Use **only** these for blueprint tasks:
+Blueprints in the current scope (entity-scoped when an entity is present on the
+run; otherwise brain-global). Use **only** these blueprints and categories for
+blueprint tasks:
 
 <blueprint_categories>
+{{#blueprints}}
+### {{blueprint.name}}
+{{blueprint.description}}
+
 {{#blueprint.categories}}
 - **{{category.name}}** — {{category.description}}
 {{/blueprint.categories}}
+
+{{/blueprints}}
 </blueprint_categories>
 
 ## Intake class
@@ -290,7 +297,8 @@ standalone learning. Continue with existing routing unmodified.
 
 Detect **domain concepts** evidenced in the entry that **clearly fit** one of
 the blueprint categories above (vocabulary, processes, client facts, operations,
-finance, etc.). This is memory for the business — not agent-quality improvements.
+finance, etc.). Name the category as listed under its blueprint. This is memory
+for the business — not agent-quality improvements.
 
 - Do **not** force-fit. If nothing clearly matches a category, create **no**
   `WF-REVIEW-BLUEPRINT` tasks for that pass.

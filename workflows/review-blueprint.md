@@ -5,7 +5,7 @@ description: >-
   Applies one blueprint memory write from a review_blueprint inbox task —
   searches for a close match, then either merges into an existing entry or
   creates a new one. Never both.
-version: 4
+version: 5
 
 # Tasks are created by WF-REVIEW-UOW / WF-TRIAGE via add_inbox_task with
 # workflow_code WF-REVIEW-BLUEPRINT. An inbox: trigger with :low enables
@@ -37,7 +37,22 @@ Fully autonomous — do not ask questions or wait for confirmation. Do **not**
 update the inbox entry status.
 
 Blueprint scope (entity vs brain-global) is resolved automatically from the run
-context — never pass scope to tools.
+context — never pass scope to tools. Match the parsed category to one listed
+below.
+
+## Blueprints
+
+<blueprint_categories>
+{{#blueprints}}
+### {{blueprint.name}}
+{{blueprint.description}}
+
+{{#blueprint.categories}}
+- **{{category.name}}** — {{category.description}}
+{{/blueprint.categories}}
+
+{{/blueprints}}
+</blueprint_categories>
 
 ## This task
 
