@@ -350,7 +350,7 @@ max-recursion-depth: 5
 |---|---|---|
 | `output-tokens` | `4096` (one attempt) | Ceiling per attempt. A list (`2048, 4096, 16384`) is ordered retries when a turn stops at `max_tokens`. Failed truncated attempts are still billed. Prefer a short first cap. |
 | `max-turns` | `10` | Tool-use loop cap. The run **Fails** when it is exhausted. Chat (`WF-CHAT`) may need more; a lookup workflow should stay at 3–8. |
-| `thinking` / `thinking-effort` / `thinking-budget` | thinking off | Claude-only at request time (**BRA210** §5). `thinking-effort` is the spend lever — Anthropic bills tokens *generated*, not `output-tokens`. Prefer `adaptive` + `low` over `extended`. |
+| `thinking` / `thinking-effort` / `thinking-budget` | thinking omitted (provider default; Grok `high`) | Applied on every provider (**BRA210** §6). `thinking-effort` is the spend lever — billed tokens *generated*, not `output-tokens`. Omitted `thinking` does not override Grok's default of `high`. `thinking-budget` is Claude and OpenRouter `extended` only. Prefer `adaptive` + `low` over `extended`. |
 | `max-runs-per-hour` | `50` | Rolling-hour cap per workflow. Heartbeats and eval batches set this *up*; user-facing tools should stay low. |
 | `max-recursion-depth` | `5` | Caps `run_workflow` / workflow-tool nesting before a child `WorkflowRun` is created. |
 | `session-timeout` | `30` (minutes) | Closes idle chat sessions so they stop accruing and become eligible for eval (**BRA217**). |

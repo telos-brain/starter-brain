@@ -227,14 +227,15 @@ cloud keys are not used as a silent default.
 
 A workflow may declare fine-grained control over how the conversant runs it.
 All fields below are **optional** and **kebab-case**; omit any of them to keep
-its default. Omitting all of them reproduces the historic behaviour exactly, so
-existing workflows need no changes.
+its default. Omitted `thinking` does not send a reasoning field, so Grok keeps
+its API default of `high`.
 
 `max-turns` and `output-tokens` apply to every supported provider. `caching`
 applies on providers that support prompt caching (Anthropic, xAI); OpenAI
-ignores it. `thinking`, `thinking-budget`, and `thinking-effort` are
-**Claude-oriented** — validated on deploy when present, but ignored at run time
-on OpenAI / xAI (see **BRA210** §5). `auto-compaction` applies on every
+ignores it. `thinking` and `thinking-effort` apply on every provider (see
+**BRA210** §6). `thinking-budget` applies on Anthropic and on OpenRouter
+`extended`; other providers have no thinking token budget. All three are
+validated on deploy. `auto-compaction` applies on every
 provider: Claude uses server-side `compact_20260112`; OpenAI / xAI run the
 brain's `COMPACTION` workflow client-side when the prompt-token threshold is
 reached.
@@ -294,9 +295,12 @@ Notes:
   actually generated, not `output-tokens`, which is only a ceiling). It applies to
   the `adaptive` / `effort` modes and is ignored otherwise. Lower effort thinks
   less — cheaper, faster, and prioritises the response; higher effort reasons more.
-  The `effort` mode defaults to `low`; `adaptive` omits it so Anthropic's API
-  default (`high`) applies. Prefer `adaptive` + `thinking-effort` over `extended` on
-  newer models, where a manual `budget_tokens` is rejected.
+  The `effort` mode defaults to `low`; `adaptive` omits it so the mapped effort
+  is `high`. Omitted `thinking` sends nothing, so Grok stays at its API default
+  of `high` (**BRA210** §6). Prefer `adaptive` + `thinking-effort` over `extended`
+  on newer models, where a manual `budget_tokens` is rejected. Only Anthropic and
+  OpenRouter `extended` send `thinking-budget`. Elsewhere `extended` maps to
+  effort `high`.
 - `caching` / `thinking` / `thinking-budget` / `thinking-effort` are validated on
   deploy; an invalid value is a hard error.
 - `max-recursion-depth` caps how deep workflows may nest via `run_workflow` or

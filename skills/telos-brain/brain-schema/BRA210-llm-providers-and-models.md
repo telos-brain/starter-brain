@@ -293,7 +293,8 @@ Optional LLM execution fields on the workflow (`max-turns`, `output-tokens`,
 | `max-turns` | Applied | Applied | Applied | Applied (same as xAI) | Applied | Applied | Applied |
 | `output-tokens` (retry caps) | Applied (`max_tokens` / `max_tokens` stop) | Applied (`max_tokens` / `finish_reason=length`) | Applied (same as OpenAI) | Applied (same as xAI) | Applied (same as OpenAI) | Applied (same as OpenAI) | Applied (same as OpenAI) |
 | `caching` | Applied | Ignored | Applied | Applied (same as xAI) | Ignored | Ignored | Ignored |
-| `thinking` / `thinking-budget` / `thinking-effort` | Applied | Ignored (request) | Ignored (request) | Ignored (request) | Ignored (request) | Ignored (request) | Ignored (request) |
+| `thinking` / `thinking-effort` | Applied | Applied (`reasoning_effort`) | Applied (`reasoning_effort`) | Applied (same as xAI) | Applied (`reasoning`) | Applied (`reasoning_effort`) | Applied (`reasoning_effort`) |
+| `thinking-budget` | Applied | Ignored (no token budget) | Ignored (no Grok equivalent) | Ignored (same as xAI) | Applied for `extended` (`reasoning.max_tokens`) | Ignored (no token budget) | Ignored (no token budget) |
 | `auto-compaction` | Applied (server-side) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) | Applied (client-side via COMPACTION workflow) |
 
 Unsupported fields are accepted on deploy and silently ignored at run time where
@@ -301,11 +302,25 @@ the table shows Ignored — they do not fail the run. Each provider applies
 supported settings in its own native form (e.g. `caching: automatic` uses that
 provider's automatic prompt-cache mechanism).
 
+**Request-side reasoning:** Unset `thinking` omits the provider field, so each
+model keeps its own default. On Grok that default is `high` (`grok-4.5` and
+later). Grok cannot disable reasoning and has no `max`.
+
+| Workflow | xAI / Telos Brain `reasoning_effort` | OpenAI / Azure `reasoning_effort` | OpenRouter `reasoning` | Local `reasoning_effort` |
+| -------- | ------------------------------------ | --------------------------------- | ---------------------- | ------------------------ |
+| omitted | omitted (API default, `high` on current Grok) | omitted | omitted | omitted |
+| `thinking: none` | omitted (Grok has no `none`) | `none` | `effort: none` | `none` |
+| `adaptive` with no effort | `high` | `high` | `effort: high` | `high` |
+| `adaptive` or `effort` plus `thinking-effort` | `low` / `medium` / `high` / `xhigh`; `max` → `xhigh`. `effort` with no level is `low` | same values, including `max` | `effort` with the same values, including `max` | `low` / `medium` / `high`; `xhigh` and `max` → `high` |
+| `extended` | `high` | `high` | `max_tokens` from `thinking-budget`, or `effort: high` when the budget is omitted | `high` |
+
+`thinking-budget` is sent only on OpenRouter `extended` (`reasoning.max_tokens`).
+Grok, OpenAI, Azure, and local have no thinking token budget.
+
 **Response-side reasoning (xAI / OpenAI-compatible):** Grok reasoning models often
 return chain-of-thought in `message.reasoning_content` (especially on tool-call
 turns where `content` is empty). That text is stored on the run so the UI can
-show it alongside tool cards. Workflow `thinking*` frontmatter still does not
-send Anthropic-style thinking request parameters to OpenAI / xAI / OpenRouter.
+show it alongside tool cards.
 
 ---
 

@@ -437,9 +437,12 @@ parameters:
 - `header:` still chooses placement: with `header:` the value is sent as that
   HTTP header; without it, it goes in the query string (GET) or JSON body
   (POST) — or in the URL if `api.path` contains `{name}` or `{param}`.
-- **If the current entity has no value for the key** (or the run has no entity in
-  scope), the parameter is **omitted** from the request — never sent blank. Set
-  the value via the Execution API (BRA402) so it resolves.
+- **If the current entity has no value for the key** (or the run has no entity
+  in scope), behaviour depends on `required`. An optional binding (`required`
+  omitted or `false`) is **omitted** from the request and the call continues.
+  A required binding (`required: true`) **fails the call** with a clear error
+  rather than sending the field blank. Set the value via the Execution API
+  (BRA402) so a required binding resolves.
 
 `api` / `system` tools inject the bound value into the outbound call / executor
 arguments. `workflow` tools expose it as `{{input.<name>}}` (and the legacy
@@ -463,11 +466,13 @@ parameters:
 - `unitofwork:` names a **unit-of-work variable key**. At dispatch the router
   looks up the value for that key on the run's current unit of work (the unit of
   work the workflow run is scoped to) and injects it under `param`.
-- Semantics match `entity:` exactly: the parameter is **hidden from the LLM**,
-  `header:` still chooses placement (or put `{name}` / `{param}` in
-  `api.path` to send it in the URL), and **if the current unit of work has no
-  value for the key** (or the run has no unit of work in scope) the parameter
-  is **omitted** from the request rather than sent blank.
+- The parameter is **hidden from the LLM**. `header:` still chooses placement
+  (or put `{name}` / `{param}` in `api.path` to send it in the URL).
+- **If the current unit of work has no value for the key** (or the run has no
+  unit of work in scope), behaviour depends on `required`. An optional binding
+  (`required` omitted or `false`) is **omitted** from the request and the call
+  continues. A required binding (`required: true`) **fails the call** with a
+  clear error rather than sending the field blank.
 - A single tool may mix `entity:`- and `unitofwork:`-bound parameters; each
   resolves against its own scope.
 
@@ -489,10 +494,12 @@ parameters:
   the router injects that value under `param`.
 - Like `entity` and `unitofwork`, an `input`-bound parameter is **hidden from
   the LLM**.
-- **If the run has no value for the key** (or the value is blank), the call
-  **fails** with a clear error — it is not sent empty. Pass the key as an
-  Execution API `variables` entry or as a workflow-tool / `run_workflow`
-  parameter.
+- **If the run has no value for the key** (or the value is blank), behaviour
+  depends on `required`. An optional binding (`required` omitted or `false`)
+  is **omitted** and the call continues. A required binding (`required: true`)
+  **fails the call** with a clear error — it is not sent empty. Pass the key
+  as an Execution API `variables` entry or as a workflow-tool / `run_workflow`
+  parameter when the binding is required.
 - Resolution order when several bindings are set on one parameter: `secret` →
   `entity` → `unitofwork` → `input` → hardcoded `value` → model argument.
 
