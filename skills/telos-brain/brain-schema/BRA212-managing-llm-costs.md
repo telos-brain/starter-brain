@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 5
+version: 6
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -60,11 +60,16 @@ caching: automatic
 | omitted | Historic hand-crafted per-block `cache_control` markers |
 | `none` | Suppress all cache markers — only for short, one-shot jobs (e.g. `WF-COMPACT`) |
 
-Applied on Anthropic and xAI; OpenAI ignores it (**BRA210** §5).
+Applied on Anthropic and xAI; OpenAI ignores it (**BRA210** §6).
 
 - **Claude:** top-level `cache_control` — the API places the breakpoint.
-- **xAI / Grok:** `x-grok-conv-id` sticky-routing header keyed by
-  `WorkflowRunId`, which is what makes Grok cache hits possible.
+  `caching: automatic` is required; omitted keeps the older per-block markers.
+- **xAI / Grok:** the API caches by itself. Chat Completions uses
+  `x-grok-conv-id` (the `prompt_cache_key`) keyed by `WorkflowRunId`, sent on
+  every call unless `caching: none`. Without that header a follow-up often
+  lands on a cache-cold server and pays full input price. Later turns append
+  to the previous messages and send `reasoning_content` back. See
+  [What Breaks Caching](https://docs.x.ai/developers/advanced-api-usage/prompt-caching/multi-turn).
 
 ### How to actually hit 80%
 

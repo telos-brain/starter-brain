@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 26
+version: 27
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -85,7 +85,7 @@ convention** and used automatically:
 | `AZURE_OPENAI_API_VERSION` | uploaded  | Optional Azure OpenAI REST `api-version`. Defaults to `2024-10-21` when omitted (**BRA210**). |
 | `LOCAL_LLM_N_BASE_URL`  | uploaded     | Base URL for local runner N (Ollama, llama.cpp). Required to use `local_N/…`. Example: `LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1` (**BRA210**, **BRA106** §8). |
 | `LOCAL_LLM_N_API_KEY`   | uploaded     | Optional API key for a secured local runner. Omit for unsecured Ollama. |
-| `DEFAULT_LLM_MODEL`     | uploaded     | Optional default LLM (`provider/model`, e.g. `local_1/qwen3:8b`). Same role as Settings **Default LLM model** and compose `llm-model`. When set and the matching credential exists, every live run uses this model instead of the workflow frontmatter. Blank/omitted → each workflow's own `model:`; if that is also omitted the run fails (leftover cloud keys are not a silent default). Compose `llm-model` wins when both are present. See **BRA210**. |
+| `DEFAULT_LLM_MODEL`     | uploaded     | Optional default LLM (`provider/model`, e.g. `local_1/qwen3:8b`). Same role as Settings **Default LLM model** and compose `llm-model`. Used when a workflow omits `model:`. A workflow `model:` overrides it when that model's credential exists. Blank/omitted and no workflow `model:` → the run fails (leftover cloud keys are not a silent default). Compose `llm-model` wins when both are present. See **BRA210**. |
 | `TIMEZONE`              | uploaded     | Optional IANA timezone id (e.g. `Pacific/Auckland`) used by `{{now.local*}}` template tags. When unset or unrecognised, local time falls back to UTC. |
 | `TELOS_BRAIN_ORG_API_KEY` | **local**  | Organisation deploy credential the CLI authenticates with. Never uploaded to the brain. Legacy: `TELOS_ORG_API_KEY`. |
 | `TELOS_BRAIN_API_URL`   | **local**    | Management API base URL (deploy destination) for the CLI. Never uploaded to the brain. Legacy: `TELOS_API_URL`. |

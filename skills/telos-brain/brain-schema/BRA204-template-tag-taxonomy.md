@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings.
-version: 18
+version: 19
 ---
 
 # Template Tag Taxonomy
@@ -373,9 +373,8 @@ Notes:
 - When neither source supplies data, the scope is empty (tags render blank).
 - Nested `run_workflow` / workflow-tool runs inherit the parent's API
   variables automatically.
-- For workflow-tool children, the same values are still rendered as markdown on
-  the child input message (`## name\nvalue`) for backwards compatibility —
-  prefer `{{input.*}}` in new Instructions. See **BRA214**.
+- Workflow-tool and `run_workflow` parameters are **not** copied into the child
+  run's user message. Read them with `{{input.*}}` in Instructions. See **BRA214**.
 
 **Example — Execution API variables:**
 

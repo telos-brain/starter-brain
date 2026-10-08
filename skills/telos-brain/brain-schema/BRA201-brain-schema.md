@@ -25,7 +25,7 @@ instead of treating this page as the field reference.
 | Environment variables and secrets | **BRA202** |
 | `skillbook.yml` and skill markdown | **BRA215** (design/ranges: **BRA208**) |
 | `blueprint.yml` and blueprint entries | **BRA216** |
-| Workflow markdown (frontmatter, triggers, tools, input-tools, LLM settings) | **BRA217** |
+| Workflow markdown (frontmatter, triggers, tools, input-tools, LLM settings, entity / unit-of-work scope) | **BRA217** |
 | Models and provider codes | **BRA210** |
 | Template tags (`{{…}}`) | **BRA204** |
 | Schema system tools (`create_skill`, `create_schema_file`, …) | **BRA203** |
