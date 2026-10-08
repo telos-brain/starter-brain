@@ -1,7 +1,7 @@
 ---
 name: Brain Compose Manifest
 code: BRA213
-version: 2
+version: 3
 description: How to author brain-compose.yml — name, models, entities, units of
   work, variables, checkpoint strategy, and the outbound callback-domain
   allowlist. Load this when creating or editing the compose file.
@@ -78,13 +78,13 @@ Rules:
   `telosbrain/xai/grok-4.6`, `local_1/qwen3:8b`, or `anthropic/claude-sonnet-4-6`).
   `telosbrain/…` uses the platform Grok key (no brain env var) and bills
   token cost to brain credit at 2× the official xAI grok-4.6 API rate.
-  When set and the matching credential exists, every live run uses this model
-  instead of the workflow frontmatter. Omit or blank → each workflow uses its
-  own `model:`. If that is also omitted, the run fails (no silent
-  Anthropic/OpenAI default). A missing
-  credential for this value falls back to the workflow model. The same default
+  When set, workflows that omit `model:` use this model if its credential
+  exists. A workflow `model:` overrides it when that model's credential
+  exists; a missing workflow credential falls back to this default. If this
+  is omitted or blank and the workflow also has no `model:`, the run fails
+  (no silent Anthropic/OpenAI default). The same default
   can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
-  both are present). Simulation `settingsOverride.model` still wins per run.
+  both are present). Simulation `modelOverride` still wins per run.
   Deploy warns (does not fail) when executable workflows have no `model:` and
   no default is set. See **BRA210**.
 - `transcription-model` is optional (a vision `provider/model` used for image
@@ -210,7 +210,8 @@ Rules:
 The Brain makes outbound HTTP calls to harness-owned URLs in two places:
 
 1. **Async run callbacks** — optional `callbackUrl` on
-   `POST /workflows/{code}/run/async` (see BRA403).
+   `POST /workflows/{code}/run/async`. On completion the engine POSTs a JSON
+   body to that URL (`Content-Type: application/json`). See BRA403.
 2. **Declared API tools** — `api.path` webhook URLs dispatched by the Tool Router
    during a run.
 

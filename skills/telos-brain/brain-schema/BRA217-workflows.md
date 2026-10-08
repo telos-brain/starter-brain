@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 5
+version: 6
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, and external agent deployment. Load this when creating or editing a
@@ -219,7 +219,8 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
 `openai/gpt-4o`, `telosbrain/xai/grok-4.6`, `xai/grok-4.5`). Supported providers, example model codes, and
 credential mapping are listed in **BRA210**. Bare model names (no prefix)
-default to Anthropic. Omit `model` to use the brain default (`llm-model` /
+default to Anthropic. A set `model:` overrides the brain default when that
+model's credential exists. Omit `model` to use the brain default (`llm-model` /
 `DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails — leftover
 cloud keys are not used as a silent default.
 
@@ -311,6 +312,38 @@ Notes:
   one-hour window. High-frequency system workflows (for example `WF-EVAL`) should
   set an elevated value so they are not throttled under load. Omit the field to
   use the default of `50`.
+
+## 3a. Entity and unit-of-work scope (`entity`, `unit-of-work`)
+
+Optional. Omitted settings keep today's behaviour: Execution API `entity_id` /
+`unit_of_work_id` are stored as supplied, and an MCP `tools/call` stays unscoped.
+
+When set, a top-level run reads the named parameter and writes the matched id
+onto the run before the instructions are rendered. Execution API runs read
+`variables`. MCP runs read the tool-call arguments (those arguments are not
+copied into the run's variables). Nested `run_workflow` children and heartbeat
+successors inherit the parent's ids and do not match again.
+
+```yaml
+entity: clients:slug:slug
+unit-of-work: jobs:reference:reference
+```
+
+Each value is `type-code:parameter-name:match-key`. Two parts are allowed
+(`clients:entityId`); the match key then defaults to `id`.
+
+- `type-code` is the entity type or unit-of-work type code on this brain.
+- `parameter-name` is the incoming key. The match is case-sensitive. A missing
+  or blank value leaves that id unset.
+- `id` matches `Entities.Id` or `UnitsOfWork.Id`. Any other match key, including
+  `reference`, is an entity variable or unit-of-work variable key. The built-in
+  8-character Reference column is not used. Names are not used.
+- The first match wins (`CreatedAt`, then `Id`). A miss does not fail the run
+  and does not fall back to a caller-supplied id.
+- Unit of work is resolved only after an entity is in scope, and only among
+  that entity's units of work.
+- A malformed value fails deploy. An unknown type code does not: it matches
+  nothing at run time.
 
 ## 4. Chat session settings (optional)
 

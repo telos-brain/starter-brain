@@ -1,7 +1,7 @@
 ---
 name: Local Development
 code: BRA106
-version: 9
+version: 10
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
   host.docker.internal, and running workflows against a local LLM (Ollama or
@@ -313,7 +313,7 @@ LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
 # Optional API key for a secured local endpoint:
 # LOCAL_LLM_1_API_KEY=your_optional_key_here
 
-# Optional default for every live run (overrides workflow `model:` when set):
+# Optional default for workflows that omit `model:` (a workflow `model:` overrides this):
 # DEFAULT_LLM_MODEL=local_1/qwen3:8b
 ```
 
@@ -322,7 +322,7 @@ LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
 | `LOCAL_LLM_1_BASE_URL` | yes, to use `local_1/…` | OpenAI-compatible base URL for runner 1 |
 | `LOCAL_LLM_N_BASE_URL` | yes, to use `local_N/…` | Same for runner N |
 | `LOCAL_LLM_N_API_KEY` | no | Sent as `Authorization: Bearer` when set. Omitted otherwise (Ollama ignores a placeholder). |
-| `DEFAULT_LLM_MODEL` | no | Optional brain default (`local_1/qwen3:8b`). Same as Settings **Default LLM model**. |
+| `DEFAULT_LLM_MODEL` | no | Optional brain default (`local_1/qwen3:8b`). Same as Settings **Default LLM model**. Used when a workflow omits `model:`. |
 
 A trailing `/v1` is accepted and stripped. The conversant calls
 `{base}/v1/chat/completions`.
@@ -377,11 +377,14 @@ The prefix `local_1` resolves `LOCAL_LLM_1_BASE_URL`. The remainder
 (`qwen3:8b`) is passed verbatim to the runner. Unprefixed model names still
 use Anthropic. Omitting `model` uses the brain default (Settings /
 `DEFAULT_LLM_MODEL` / compose `llm-model`); if that is also unset, the run
-fails — leftover cloud keys are not a silent default.
+fails — leftover cloud keys are not a silent default. A workflow that sets
+`model:` uses that model when its credential exists, even if a brain default
+is set.
 
-To point every workflow at a local runner without editing each YAML file, set
+To give every workflow that omits `model:` a local runner, set
 **Default LLM model** in Settings, `DEFAULT_LLM_MODEL` in `.env.local`, or
-`llm-model` in `brain-compose.yml`.
+`llm-model` in `brain-compose.yml`. Workflows that already set `model:`
+keep that model.
 
 If the run fails with "No LLM model is configured" or "No model credential is
 configured", either no default/`model:` is set, or the workflow is still on

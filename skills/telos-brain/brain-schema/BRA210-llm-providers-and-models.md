@@ -1,7 +1,7 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 16
+version: 18
 description: Supported AI providers for workflow runs, the provider/model string
   format, example model codes, credential variable names, the Telos Brain
   platform Grok aggregator (telosbrain/xai/grok-4.6), OpenRouter, Azure
@@ -44,7 +44,7 @@ model: provider/model-name
 | `local_1/qwen3:8b` | Uses runner 1 (`LOCAL_LLM_1_BASE_URL`). Remainder is the runner's model id |
 | `local_2/gemma4:e4b` | Uses runner 2 (`LOCAL_LLM_2_BASE_URL`) |
 | `claude-sonnet-4-6` (no prefix) | Treated as **anthropic** (default provider for unprefixed names) |
-| omitted / null | Brain default (`llm-model` / `DEFAULT_LLM_MODEL` / Settings) when set and reachable; otherwise the run **fails**. Leftover cloud keys are not used as a silent default. |
+| omitted / null | Brain default (`llm-model` / `DEFAULT_LLM_MODEL` / Settings) when set and reachable; otherwise the run **fails**. A set `model:` overrides that default. Leftover cloud keys are not used as a silent default. |
 
 Both `/` and `\` are accepted as the separator. The provider prefix is
 case-insensitive (`OpenAI/gpt-4o` → `openai`). The alias `claude/…` folds to
@@ -62,10 +62,13 @@ variable is missing, the resolver tries the next candidate in the chain below.
    fails the run — no silent fallback. Older clients may send
    `settingsOverride.model` instead; the dedicated field wins when both are
    present.
-2. Brain default: Settings, compose `llm-model`, or `DEFAULT_LLM_MODEL`, if set
-   and the matching env var exists. Compose `llm-model` wins over the env key
-   at deploy time. A missing credential falls through to the workflow model.
-3. Workflow frontmatter `model:`.
+2. Workflow frontmatter `model:`, if set and the matching credential exists.
+   This overrides the brain default. A missing credential falls through to
+   the brain default.
+3. Brain default: Settings, compose `llm-model`, or `DEFAULT_LLM_MODEL`, if set
+   and the matching credential exists. Used when the workflow omits `model:`,
+   or when that model's credential is missing. Compose `llm-model` wins over
+   the env key at deploy time.
 4. **Fail** — there is no silent Anthropic/OpenAI/OpenRouter/Azure/Telos Brain platform default. A leftover
    `ANTHROPIC_API_KEY` (or OpenAI / xAI / OpenRouter / Azure key) is not used just because it is
    present; overnight / heartbeat runs must not spend cloud tokens by accident.
@@ -73,8 +76,8 @@ variable is missing, the resolver tries the next candidate in the chain below.
 
 If none of those candidates have a credential, the run does not start and the
 error lists what was tried (or explains that no model is configured). Set a
-brain default when you want every workflow to use a local runner without editing
-each YAML file. Deploy warns (does not 409) when executable workflows have no
+brain default for workflows that omit `model:`. A workflow that sets `model:`
+uses that model instead. Deploy warns (does not 409) when executable workflows have no
 `model:` and no default is set. SYSTEM workflows are skipped for that warning.
 
 ---
@@ -320,7 +323,17 @@ Grok, OpenAI, Azure, and local have no thinking token budget.
 **Response-side reasoning (xAI / OpenAI-compatible):** Grok reasoning models often
 return chain-of-thought in `message.reasoning_content` (especially on tool-call
 turns where `content` is empty). That text is stored on the run so the UI can
-show it alongside tool cards.
+show it, and it is sent back unchanged on later requests in the same run.
+Omitting it misses the prompt cache ([What Breaks Caching](https://docs.x.ai/developers/advanced-api-usage/prompt-caching/multi-turn)).
+
+**Grok prompt cache key.** xAI caches automatically. Chat Completions has no
+`prompt_cache_key` body field; the equivalent is the `x-grok-conv-id` header,
+set to the workflow run id on every Grok call unless `caching: none`. That
+pins the run to one server so later turns (tool steps and chat continuations)
+can reuse the prefix. Continuations replay the previous messages, including
+tool results and `reasoning_content`, and only append the new user message.
+`caching: automatic` is still what turns on Claude's automatic cache breakpoint;
+on xAI it is not required for the header.
 
 ---
 

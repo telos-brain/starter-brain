@@ -105,7 +105,9 @@ Content-Type: application/json
 ```
 
 On the async path the same `variables` object is stored on the run before
-execution starts — pass them on the request body only.
+execution starts — pass them on the request body only. `callbackUrl` is not a
+variable: when the run finishes, the engine POSTs the result JSON to that URL
+(see **BRA403**).
 
 ---
 

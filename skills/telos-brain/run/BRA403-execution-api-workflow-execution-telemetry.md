@@ -214,19 +214,22 @@ Response `202 Accepted`:
 
 Returns `404 Not Found` if the workflow code does not resolve within the brain.
 
-The engine executes the run in the background (`Queued → Running → Completed / Failed`). A run settles `Failed` (not `Completed`) when the model hits a terminal limit — the workflow's `max-turns` cap is exhausted, or the final `output-tokens` attempt stops with `max_tokens` and no further retry remains — as well as on transport / API errors and cancellation. If a `callbackUrl` was supplied, a webhook is POSTed on completion:
+The engine executes the run in the background (`Queued → Running → Completed / Failed`). A run settles `Failed` (not `Completed`) when the model hits a terminal limit — the workflow's `max-turns` cap is exhausted, or the final `output-tokens` attempt stops with `max_tokens` and no further retry remains — as well as on transport / API errors and cancellation. If a `callbackUrl` was supplied, the engine **POSTs** the payload to that URL when the run finishes. The request URL is `callbackUrl` unchanged (an existing query string stays; the payload is not added to it). The body is the JSON payload, with `Content-Type: application/json; charset=utf-8`.
 
 ```http
 POST https://app.example.com/brain/callbacks/run-complete
-Content-Type: application/json
+Content-Type: application/json; charset=utf-8
 
 {
   "runId": "44291...",
-  "status": "complete"
+  "status": "complete",
+  "response": "We currently have three open proposals."
 }
 ```
 
-`status` is `complete` or `failed`. Webhook delivery is retried on transient failure; a persistent failure is logged but does not fail the run. Results are always retrievable via telemetry.
+`status` is `complete` or `failed`. `response` is the assembled final assistant text: the same text the sync path streams as `text` deltas, or the error message when the run fails. It is JSON `null` when the run produced no reply. Quotes, backslashes and newlines inside `response` are JSON-escaped so the body stays valid.
+
+Delivery is attempted up to three times. A non-success HTTP status or a transport error is retried; a persistent failure is logged and does **not** change the run status. The final attempt is stored on the run as a `role=callback` message (the URL, whether it succeeded, the HTTP status, and the receiver's body or the error when there was no HTTP response). That message is shown on the run and included in telemetry. It is not sent back to the model. If no `callbackUrl` is given, nothing is posted and no callback message is written.
 
 #### Async callback SSRF rules
 
@@ -371,6 +374,7 @@ Response `200 OK`:
   "totals": {
     "gen_ai.usage.input_tokens": 1820,
     "gen_ai.usage.output_tokens": 430,
+    "cacheRatePercent": 85,
     "gen_ai.embeddings.count": 2,
     "telos.turns.used": 3,
     "telos.turns.max": 15
@@ -385,6 +389,7 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 |---|---|
 | `gen_ai.request.model` | Fully-qualified model the run executed against (`provider/model`) |
 | `gen_ai.embeddings.count` | Embeddings generated in the run (always present on `totals`). OTEL standardises `gen_ai.embeddings.dimension.count` (vector size) only; this is the count of embeddings produced. |
+| `cacheRatePercent` | Whole percent: cache reads / (uncached input + cache reads + cache writes). Null when all three are zero. |
 | `telos.thinking.mode` | Workflow thinking mode (`none` \| `adaptive` \| `extended` \| `effort`) |
 | `telos.workflow.name` | Workflow title (falls back to code). Also on the payload as `workflowName`. |
 | `telos.workflow.code` | Workflow deploy code |
@@ -398,11 +403,13 @@ Span attributes:
 
 | Attribute | Notes |
 |---|---|
-| `gen_ai.message.role` | `user` \| `assistant` \| `tool` |
+| `gen_ai.message.role` | `user` \| `assistant` \| `tool` \| `compaction` \| `callback` |
 | `gen_ai.message.content` | Message content |
 | `gen_ai.usage.input_tokens` / `output_tokens` | Per-turn token counts |
 | `gen_ai.usage.cache_read_input_tokens` / `cache_creation_input_tokens` | Present only when the provider reports prompt-cache usage |
 | `gen_ai.tool.name` / `gen_ai.tool.call.id` | Present only on tool-call and tool-result turns |
+| `gen_ai.tool.duration_ms` | Wall-clock milliseconds the tool took, on the tool-result turn only. Omitted when the row did not capture a duration. |
+| `telos.callback.url` / `telos.callback.outcome` / `telos.callback.status_code` / `telos.callback.response` | Present on `role=callback` turns written after an async webhook POST. `outcome` is `succeeded` or `failed`. `status_code` is the receiver's HTTP status (omitted when the call produced no HTTP response). `response` is the receiver's body, or the error text when there was no HTTP response. These rows are not sent back to the model. |
 | `gen_ai.embeddings.count` | Embeddings generated for this turn (usually the assistant tool-call row). Omitted when unused. |
 | `gen_ai.response.finish_reason` | Provider stop reason on assistant turns (`end_turn` \| `tool_use` \| `max_tokens` \| ...) |
 | `gen_ai.request.max_tokens` | The output token cap the attempt ran with; doubles per output-token retry |

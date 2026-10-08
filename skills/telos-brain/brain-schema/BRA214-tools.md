@@ -1,7 +1,7 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 5
+version: 6
 description: How to author tool groups and tool YAML — api, mcp, system,
   workflow, and native tools, plus parameters (headers vs query vs body vs path,
   secrets, entity / unit-of-work / input bindings, URL path tokens, and outbound
@@ -103,15 +103,11 @@ parameters:
 ```
 
 The tool's `parameters` are resolved and passed into a fresh workflow-run for the
-target workflow in two ways:
-
-1. **Template variables (preferred)** — each resolved parameter is available in
-   the target workflow's Instructions as `{{input.<name>}}` (see **BRA204** §3.6).
-   Hardcoded `value:` params and `entity:`-bound params are included; `secret:`
-   params are never forwarded into a child prompt.
-2. **Markdown input message (legacy)** — the same values are also rendered as
-   `## <name>\n<value>` sections on the child run's input message so older
-   workflows that read the markdown still work.
+target workflow as template variables. Each resolved parameter is available in
+the target workflow's Instructions as `{{input.<name>}}` (see **BRA204** §3.6).
+Hardcoded `value:` params and `entity:`-bound params are included; `secret:`
+params are never forwarded into a child prompt. The same values are not repeated
+as the child run's user message — read them with `{{input.*}}`.
 
 That child run uses its own `model` and `tools`, inherits the calling run's
 brain / entity / unit-of-work scope, and its final reply is returned as the tool
@@ -445,9 +441,8 @@ parameters:
   (BRA402) so a required binding resolves.
 
 `api` / `system` tools inject the bound value into the outbound call / executor
-arguments. `workflow` tools expose it as `{{input.<name>}}` (and the legacy
-markdown input). The binding is ignored by `native` tools (which take no
-parameters).
+arguments. `workflow` tools expose it as `{{input.<name>}}`. The binding is
+ignored by `native` tools (which take no parameters).
 
 #### Binding a parameter to a unit-of-work variable
 
