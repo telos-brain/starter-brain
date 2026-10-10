@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 27
+version: 28
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -83,8 +83,10 @@ convention** and used automatically:
 | `AZURE_OPENAI_API_KEY`  | uploaded     | LLM provider key for **Azure OpenAI**. Resolved for runs whose model is `azure/…`. Must be paired with `AZURE_OPENAI_ENDPOINT`. Not `AZURE_API_KEY` (**BRA210**). |
 | `AZURE_OPENAI_ENDPOINT` | uploaded     | Azure OpenAI resource endpoint (e.g. `https://YOUR-RESOURCE.openai.azure.com`). Required for `azure/…` models. Configuration value stored per-brain like other env vars (**BRA210**). |
 | `AZURE_OPENAI_API_VERSION` | uploaded  | Optional Azure OpenAI REST `api-version`. Defaults to `2024-10-21` when omitted (**BRA210**). |
-| `LOCAL_LLM_N_BASE_URL`  | uploaded     | Base URL for local runner N (Ollama, llama.cpp). Required to use `local_N/…`. Example: `LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1` (**BRA210**, **BRA106** §8). |
-| `LOCAL_LLM_N_API_KEY`   | uploaded     | Optional API key for a secured local runner. Omit for unsecured Ollama. |
+| `LOCAL_LLM_N_BASE_URL`  | uploaded     | Base URL for local runner N (Ollama, llama.cpp, NVIDIA NIM). Required to use `local_N/…`. Example: `LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1` or `https://<access-hostname>/v1` (**BRA210**, **BRA106** §8). |
+| `LOCAL_LLM_N_API_KEY`   | uploaded     | Optional API key for a secured local runner. Sent as `Authorization: Bearer`. Omit for unsecured Ollama. |
+| `LOCAL_LLM_N_CF_ACCESS_CLIENT_ID` | uploaded | Optional Cloudflare Access Client Id for runner N. Must be paired with `LOCAL_LLM_N_CF_ACCESS_CLIENT_SECRET`. Sent as `CF-Access-Client-Id` in addition to Bearer. Telos-internal only; omit on LAN and on customer brains (**BRA210**). |
+| `LOCAL_LLM_N_CF_ACCESS_CLIENT_SECRET` | uploaded | Optional Cloudflare Access Client Secret for runner N. Must be paired with the Client Id. Sent as `CF-Access-Client-Secret`. Never log the value. One of the pair without the other fails the run. |
 | `DEFAULT_LLM_MODEL`     | uploaded     | Optional default LLM (`provider/model`, e.g. `local_1/qwen3:8b`). Same role as Settings **Default LLM model** and compose `llm-model`. Used when a workflow omits `model:`. A workflow `model:` overrides it when that model's credential exists. Blank/omitted and no workflow `model:` → the run fails (leftover cloud keys are not a silent default). Compose `llm-model` wins when both are present. See **BRA210**. |
 | `TIMEZONE`              | uploaded     | Optional IANA timezone id (e.g. `Pacific/Auckland`) used by `{{now.local*}}` template tags. When unset or unrecognised, local time falls back to UTC. |
 | `TELOS_BRAIN_ORG_API_KEY` | **local**  | Organisation deploy credential the CLI authenticates with. Never uploaded to the brain. Legacy: `TELOS_ORG_API_KEY`. |
@@ -114,7 +116,9 @@ name of the form `<PROVIDER>_API_KEY` (upper-case). So:
   **`AZURE_OPENAI_API_VERSION`** overrides the default Chat Completions
   `api-version` (`2024-10-21`).
 - `local_1/qwen3:8b` → looks up **`LOCAL_LLM_1_BASE_URL`** (and optional
-  **`LOCAL_LLM_1_API_KEY`**). This is **not** `LOCAL_1_API_KEY`.
+  **`LOCAL_LLM_1_API_KEY`**). This is **not** `LOCAL_1_API_KEY`. Optional
+  **`LOCAL_LLM_1_CF_ACCESS_CLIENT_ID`** / **`LOCAL_LLM_1_CF_ACCESS_CLIENT_SECRET`**
+  are a pair: both set or both omitted.
 - a workflow with a **bare** model name (no provider prefix) still treats the
   provider as **anthropic**, i.e. **`ANTHROPIC_API_KEY`**.
 - a workflow with **no** `model` uses the brain default (`llm-model` /

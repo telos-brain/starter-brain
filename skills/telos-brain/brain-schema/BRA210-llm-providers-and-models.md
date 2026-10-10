@@ -1,11 +1,12 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 18
+version: 19
 description: Supported AI providers for workflow runs, the provider/model string
   format, example model codes, credential variable names, the Telos Brain
   platform Grok aggregator (telosbrain/xai/grok-4.6), OpenRouter, Azure
-  OpenAI, local OpenAI-compatible runners (Ollama / llama.cpp), and which LLM
+  OpenAI, local OpenAI-compatible runners (Ollama / llama.cpp / NIM, optional
+  Cloudflare Access pair), and which LLM
   execution settings apply per provider.
 ---
 
@@ -92,18 +93,18 @@ uses that model instead. Deploy warns (does not 409) when executable workflows h
 | `telosbrain` | Same Grok conversant as `xai`, with a **platform-held** key (`Grok:ApiKey`) | None on the brain | First-party aggregator. Remainder after the first `/` must be an xAI model (`xai/grok-4.6`). Unavailable in local development — use `xai/grok-4.6` with `XAI_API_KEY` instead. Token cost and brain-credit debit use `LlmPrices` keyed `provider=telosbrain`, `model=xai/grok-4.6` at **double** the official xAI grok-4.6 short-context list price. See **BRA212**. |
 | `openrouter` | OpenAI-compatible Chat Completions at `openrouter.ai/api` | `OPENROUTER_API_KEY` | Aggregator. Remainder after the first `/` is the OpenRouter model id (`anthropic/claude-sonnet-4.6`, `openai/gpt-4o`, …). Settings lists a capped catalogue from `/v1/models` when the key is present. |
 | `azure` | Azure OpenAI Chat Completions | `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` (optional `AZURE_OPENAI_API_VERSION`) | The remainder after the first `/` is the Azure **deployment name**, not the underlying model name. V1 is API key auth only (Managed Identity deferred). Do not seed `LlmPrices` — Azure bills the customer's Azure subscription; `CostCents` is null (UI `—`). Platform credits still apply via `RunSeconds`. See §3a. |
-| `local_N` (e.g. `local_1`) | Local OpenAI-compatible | `LOCAL_LLM_N_BASE_URL` (required), `LOCAL_LLM_N_API_KEY` (optional) | Ollama, llama.cpp, or any OpenAI-compatible local server. See §3. |
+| `local_N` (e.g. `local_1`) | Local OpenAI-compatible | `LOCAL_LLM_N_BASE_URL` (required), `LOCAL_LLM_N_API_KEY` (optional), `LOCAL_LLM_N_CF_ACCESS_CLIENT_ID` / `LOCAL_LLM_N_CF_ACCESS_CLIENT_SECRET` (optional pair) | Ollama, llama.cpp, NVIDIA NIM, or any OpenAI-compatible local server. See §3. |
 
 Any other prefix is rejected at run time (`NotSupportedException`).
 
 ---
 
-## 3. Local runners (Ollama / llama.cpp)
+## 3. Local runners (Ollama / llama.cpp / NIM)
 
 Numbered env vars register one or more OpenAI-compatible local endpoints.
 `local_1/qwen3:8b` uses `LOCAL_LLM_1_BASE_URL`; `local_2/…` uses runner 2, and
 so on. The remainder after the first `/` is the runner's model id, passed
-verbatim.
+verbatim (`local_1/meta/llama-3.1-8b-instruct` for NVIDIA NIM).
 
 ```env
 # Brain in Docker talking to Ollama on the host:
@@ -113,10 +114,25 @@ LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
 # llama.cpp server:
 # LOCAL_LLM_1_BASE_URL=http://localhost:8080/v1
 # LOCAL_LLM_1_API_KEY=  # optional; omit for unsecured Ollama
+
+# Telos-internal Cloudflare Tunnel + Access (optional pair). Both or neither.
+# HTTPS bases work on the same HttpClient as LAN. Access headers are sent in
+# addition to Authorization: Bearer; do not put the Access token in Authorization.
+# LOCAL_LLM_1_BASE_URL=https://<access-hostname>/v1
+# LOCAL_LLM_1_API_KEY=the-proxy-bearer
+# LOCAL_LLM_1_CF_ACCESS_CLIENT_ID=
+# LOCAL_LLM_1_CF_ACCESS_CLIENT_SECRET=
 ```
 
+`LOCAL_LLM_N_BASE_URL` is still the gate. The Access pair is optional: both
+set → `CF-Access-Client-Id` and `CF-Access-Client-Secret` on every local-runner
+request; one without the other → the run fails (the secret is never logged or
+put in the error); neither → current LAN behaviour. Do not set these on
+customer brains. Cloudflare seeing prompt bodies at the edge is accepted only
+for Telos-internal workflows.
+
 How to wire this on a local Docker stack (including `host.docker.internal`):
-**BRA106** §8. After changing `.env` runner URLs, `DEFAULT_LLM_MODEL`, compose
+**BRA106** §8. After changing `.env` runner URLs, Access vars, `DEFAULT_LLM_MODEL`, compose
 `llm-model`, or workflow `model:`, run `brain deploy` so the brain picks them
 up. `ollama pull` of a new model on an already-stored runner URL does not
 need a redeploy — Settings lists models from the runner live.
@@ -348,7 +364,7 @@ unknown capabilities. Declared and system tools still work on every provider.
 ## 8. Related skills
 
 - **BRA217** — workflow frontmatter, including LLM execution settings
-- **BRA202** — `.env` upload, cloud LLM keys, `DEFAULT_LLM_MODEL`, and `LOCAL_LLM_N_BASE_URL`
+- **BRA202** — `.env` upload, cloud LLM keys, `DEFAULT_LLM_MODEL`, `LOCAL_LLM_N_BASE_URL`, and the optional Access pair
 - **BRA106** §8 — local Docker stack: Ollama env vars and `host.docker.internal`
 - **BRA212** — managing LLM costs (caching, cheaper models, budgets, spend limits)
 - **BRA403** — run telemetry (`gen_ai.request.model`, token fields, cost)

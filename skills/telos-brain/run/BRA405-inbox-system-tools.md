@@ -55,8 +55,8 @@ but documented in **BRA406** — eval workflows typically call both
 | **`get_inbox_entry`** | Full entry + tasks | `inbox_entry_reference` | Markdown |
 | **`update_inbox_entry`** | Status, routing type, title, body, and/or absolute weight | `inbox_entry_reference`, `status`, `routing_type`, `title`, `body`, `weight` | Confirmation |
 | **`list_inbox_tasks`** | Tasks for one entry | `inbox_entry_reference` | CSV keyed by `Reference` |
-| **`add_inbox_task`** | Create a task | `inbox_entry_reference`, `workflow_code`, `instructions`, optional `assigned_to` | Confirmation with new task reference |
-| **`update_inbox_task`** | Status / action; approve | `inbox_task_reference`, `status`, `action` | Confirmation |
+| **`add_inbox_task`** | Create a task | `inbox_entry_reference`, `workflow_code`, `instructions`, optional `assigned_to`, optional `type` | Confirmation with new task reference |
+| **`update_inbox_task`** | Status / type / action; approve | `inbox_task_reference`, `status`, `type`, `action` | Confirmation |
 
 Intended flows:
 
@@ -72,7 +72,7 @@ Intended flows:
 | Tool | Parameter | Notes |
 |---|---|---|
 | `create_inbox_entry` | `title`, `body`, `routing_type` | Required |
-| `create_inbox_entry` | `source` | Optional producing-system label |
+| `create_inbox_entry` | `source` | Optional producing-system label. Defaults to `agent` when omitted |
 | `create_inbox_entry` | `weight` | Optional positive integer. Defaults to 1 when omitted |
 | `create_inbox_entry` | `workflow_name`, `entity_name`, `unit_of_work_name` | Optional source-context labels for triage grouping (BRA323) |
 | `create_inbox_cluster` | `inbox_entry_references` | Required; comma-separated, at least two |
@@ -86,8 +86,10 @@ Intended flows:
 | `add_inbox_task` | `workflow_code` | Optional — workflow **code**, not id |
 | `add_inbox_task` | `instructions` | Optional — instructions-only task action |
 | `add_inbox_task` | `assigned_to` | Optional — email of an active Organisation member; omit/null leaves unassigned (BRA408) |
+| `add_inbox_task` | `type` | Set `WORKFLOW`, `SKILL`, `TOOL`, or `MEMORY` for that Learning Centre quadrant; `TASK` for a general task; `TRIAGE` for triage; `PLAN` for planning |
 | `update_inbox_task` | `inbox_task_reference` | Required |
-| `update_inbox_task` | `status` / `action` | At least one required |
+| `update_inbox_task` | `status` / `type` / `action` | At least one required |
+| `update_inbox_task` | `type` | Same values as `add_inbox_task`. Set it to the quadrant or purpose of the task |
 
 Deprecated / invalid for these tools: `id`, `inbox_entry_id`, `workflow_id`,
 `task_id`.
@@ -199,7 +201,7 @@ and is not recalculated here.
 
 Requires `inbox_entry_reference`. Returns CSV for that entry only:
 
-`Reference,Status,WorkflowCode,Action,Response,CreatedAt,UpdatedAt`
+`Reference,Status,Type,WorkflowCode,Action,Response,CreatedAt,UpdatedAt`
 
 ## `add_inbox_task`
 
@@ -208,6 +210,9 @@ Requires `inbox_entry_reference`. Optional `workflow_code` (resolved server-side
 reaches triggered workflows via `{{inboxEntry.*}}`, see BRA204), and
 `assigned_to` (email of an active Organisation member — same validation as
 `assign_task_to_user` in **BRA408**; omit or pass null to leave unassigned).
+Set `type` to what the task is for: `WORKFLOW`, `SKILL`, `TOOL`, or `MEMORY`
+when it belongs in that Learning Centre quadrant, `TASK` for a general task,
+`TRIAGE` for triage, or `PLAN` for planning.
 Creates status `PENDING` and returns the new task's **reference**.
 
 **Auto-run:** the engine decides from the **workflow named by
@@ -226,7 +231,9 @@ of recreating it.
 
 ## `update_inbox_task`
 
-Requires `inbox_task_reference` and at least one of `status` or `action`.
+Requires `inbox_task_reference` and at least one of `status`, `type`, or `action`.
+Set `type` the same way as `add_inbox_task`: the Learning Centre quadrant, or
+`TASK`, `TRIAGE`, or `PLAN`.
 Forward-only task lifecycle. Setting `status` to `RUNNING` from
 `AWAITING_APPROVAL` **approves** the task and runs the linked workflow
 synchronously (settles `COMPLETED` or `FAILED`; never left stranded in

@@ -38,6 +38,7 @@ parameters:
     param: source
     description: >-
       Optional. Free-text identifier of the producing system (e.g. WF-EVAL-RUN).
+      Defaults to agent when omitted.
     type: string
   - name: status
     param: status

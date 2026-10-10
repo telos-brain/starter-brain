@@ -1,10 +1,13 @@
 name: add_inbox_task
-version: 2
+version: 3
 description: >-
   Creates a new task under an inbox entry, optionally targeting a workflow (by
   code) and optionally assigning an Organisation member. The task is created
-  with status PENDING. Provide the parent inbox_entry_reference; workflow_code,
-  instructions, and assigned_to are optional.
+  with status PENDING. Set type to WORKFLOW, SKILL, TOOL, or MEMORY when the
+  task belongs in that Learning Centre quadrant, TASK for a general task,
+  TRIAGE for triage, or PLAN for planning. Provide the parent
+  inbox_entry_reference; workflow_code, instructions, assigned_to, and type
+  are optional.
 system:
   tool: add_inbox_task
 parameters:
@@ -35,4 +38,19 @@ parameters:
       to. Pass null or omit to leave the task unassigned. See BRA408
       (list_users / assign_task_to_user).
     type: string
+  - name: type
+    param: type
+    description: >-
+      What this task is for. Set WORKFLOW, SKILL, TOOL, or MEMORY when the task
+      belongs in that Learning Centre quadrant. Set TASK for a general task,
+      TRIAGE for triage, and PLAN for planning.
+    type: string
+    enum:
+      - WORKFLOW
+      - TASK
+      - SKILL
+      - TOOL
+      - MEMORY
+      - TRIAGE
+      - PLAN
 

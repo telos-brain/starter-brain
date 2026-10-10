@@ -1,8 +1,8 @@
 name: update_inbox_task
-version: 1
+version: 2
 description: >-
-  Advances an inbox task's status and/or replaces its action. Identified by
-  inbox_task_reference — never by UUID. Setting status to RUNNING from
+  Advances an inbox task's status, type, and/or replaces its action. Identified
+  by inbox_task_reference — never by UUID. Setting status to RUNNING from
   AWAITING_APPROVAL approves the task and runs its linked workflow.
 system:
   tool: update_inbox_task
@@ -19,11 +19,27 @@ parameters:
     description: >-
       Optional. Forward progression (e.g. PENDING → AWAITING_APPROVAL →
       RUNNING). RUNNING from AWAITING_APPROVAL approves and runs the linked
-      workflow. At least one of status or action is required.
+      workflow. At least one of status, type, or action is required.
     type: string
   - name: action
     param: action
     description: >-
       Optional. Replacement instructions-only text for the task. At least one
-      of status or action is required.
+      of status, type, or action is required.
     type: string
+  - name: type
+    param: type
+    description: >-
+      What this task is for. Set WORKFLOW, SKILL, TOOL, or MEMORY when the task
+      belongs in that Learning Centre quadrant. Set TASK for a general task,
+      TRIAGE for triage, and PLAN for planning. At least one of status, type,
+      or action is required.
+    type: string
+    enum:
+      - WORKFLOW
+      - TASK
+      - SKILL
+      - TOOL
+      - MEMORY
+      - TRIAGE
+      - PLAN
