@@ -1,14 +1,15 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 22
+version: 24
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
   and pre-called input-tools (BRA409), hold a multi-turn chat session against
   a single run, stop an in-flight turn without closing the session
   (POST /runs/{id}/stop), and retrieve run telemetry and unit-of-work telemetry
-  via the Execution API — including model, thinking mode and turn totals on run
+  via the Execution API — including model, thinking mode, temperature, sampling
+  parameters and turn totals on run
   telemetry. Documents when a run settles Failed (max-turns exhausted, final
   max_tokens with no retries). Also notes when a Completed, Failed, or
   AwaitingInput run becomes eligible for learning evals (BRA207). Documents
@@ -365,6 +366,11 @@ Response `200 OK`:
     "gen_ai.system": "telos-brain",
     "gen_ai.request.model": "anthropic/claude-sonnet-4-6",
     "telos.thinking.mode": "effort",
+    "gen_ai.request.temperature": 0.2,
+    "gen_ai.request.top_p": 0.9,
+    "gen_ai.request.top_k": 40,
+    "gen_ai.request.min_p": 0.05,
+    "gen_ai.request.presence_penalty": -0.5,
     "telos.workflow.name": "Sales chat",
     "telos.workflow.code": "WF-SALES",
     "telos.workflow.path": "workflows/sales-chat.md",
@@ -390,6 +396,11 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 | `gen_ai.request.model` | Fully-qualified model the run executed against (`provider/model`) |
 | `gen_ai.embeddings.count` | Embeddings generated in the run (always present on `totals`). OTEL standardises `gen_ai.embeddings.dimension.count` (vector size) only; this is the count of embeddings produced. |
 | `cacheRatePercent` | Whole percent: cache reads / (uncached input + cache reads + cache writes). Null when all three are zero. |
+| `gen_ai.request.temperature` | Workflow sampling temperature. Omitted when the workflow does not set one, so the provider default is not reported as `0` or `null`. `0` is included when the workflow set it. Read from the current workflow, the same way as thinking mode. |
+| `gen_ai.request.top_p` | Workflow top-p. Omitted when unset. `0` is included when set. Read from the current workflow. Reported even when the provider request omitted the field. |
+| `gen_ai.request.top_k` | Workflow top-k. Omitted when unset. `0` is included when set. Read from the current workflow. |
+| `gen_ai.request.min_p` | Workflow min-p. Omitted when unset. `0` is included when set. Read from the current workflow. Not an official OTEL key. |
+| `gen_ai.request.presence_penalty` | Workflow presence penalty. Omitted when unset. `0` is included when set. Read from the current workflow. |
 | `telos.thinking.mode` | Workflow thinking mode (`none` \| `adaptive` \| `extended` \| `effort`) |
 | `telos.workflow.name` | Workflow title (falls back to code). Also on the payload as `workflowName`. |
 | `telos.workflow.code` | Workflow deploy code |

@@ -317,7 +317,6 @@ LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
 # LOCAL_LLM_1_CF_ACCESS_CLIENT_ID=
 # LOCAL_LLM_1_CF_ACCESS_CLIENT_SECRET=
 
-
 # Optional default for workflows that omit `model:` (a workflow `model:` overrides this):
 # DEFAULT_LLM_MODEL=local_1/qwen3:8b
 ```
@@ -382,11 +381,11 @@ model: local_2/gemma4:e4b
 
 The prefix `local_1` resolves `LOCAL_LLM_1_BASE_URL`. The remainder
 (`qwen3:8b`) is passed verbatim to the runner. Unprefixed model names still
-use Anthropic. Omitting `model` uses the brain default (Settings /
+use Anthropic. Omitting `model` uses the brain default list (Settings /
 `DEFAULT_LLM_MODEL` / compose `llm-model`); if that is also unset, the run
-fails — leftover cloud keys are not a silent default. A workflow that sets
-`model:` uses that model when its credential exists, even if a brain default
-is set.
+fails. Leftover cloud keys are not a silent default. A workflow that sets
+`model:` uses that list, even when a brain default is set. A second model is
+another comma-separated id (`local_1/qwen3:8b, openrouter/qwen/qwen3-coder`).
 
 To give every workflow that omits `model:` a local runner, set
 **Default LLM model** in Settings, `DEFAULT_LLM_MODEL` in `.env.local`, or
