@@ -1,12 +1,12 @@
 ---
 name: Local Development
 code: BRA106
-version: 11
+version: 14
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
-  host.docker.internal, and running workflows against a local LLM (Ollama or
-  llama.cpp). Use when developing a brain or a host application against a
-  local Brain stack.
+  host.docker.internal, and running workflows or embeddings against a local
+  LLM (Ollama or llama.cpp). Use when developing a brain or a host application
+  against a local Brain stack.
 ---
 
 # Local Development
@@ -122,9 +122,11 @@ or fail at run time.
 See **BRA202** and **BRA210** for the full key list. Local Ollama / llama.cpp
 runners use `LOCAL_LLM_N_BASE_URL` instead of a cloud API key — §8.
 
-A local LLM does **not** replace embeddings. Semantic search still needs
-`VOYAGE_API_KEY` or `OPENAI_API_KEY` when you want it; deploy does not require
-either.
+Semantic search uses the brain's `embedding-model`. The default
+`voyage-3-lite` needs `VOYAGE_API_KEY`. A `text-embedding-*` model needs
+`OPENAI_API_KEY`. A `local_N/…` model (for example `local_1/nomic-embed-text`)
+uses that runner's `LOCAL_LLM_N_BASE_URL` and does not need a cloud embedding
+key. Deploy does not require any of these.
 
 ---
 
@@ -293,9 +295,11 @@ Workflows can call a local OpenAI-compatible runner (Ollama, llama.cpp server,
 NVIDIA NIM, or similar) instead of Anthropic / OpenAI / xAI. The Brain process still runs
 in Docker, so the runner URL must be reachable **from the container**.
 
-This does not replace embeddings. Semantic search still needs `VOYAGE_API_KEY`
-(or `OPENAI_API_KEY` for a `text-embedding-*` model) when you want it. Deploy
-does not require either key.
+The same URL serves embeddings when `embedding-model` is `local_N/<model>`
+(for example `local_1/nomic-embed-text`). That call is `POST /v1/embeddings`
+on this base URL. It uses the optional API key and Access pair below, and it
+does not need `VOYAGE_API_KEY` or `OPENAI_API_KEY`. Deploy does not require an
+embedding key. See **BRA210** §3.
 
 ### Env vars
 
@@ -329,6 +333,36 @@ LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
 | `LOCAL_LLM_N_CF_ACCESS_CLIENT_ID` | no, pair | Cloudflare Access Client Id. Must be paired with the secret. Sent as `CF-Access-Client-Id` in addition to Bearer. Omit on LAN. |
 | `LOCAL_LLM_N_CF_ACCESS_CLIENT_SECRET` | no, pair | Cloudflare Access Client Secret. Must be paired with the id. Sent as `CF-Access-Client-Secret`. One without the other fails the run. Do not set on customer brains. |
 | `DEFAULT_LLM_MODEL` | no | Optional brain default (`local_1/qwen3:8b`). Same as Settings **Default LLM model**. Used when a workflow omits `model:`. |
+
+### How many calls one runner will take
+
+`LOCAL_LLM_N_*` tells a brain where the runner is. How many calls that runner may have open is a setting on the brain server, because it depends on the machine. The default is 4 in-flight calls, and an interactive call waits 15 seconds for a free slot. That default matches an EdgeXpert box running NVIDIA NIM. A laptop running one Ollama model should use 1, and should match Ollama's `OLLAMA_NUM_PARALLEL` (its own default is 1). A cap higher than the runner will actually execute queues work inside the runner and holds a brain slot for the whole decode.
+
+Set these on the server process. `brain deploy` does not apply them. Restart the server after a change. A cap outside 1 to 32, or a wait outside 0 to 300 seconds, is ignored and the default is used. A wait of 0 means an interactive call does not wait. The same wait is how long an interactive call waits for the first response byte. A cold prompt of about 100,000 tokens returned no byte within 15 seconds on EdgeXpert. Set `LOCAL_LLM_PRIORITY_SLOT_WAIT_SECONDS=120` on a server that runs prompts of that size. Eval and inbox runs already wait up to 2 minutes for the first byte.
+
+| Setting | Environment variable | Default |
+| --- | --- | --- |
+| `LocalLlm:MaxInFlight` | `LocalLlm__MaxInFlight` | 4 |
+| `LocalLlm:PrioritySlotWaitSeconds` | `LocalLlm__PrioritySlotWaitSeconds` | 15 |
+| `LocalLlm:DefaultAutoCompactionTokens` | `LocalLlm__DefaultAutoCompactionTokens` | off |
+
+On a local Docker stack, export these before `brain start`, or put them in `.brain/.env`. The generated compose file passes them through. Unset values keep the defaults.
+
+```bash
+# A laptop running one Ollama model.
+export LOCAL_LLM_MAX_IN_FLIGHT=1
+brain start
+```
+
+```bash
+# A server that runs cold prompts of about 100,000 tokens.
+export LOCAL_LLM_PRIORITY_SLOT_WAIT_SECONDS=120
+brain start
+```
+
+`brain start` rewrites the compose file, so a later start picks up a new export. Eval and inbox runs that find the runner full are parked and retried on a 5, 10, 15, then 30 minute schedule. They do not use this wait. `POST /runs/{id}/stop` takes a parked retry (one that has already waited) off that schedule. A heartbeat, or a run that has not started, stays Scheduled and stop returns 409.
+
+Local auto-compaction stays off until something sets a prompt-token threshold. A workflow `auto-compaction` value wins. Otherwise the brain env `LOCAL_LLM_N_AUTO_COMPACTION` (same N as the runner) wins. Otherwise the server value `LocalLlm__DefaultAutoCompactionTokens` wins. Blank, zero, and non-integers are ignored. Cloud models and an OpenRouter failover hop ignore all three. `48000` is the figure to try on a box; it is not applied when the settings are unset. A live local parent compacts on that same runner, and the summary keeps the last 4 turns verbatim. OpenAI and xAI keep the last 2. Injected skills and workflow instructions stay outside the compacted span. `{{now.*}}` inside instructions is still rendered on every turn, so it can still change the prefix and miss the KV cache until that is addressed separately.
 
 A trailing `/v1` is accepted and stripped. The conversant calls
 `{base}/v1/chat/completions`.
@@ -446,10 +480,13 @@ brain start --image telos-brain:local
 - **Tool call reaches the Brain container, not your app** — the URL used
   `localhost` or `127.0.0.1`. Switch to `http://host.docker.internal:<PORT>`
   and redeploy.
-- **Semantic search is empty / embeddings skipped** — neither
-  `VOYAGE_API_KEY` nor `OPENAI_API_KEY` is set. Deploy still succeeds. Fill a
-  key in `.env.local` if you want embeddings. A local LLM does not replace
-  this key.
+- **Semantic search is empty / embeddings skipped** — the embedding model is
+  Voyage or OpenAI and that key is missing, or `embedding-model` is `local_N/…`
+  and `LOCAL_LLM_N_BASE_URL` is missing. Deploy still succeeds. For a local
+  runner, set `embedding-model: local_1/nomic-embed-text` (or another model
+  that runner serves) and the matching base URL. Search ignores vectors from
+  the previous model until those skills, tools, or blueprint entries are saved
+  again.
 - **`No brain compose file found`** — `brain deploy` was run from a folder
   without `brain-compose.yml`. Pass the schema path (e.g.
   `brain deploy brain-schema --env local --instance local-brain`).
@@ -461,6 +498,8 @@ brain start --image telos-brain:local
   runner whose env var is missing. Set `model: local_1/…` (or a brain default)
   and `LOCAL_LLM_1_BASE_URL`, then redeploy. A failed inbox task cannot be
   retried; create a new task or entry.
+- **Local LLM: "no free slot"** — the server cap (`LocalLlm__MaxInFlight`, default 4) is full. Lower it to match the machine (1 for a single Ollama model) or raise it on a larger GPU, then restart. See §8. Interactive calls give up after `LocalLlm__PrioritySlotWaitSeconds` (default 15). Eval and inbox runs park and retry instead. Embedding calls do not take a slot, so a chat that already holds one can still embed. A deploy can still pile embedding requests onto the same Ollama.
+- **A run stays Scheduled and stop appears to do nothing** — a parked local retry waits out 5, 10, 15, or 30 minutes even when the runner is idle. `POST /runs/{id}/stop` moves that parked retry to AwaitingInput and clears the schedule. A heartbeat, or a run that has not started, stays Scheduled and stop returns 409. A build from before the parked-retry fix returned success and left every Scheduled row unchanged, so the minutely sweep started it again.
 - **Local LLM connection refused** — `LOCAL_LLM_1_BASE_URL` used `localhost`
   from Brain-in-Docker, or the runner is not listening. Use
   `http://host.docker.internal:11434/v1` (§8).

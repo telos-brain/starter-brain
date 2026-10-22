@@ -49,11 +49,13 @@ tools:
   - find_available_skills
   - get_skill
   - find_available_tools
+  - activate_tools
   - add_ticket_comment
 
 # Available tools — in the workflow's searchable permission envelope only.
-# Surfaced via find_available_tools, or promoted mid-run when get_skill loads a
-# skill that lists them under its own tools: field (see **BRA215**). Not injected by
+# Surfaced via find_available_tools. Promoted for this run when activate_tools
+# is called with their names, or when get_skill loads a skill that lists them
+# under its own tools: field (see **BRA215** and **BRA415**). Not injected by
 # default. Omit the key entirely when unused (existing workflows stay valid).
 available-tools:
   - list_schema_files
@@ -217,13 +219,16 @@ before its first turn, with no extra LLM tool call required to fetch the widget.
 
 ## 2. Choosing a model (`model`, see **BRA210**)
 
-Set `model` to a `provider/model-name` string (e.g. `anthropic/claude-sonnet-4-6`,
-`openai/gpt-4o`, `telosbrain/xai/grok-4.6`, `xai/grok-4.5`). Supported providers, example model codes, and
-credential mapping are listed in **BRA210**. Bare model names (no prefix)
-default to Anthropic. A set `model:` overrides the brain default when that
-model's credential exists. Omit `model` to use the brain default (`llm-model` /
-`DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails — leftover
-cloud keys are not used as a silent default.
+Set `model` to one `provider/model-name`, or an ordered comma-separated list
+of interchangeable models (e.g.
+`local_1/Qwen/Qwen3.6-35B-A3B, openrouter/qwen/qwen3.6-35b-a3b`).
+A single id is a list of one. Providers, codes, credentials, and stepping
+are in **BRA210**. Bare names (no prefix) default to Anthropic.
+When `model:` is set, that list is the whole run — a missing credential
+skips that entry; the brain default is not appended.
+Omit `model` to use the brain default list (`llm-model` /
+`DEFAULT_LLM_MODEL` / Settings). If that is also unset, the run fails —
+leftover cloud keys are not a silent default.
 
 ## 2a. Fail over to another workflow (`failover-workflow`)
 
@@ -387,6 +392,71 @@ Each value is `type-code:parameter-name:match-key`. Two parts are allowed
   that entity's units of work.
 - A malformed value fails deploy. An unknown type code does not: it matches
   nothing at run time.
+- These keys do not read an inbox entry. An inbox task that should keep the
+  entry's entity uses `scope` below, not `entity`.
+
+## 3b. Inbox task scope (`scope`)
+
+An inbox task run is brain-scoped unless its workflow opts in. Set this on the
+one workflow that should see the entity blueprint. That is usually
+`WF-REVIEW-BLUEPRINT`. Leave it off every other task on the same entry.
+
+```yaml
+scope: inherit-entry
+```
+
+The only accepted value is `inherit-entry`. Anything else fails deploy. Omit
+the key and the task stays brain-scoped, which is what existing workflows do.
+
+What the engine does:
+
+1. `create_inbox_entry` stores the entity id and unit-of-work id already on the
+   run that calls it. `entity_name` and `unit_of_work_name` stay labels. A name
+   is never looked up, so two entities with the same name cannot be mixed up.
+2. When the task runs, a workflow with `scope: inherit-entry` copies those ids
+   onto the run. Blueprint tools then use the same tiers as any other scoped
+   run. A unit-of-work blueprint for that type wins if one exists. Otherwise an
+   entity blueprint for the entity's type. Otherwise the brain blueprints.
+3. If the workflow opts in and the entry has no entity id, the task stays
+   brain-scoped. That covers an older entry, and a creating run that was itself
+   brain-scoped. The server logs a warning that names the entry and the task.
+4. The run records where the scope came from. `inherited-entry` means the ids
+   were copied. `none` means the task stayed brain-scoped. On the run page this
+   shows as "Inherited from the inbox entry" or "Brain-scoped". Other runs leave
+   the field empty.
+5. Opting in does not write a blueprint entry. If that tier has more than one
+   blueprint, `add_blueprint_entry` still needs `blueprint` (a code or a title).
+
+Do not also set `entity` or `unit-of-work` on a workflow that uses
+`scope: inherit-entry`. The inherited ids are the ones the run keeps.
+
+Example. The brain has an entity type `projects`, a blueprint `projects` with
+`scope: entity:projects`, and brain blueprints `company` and `memory`. The
+review task is:
+
+```markdown
+---
+name: Review blueprint
+code: WF-REVIEW-BLUEPRINT
+type: TRIGGERED
+trigger: inbox:MEMORY_UPDATE
+scope: inherit-entry
+tools:
+  - add_blueprint_entry
+  - search_blueprint_entries
+---
+```
+
+Complete a unit of work on a project. The eval run is already scoped to that
+project, and `create_inbox_entry` stores the project id on the inbox entry.
+The `WF-REVIEW-BLUEPRINT` task then sees the `projects` blueprint. A second
+task workflow on the same entry, without `scope`, still sees only `company`
+and `memory`.
+
+If the entry shows `EntityName: Security` but has no entity id, the review task
+still sees only `company` and `memory`. Check the warning, then re-run the eval
+from a scoped run so the entry is created with an id. Renaming the entry does
+not fix it.
 
 ## 4. Chat session settings (optional)
 

@@ -128,6 +128,37 @@ Runs inside the brain — no outbound HTTP. Declare under
 | `entity_name` | Optional. Entity name. When omitted, filled from the subject run (or the eval run's entity on a unit-of-work eval) |
 | `unit_of_work_name` | Optional. Unit-of-work **title**. When omitted, filled from the subject run (or the eval run's unit of work) |
 
+The same call stores the eval run's entity id and unit-of-work id. The names
+above do not choose the entity. See BRA217 §3b for how a task workflow picks
+that id up.
+
+### 1.4 Getting the learning onto an entity blueprint
+
+A unit-of-work eval already runs with the entity in scope. The inbox entry
+keeps that entity id. The task that should write the entity blueprint has to
+opt in, or it only sees brain blueprints such as `company` and `memory`.
+
+On `WF-REVIEW-BLUEPRINT` (and only that task workflow) set:
+
+```yaml
+scope: inherit-entry
+```
+
+Then deploy. A task run for an entry that has an entity id copies that id, and
+the `projects` blueprint (or whichever blueprint matches the entity type) is
+the one in scope. The run page shows "Inherited from the inbox entry".
+
+Leave the key off `WF-UPDATE-SKILL` and the other task workflows. They stay
+brain-scoped even when the entry names an entity.
+
+If the entry was created before this, or the eval run had no entity, the review
+task stays brain-scoped and the server logs a warning with the entry and the
+task. Do not fix that by typing the entity name on the entry. Run the eval
+again from the scoped unit of work so a new entry is stored with the id.
+
+When the run can see more than one blueprint, pass `blueprint` to
+`add_blueprint_entry`. The scope does not file the learning by itself.
+
 #### `set_run_grading` (BRA406)
 
 Persists the quality score on the **subject** WorkflowRun. Declare under

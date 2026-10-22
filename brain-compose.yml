@@ -5,7 +5,9 @@ description: >-
   management tools (schema list/read/edit).
 
 # Embedding model for semantic search (find_available_skills, blueprint search).
-# The API key comes from this brain's own .env (VOYAGE_API_KEY for voyage-*).
+# voyage-* uses VOYAGE_API_KEY from this brain's .env. A local runner model
+# such as local_1/nomic-embed-text uses LOCAL_LLM_1_BASE_URL (BRA210).
+# Search only uses vectors stored for the current model.
 embedding-model: voyage-3-lite
 
 # Learning loop intensity. high enables auto-run of inbox workflows whose
@@ -13,8 +15,10 @@ embedding-model: voyage-3-lite
 # Apply workflows also require inbox weight 5 (`inbox:…:high:5`).
 learning-mode: high
 
-# Default LLM for every workflow (workflows omit model: and inherit this).
-# Telos Cloud: telosbrain/xai/grok-4.6 uses the platform Grok key — no brain
+# Brain default when a workflow omits model:. One id, or an ordered
+# comma-separated list (empty entries ignored). A workflow that sets model:
+# uses that list for the whole run and does not fall through to this default.
+# Telos Cloud: telosbrain/xai/grok-4.6 uses the platform Grok key, so no brain
 # LLM env var. Token cost is billed to organisation brain credit at 2× the
 # official xAI grok-4.6 API rate (BRA210 / BRA212). Add your own provider key
 # and change this value to avoid the markup.

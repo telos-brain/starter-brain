@@ -90,7 +90,7 @@ TELOS_BRAIN_API_URL=https://go.telosbrain.com
 
 Optional:
 
-- `VOYAGE_API_KEY` — https://dash.voyageai.com (semantic search; this brain defaults to `voyage-3-lite`). Deploy succeeds without it; embeddings are skipped.
+- `VOYAGE_API_KEY` — https://dash.voyageai.com (semantic search; this brain defaults to `voyage-3-lite`). Deploy succeeds without it; embeddings are skipped. To embed on a local runner instead, set `embedding-model: local_1/<model>` (for example `local_1/nomic-embed-text`) and `LOCAL_LLM_1_BASE_URL`. That path does not use this key. After a change of embedding model, search ignores vectors stored for the previous model until that content is saved again.
 - `OPENAI_API_KEY` / `XAI_API_KEY` / `OPENROUTER_API_KEY` — for `openai/…`, `xai/…`, or `openrouter/…` after you change `llm-model`
 - `AZURE_OPENAI_API_KEY` / `AZURE_OPENAI_ENDPOINT` — for `azure/…` models (remainder is the Azure deployment name; BRA210)
 - `LOCAL_LLM_1_BASE_URL` — Ollama / llama.cpp (`model: local_1/<id>`; BRA106 §8)

@@ -1,7 +1,7 @@
 ---
 name: Brain Compose Manifest
 code: BRA213
-version: 3
+version: 5
 description: How to author brain-compose.yml — name, models, entities, units of
   work, variables, checkpoint strategy, and the outbound callback-domain
   allowlist. Load this when creating or editing the compose file.
@@ -21,9 +21,10 @@ name: kappa                      # REQUIRED: the brain's name
 
 # Optional brain-level settings (persisted on every `brain deploy`):
 # embedding-model: voyage-3-lite # optional; defaults to voyage-3-lite when omitted
+# embedding-model: local_1/nomic-embed-text # optional; uses LOCAL_LLM_1_BASE_URL
 # learning-mode: off             # optional; off | low | medium | high (omit = off)
 # llm-model: telosbrain/xai/grok-4.6  # optional; Telos-hosted Grok (2× xAI list on brain credit)
-# llm-model: local_1/qwen3:8b    # optional; default LLM (omit = workflow model)
+# llm-model: local_1/Qwen/Qwen3.6-35B-A3B, openrouter/qwen/qwen3.6-35b-a3b  # optional; used only when the workflow omits model:
 # transcription-model: anthropic/claude-sonnet-4-6  # optional; vision model for image transcription (BRA410)
 # checkpoint-strategy: Daily     # optional; see checkpoint strategy below (omit = Daily)
 # allowed-callback-domains:      # optional; shared outbound host allowlist (see below)
@@ -72,21 +73,25 @@ Rules:
 
 - `name` is the only required top-level field.
 - `embedding-model` is optional (defaults to `voyage-3-lite` when omitted).
+  `voyage…` uses `VOYAGE_API_KEY`. `text-embedding…` uses `OPENAI_API_KEY`.
+  `local_N/<model>` (for example `local_1/nomic-embed-text`) uses that runner's
+  `LOCAL_LLM_N_BASE_URL`. See **BRA210**.
 - `learning-mode` is optional (`off` | `low` | `medium` | `high`; omit or null is
   treated as `off`). Persisted onto the Brain on every deploy.
-- `llm-model` is optional (a `provider/model` string such as
-  `telosbrain/xai/grok-4.6`, `local_1/qwen3:8b`, or `anthropic/claude-sonnet-4-6`).
-  `telosbrain/…` uses the platform Grok key (no brain env var) and bills
-  token cost to brain credit at 2× the official xAI grok-4.6 API rate.
-  When set, workflows that omit `model:` use this model if its credential
-  exists. A workflow `model:` overrides it when that model's credential
-  exists; a missing workflow credential falls back to this default. If this
-  is omitted or blank and the workflow also has no `model:`, the run fails
-  (no silent Anthropic/OpenAI default). The same default
-  can be set with `DEFAULT_LLM_MODEL` in `.env` (compose `llm-model` wins when
-  both are present). Simulation `modelOverride` still wins per run.
+- `llm-model` is optional. Same ordered comma-separated list string as
+  workflow `model:` (empty entries ignored; a single id remains valid).
+  Written to `DEFAULT_LLM_MODEL`. Compose wins over `.env` at deploy.
+  Settings **Default LLM model** is a text field on that path.
+  Used only when the workflow omits `model:`. A set workflow `model:` is
+  the whole run and does not fall through to this default. Stepping,
+  skip-on-missing-credential, and leftover-key rules: **BRA210**.
+  This starter sets `llm-model: telosbrain/xai/grok-4.6` so Telos Cloud runs
+  without a provider key. A deploy writes that value over Settings. Comment
+  the line only when Settings or `DEFAULT_LLM_MODEL` should keep the default.
+  Local Docker cannot use `telosbrain/…`; change the value before
+  `brain deploy --env local`.
   Deploy warns (does not fail) when executable workflows have no `model:` and
-  no default is set. See **BRA210**.
+  no default is set.
 - `transcription-model` is optional (a vision `provider/model` used for image
   transcription — **BRA410** / **BRA412**). Omit → auto-detect from
   `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`.

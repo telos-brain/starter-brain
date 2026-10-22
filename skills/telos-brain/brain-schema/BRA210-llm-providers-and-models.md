@@ -1,7 +1,7 @@
 ---
 name: LLM Providers and Models
 code: BRA210
-version: 23
+version: 25
 description: Supported AI providers for workflow runs, the provider/model string
   format, example model codes, credential variable names, the Telos Brain
   platform Grok aggregator (telosbrain/xai/grok-4.6), OpenRouter, Azure
@@ -105,7 +105,7 @@ uses that list instead. Deploy warns (does not 409) when executable workflows ha
 | `telosbrain` | Same Grok conversant as `xai`, with a **platform-held** key (`Grok:ApiKey`) | None on the brain | First-party aggregator. Remainder after the first `/` must be an xAI model (`xai/grok-4.6`). Unavailable in local development — use `xai/grok-4.6` with `XAI_API_KEY` instead. Token cost and brain-credit debit use `LlmPrices` keyed `provider=telosbrain`, `model=xai/grok-4.6` at **double** the official xAI grok-4.6 short-context list price. See **BRA212**. |
 | `openrouter` | OpenAI-compatible Chat Completions at `openrouter.ai/api` | `OPENROUTER_API_KEY` | Aggregator. Remainder after the first `/` is the OpenRouter model id (`anthropic/claude-sonnet-4.6`, `openai/gpt-4o`, …). Settings lists a capped catalogue from `/v1/models` when the key is present. |
 | `azure` | Azure OpenAI Chat Completions | `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` (optional `AZURE_OPENAI_API_VERSION`) | The remainder after the first `/` is the Azure **deployment name**, not the underlying model name. V1 is API key auth only (Managed Identity deferred). Do not seed `LlmPrices` — Azure bills the customer's Azure subscription; `CostCents` is null (UI `—`). Platform credits still apply via `RunSeconds`. See §3a. |
-| `local_N` (e.g. `local_1`) | Local OpenAI-compatible | `LOCAL_LLM_N_BASE_URL` (required), `LOCAL_LLM_N_API_KEY` (optional), `LOCAL_LLM_N_CF_ACCESS_CLIENT_ID` / `LOCAL_LLM_N_CF_ACCESS_CLIENT_SECRET` (optional pair) | Ollama, llama.cpp, NVIDIA NIM, or any OpenAI-compatible local server. See §3. |
+| `local_N` (e.g. `local_1`) | Local OpenAI-compatible | `LOCAL_LLM_N_BASE_URL` (required), `LOCAL_LLM_N_API_KEY` (optional), `LOCAL_LLM_N_CF_ACCESS_CLIENT_ID` / `LOCAL_LLM_N_CF_ACCESS_CLIENT_SECRET` (optional pair) | Ollama, llama.cpp, NVIDIA NIM, or any OpenAI-compatible local server. Also the embedding endpoint when `embedding-model` is `local_N/…`. See §3. |
 
 Any other prefix is rejected at run time (`NotSupportedException`).
 
@@ -143,16 +143,29 @@ put in the error); neither → current LAN behaviour. Do not set these on
 customer brains. Cloudflare seeing prompt bodies at the edge is accepted only
 for Telos-internal workflows.
 
+How many calls one runner may have open, and how long an interactive call waits for a slot, are server settings (`LocalLlm__MaxInFlight`, default 4, and `LocalLlm__PrioritySlotWaitSeconds`, default 15). They are not brain environment variables. Local auto-compaction is off until `LOCAL_LLM_N_AUTO_COMPACTION` or `LocalLlm__DefaultAutoCompactionTokens` is set. **BRA106** §8.
+
 How to wire this on a local Docker stack (including `host.docker.internal`):
 **BRA106** §8. After changing `.env` runner URLs, Access vars, `DEFAULT_LLM_MODEL`, compose
-`llm-model`, or workflow `model:`, run `brain deploy` so the brain picks them
+`llm-model`, `embedding-model`, or workflow `model:`, run `brain deploy` so the brain picks them
 up. `ollama pull` of a new model on an already-stored runner URL does not
 need a redeploy — Settings lists models from the runner live.
 
 Do not add organisation prices for local runners. Cost stays unset (UI `—`).
-Local runners do not replace embeddings. Semantic search still needs
-`VOYAGE_API_KEY` or `OPENAI_API_KEY` when you want it; deploy does not require
-either.
+
+The same runner can embed. Set `embedding-model` to `local_N/<model>`, for
+example `local_1/nomic-embed-text`. The call is
+`POST {LOCAL_LLM_N_BASE_URL}/v1/embeddings`. The model id in the body is the
+remainder after `local_N/`, so that example sends `nomic-embed-text`. The
+optional API key and Cloudflare Access pair are the chat variables for that
+runner. A missing base URL, or one Access variable without the other, skips
+the embedding. It does not call Voyage or OpenAI, and it does not take a local
+chat slot. `voyage…` and `text-embedding…` models are unchanged. Search only
+compares vectors stored for the current `embedding-model`. After a change,
+skills, tools, and blueprint entries keep their old vectors until that content
+is saved again (a version-only redeploy does not rewrite them, and search
+ignores them). Deploy does not require `VOYAGE_API_KEY` or `OPENAI_API_KEY`
+when the embedding model is local.
 
 ---
 

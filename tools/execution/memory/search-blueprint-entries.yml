@@ -1,11 +1,11 @@
 name: search_blueprint_entries
-version: 2
+version: 3
 description: >-
-  Searches a memory blueprint for the entries most relevant to a query and
-  returns their titles ranked by relevance. Optionally scope the search to a
-  single category. Pass blueprint when more than one blueprint is in scope;
-  otherwise the target is resolved from the run's context. Use
-  get_blueprint_entry to read a result in full.
+  Searches memory entries for the ones most relevant to a query. Returns CSV
+  Blueprint,Category,Title,Score. Pass those three values to get_blueprint_entry
+  to read a result in full. Optionally restrict with category. Pass blueprint
+  (code or title) to search one blueprint; omit it to search every blueprint
+  at the current scope.
 system:
   tool: search_blueprint_entries
 parameters:
@@ -29,8 +29,9 @@ parameters:
   - name: blueprint
     param: blueprint
     description: >-
-      Optional. Code or title of the blueprint to search when more than one is
-      in scope (for example company or Company). Omit when only one blueprint
-      is available.
+      Optional. Code or title of the blueprint to use. When omitted, every
+      blueprint at the current scope is included. When set, only that blueprint
+      is used. An unknown name is an error and does not fall back to another
+      blueprint.
     type: string
     required: false

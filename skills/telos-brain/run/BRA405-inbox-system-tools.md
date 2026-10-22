@@ -113,9 +113,16 @@ Optional: `source`, `status`, `weight` (positive integer, default 1), and source
 | `unit_of_work_name` | Unit-of-work **title**. When omitted, filled from the subject run (or the eval run's unit of work) |
 | `weight` | Absolute signal weight. Omit for the default of 1. Stored before stage-1 trigger matching |
 
-On a `workflowrun:complete` eval, omit these three — `create_inbox_entry` copies
+On a `workflowrun:complete` eval, omit these three. `create_inbox_entry` copies
 them from the run being graded. They are also present on `{{run.telemetry}}`.
 Do not invent values.
+
+The tool also stores the calling run's entity id and unit-of-work id. Those
+ids are not parameters, and they are not derived from `entity_name`. A name is
+only a label. If the calling run has no entity id, the entry's id stays empty.
+A later task with `scope: inherit-entry` then stays brain-scoped (BRA217 §3b).
+Passing `entity_name: Security` does not attach the entry to an entity called
+Security.
 
 | `status` | Behaviour |
 | --- | --- |

@@ -1,10 +1,10 @@
 name: list_blueprint_entries
-version: 2
+version: 3
 description: >-
-  Lists the entries in a memory blueprint for the current context, optionally
-  filtered by category. Returns CSV with columns Title,Category, UpdatedAt.
-  Pass blueprint when more than one blueprint is in scope; otherwise the target
-  is resolved from the run's context. Use get_blueprint_entry to read an entry
+  Lists memory entries for the current scope, optionally filtered by category
+  or by blueprint (code or title). When blueprint is omitted, every blueprint
+  at the scope is listed. Returns CSV Blueprint,Title,Category,Version,UpdatedAt.
+  Use get_blueprint_entry with blueprint, category, and title to read an entry
   in full.
 system:
   tool: list_blueprint_entries
@@ -17,8 +17,9 @@ parameters:
   - name: blueprint
     param: blueprint
     description: >-
-      Optional. Code or title of the blueprint to list when more than one is in
-      scope (for example company or Company). Omit when only one blueprint is
-      available.
+      Optional. Code or title of the blueprint to use. When omitted, every
+      blueprint at the current scope is included. When set, only that blueprint
+      is used. An unknown name is an error and does not fall back to another
+      blueprint.
     type: string
     required: false

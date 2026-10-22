@@ -1,12 +1,10 @@
 name: update_blueprint_entry
-version: 2
+version: 3
 description: >-
   Updates an existing memory entry by replacing an exact substring of its
   content with new text. old_str must appear exactly once in the current
-  content; if it matches zero or several times the update is rejected so you
-  can supply a longer, unique substring. Pass blueprint when more than one
-  blueprint is in scope; otherwise the target is resolved from the run's
-  context.
+  content. Pass blueprint (code or title) when more than one blueprint exists
+  at the current scope.
 system:
   tool: update_blueprint_entry
 parameters:
@@ -30,8 +28,9 @@ parameters:
   - name: blueprint
     param: blueprint
     description: >-
-      Optional. Code or title of the blueprint that holds the entry when more
-      than one is in scope (for example company or Company). Omit when only one
-      blueprint is available.
+      Optional. Code or title of the blueprint to use. Required when more than
+      one blueprint exists at the current scope. A scope with a single
+      blueprint may omit it. An unknown name is an error and does not fall
+      back to another blueprint.
     type: string
     required: false
