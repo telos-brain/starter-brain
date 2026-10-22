@@ -1,9 +1,11 @@
 name: search_blueprint_entries
-version: 1
+version: 2
 description: >-
-  Searches this brain's memory blueprint for the entries most relevant to a
-  query and returns their titles ranked by relevance. Optionally scope the
-  search to a single category. Use get_blueprint_entry to read a result in full.
+  Searches a memory blueprint for the entries most relevant to a query and
+  returns their titles ranked by relevance. Optionally scope the search to a
+  single category. Pass blueprint when more than one blueprint is in scope;
+  otherwise the target is resolved from the run's context. Use
+  get_blueprint_entry to read a result in full.
 system:
   tool: search_blueprint_entries
 parameters:
@@ -22,5 +24,13 @@ parameters:
   - name: max_results
     param: max_results
     description: Optional. Maximum number of entries to return (default 5).
+    type: string
+    required: false
+  - name: blueprint
+    param: blueprint
+    description: >-
+      Optional. Code or title of the blueprint to search when more than one is
+      in scope (for example company or Company). Omit when only one blueprint
+      is available.
     type: string
     required: false

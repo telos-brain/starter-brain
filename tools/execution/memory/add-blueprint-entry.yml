@@ -1,10 +1,10 @@
 name: add_blueprint_entry
-version: 1
+version: 2
 description: >-
-  Adds a new entry to this brain's memory blueprint under an existing category.
+  Adds a new entry to a memory blueprint under an existing category.
   Use to record a distilled, reusable insight. Fails if an entry with the same
-  title already exists. The target blueprint is resolved automatically from the
-  run's context; you never choose it.
+  title already exists. Pass blueprint when more than one blueprint is in
+  scope; otherwise the target is resolved from the run's context.
 system:
   tool: add_blueprint_entry
 parameters:
@@ -23,3 +23,11 @@ parameters:
     description: The entry content as Markdown.
     type: string
     required: true
+  - name: blueprint
+    param: blueprint
+    description: >-
+      Optional. Code or title of the blueprint to write when more than one is
+      in scope (for example company or Company). Omit when only one blueprint
+      is available.
+    type: string
+    required: false

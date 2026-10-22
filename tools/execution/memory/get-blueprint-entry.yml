@@ -1,9 +1,10 @@
 name: get_blueprint_entry
-version: 1
+version: 2
 description: >-
   Retrieves a single memory entry by its category and title and returns its full
-  content. Use after search_blueprint_entries or list_blueprint_entries to read
-  an entry in full.
+  content. Pass blueprint when more than one blueprint is in scope; otherwise
+  the target is resolved from the run's context. Use after
+  search_blueprint_entries or list_blueprint_entries to read an entry in full.
 system:
   tool: get_blueprint_entry
 parameters:
@@ -17,3 +18,11 @@ parameters:
     description: The exact title of the entry to retrieve.
     type: string
     required: true
+  - name: blueprint
+    param: blueprint
+    description: >-
+      Optional. Code or title of the blueprint that holds the entry when more
+      than one is in scope (for example company or Company). Omit when only one
+      blueprint is available.
+    type: string
+    required: false

@@ -5,9 +5,9 @@ description: >-
   Applies one blueprint memory write from a review_blueprint inbox task —
   searches for a close match, then either merges into an existing entry or
   creates a new one. Never both.
-version: 5
+version: 6
 
-# Tasks are created by WF-REVIEW-UOW / WF-TRIAGE via add_inbox_task with
+# Tasks are created by WF-EVAL / WF-TRIAGE via add_inbox_task with
 # workflow_code WF-REVIEW-BLUEPRINT. An inbox: trigger with :low enables
 # Hangfire stage-2 auto-run when brain learning-mode is low or higher (BRA404).
 # Routing segment is ignored at stage 2; MEMORY_UPDATE matches stage-1 entries
@@ -36,15 +36,17 @@ You apply **exactly one** blueprint write for a single `review_blueprint` task.
 Fully autonomous — do not ask questions or wait for confirmation. Do **not**
 update the inbox entry status.
 
-Blueprint scope (entity vs brain-global) is resolved automatically from the run
-context — never pass scope to tools. Match the parsed category to one listed
-below.
+Blueprint scope (entity vs brain-global) is resolved from the run context. Do
+not pass an entity or unit of work. When more than one blueprint is listed
+below, pass `blueprint` (its code or title, for example `company` or `Company`)
+on every memory tool call. When only one is listed, omit `blueprint`. Match the
+parsed category to the blueprint it appears under.
 
 ## Blueprints
 
 <blueprint_categories>
 {{#blueprints}}
-### {{blueprint.name}}
+### {{blueprint.name}} (`{{blueprint.code}}`)
 {{blueprint.description}}
 
 {{#blueprint.categories}}
@@ -105,18 +107,22 @@ the task instructions remain authoritative for category and concept.
 1. Call `search_blueprint_entries` with:
    - `query` = the concept description
    - `category` = the parsed category name
+   - `blueprint` = that blueprint's code when more than one blueprint is listed; omit otherwise
    - `max_results` = a small number (e.g. 5)
 2. If search returns candidates that look like a **close match** (same concept,
    not merely the same category): call `get_blueprint_entry` for the best match
-   (`category` + exact `title`). Then call **`update_blueprint_entry` once**:
+   (`category` + exact `title`, and the same `blueprint` when you passed one).
+   Then call **`update_blueprint_entry` once**:
    - Merge the new concept information into the existing content
    - Preserve existing knowledge — do not wholesale replace
    - `old_str` must appear exactly once; include enough context to be unique
+   - `blueprint` = the same code when you passed one; omit otherwise
 3. If there is **no** close match: call **`add_blueprint_entry` once** with:
    - `category` = parsed category
    - `title` = short concept name (unique within the category)
    - `content` = markdown grounded in the concept description (and entry body
      if helpful)
+   - `blueprint` = the same code when more than one blueprint is listed; omit otherwise
 4. **Never** call both `update_blueprint_entry` and `add_blueprint_entry` in the
    same run. **Never** perform a second write after the first succeeds.
 5. Reply in one or two lines: created vs updated, category, and entry title.
