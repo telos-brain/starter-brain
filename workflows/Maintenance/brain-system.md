@@ -4,7 +4,7 @@ code: WF-BRAIN-SYSTEM
 description: >-
   Maintenance system prompt — how the brain, skillbooks, skills, workflows,
   tools and management tools work. Used only by brain-maintenance workflows.
-version: 4
+version: 5
 
 # Never executed directly — referenced via system-prompt-code.
 type: SYSTEM
@@ -119,7 +119,8 @@ manifests with `create_schema_file`.
 | Tool | Use |
 |---|---|
 | `find_available_skills` / `get_skill` | Find and load skills |
-| `find_available_tools` | Search the workflow's available tool pool |
+| `find_available_tools` | Search the workflow's available tool pool. Names only |
+| `activate_tools` | Make those names callable for the rest of this run |
 
 Always load the authoring skills above before mutating schema. Always search
 before creating. Duplicates degrade the brain.

@@ -341,7 +341,8 @@ reject a missing argument at dispatch.
 `type` declares the value type the Tool Router places on the outbound request
 (POST JSON body or GET query string). Agents always emit strings; the router
 converts the resolved value (model argument **or** hardcoded `value`) before
-dispatch so typed APIs receive numbers/dates rather than `"1"`.
+dispatch so typed APIs receive numbers, dates, or nested JSON rather than `"1"`
+or a quoted array.
 
 | `type`     | Coercion                                                         | Default |
 | ---------- | ---------------------------------------------------------------- | ------- |
@@ -350,6 +351,12 @@ dispatch so typed APIs receive numbers/dates rather than `"1"`.
 | `decimal`  | Parsed with invariant culture (`.` as decimal separator); strips currency symbols (`$3.14`→`3.14`) |         |
 | `date`     | Calendar date — multiple formats (see below)                     |         |
 | `datetime` | Instant — multiple formats; emitted as UTC ISO-8601              |         |
+| `json`     | Parsed as JSON. A stringified object or array is written as nested JSON, not a quoted string. Invalid JSON is a conversion error |         |
+
+`json` parses the agent string and places the root element on the body, so
+serialisation emits a nested array or object. A stringified Xero
+`ManualJournals` array is sent as a JSON array. Invalid JSON uses the same
+conversion error as the other types, and the HTTP call is not made.
 
 **Date / datetime formats and timezones**
 

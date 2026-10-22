@@ -1,7 +1,7 @@
 name: Telos Brain
 code: BRA
 prefix: BRA
-version: 48
+version: 49
 categories:
   - name: Concepts
     description: "The foundational theory of Telos Brain: what it is, how it works,
@@ -87,6 +87,7 @@ categories:
       - ./run/BRA412-transcribe-image-system-tool.md
       - ./run/BRA413-create-inbox-cluster.md
       - ./run/BRA414-learning-centre.md
+      - ./run/BRA415-activate-tools-system-tool.md
 description: "Telos Brain is a self-learning AI Brain, deployed as
   infrastructure from a brain schema and accessed via API.  It works as a
   standalone AI Agent+Brain, or alongside Agent frameworks.  "

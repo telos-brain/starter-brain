@@ -191,8 +191,10 @@ Two patterns are supported:
    every turn.
 2. **Available + skill promotion** — list them under `available-tools:`, declare
    the same names on this skill's frontmatter `tools:`, and ensure the workflow
-   can call `get_skill` / `find_available_tools`. Loading `BRA203` promotes the
-   matching tools for the rest of that run (`WF-SKILL-UPDATE` uses this pattern).
+   can call `get_skill`, `find_available_tools`, and `activate_tools`. Loading
+   `BRA203` promotes the matching tools for the rest of that run
+   (`WF-SKILL-UPDATE` uses this pattern). You can also `activate_tools` with
+   names from `find_available_tools` without loading the skill.
 
 A minimal tool definition:
 

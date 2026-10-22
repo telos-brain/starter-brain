@@ -6,7 +6,7 @@ description: >-
   exposed as workflow tools), wiring, and other structural schema fixes outside
   skill-craft and simple workflow/tool edits. High learning mode and inbox
   weight 5 or higher.
-version: 10
+version: 11
 # :high:5 gates Stage 1 (task create) and Stage 2 (auto-run on the parent
 # entry's current Weight). Below weight 5, triage-created tasks park at
 # AWAITING_APPROVAL for manual processing. Keep SYSTEM_CHANGE (not
@@ -28,6 +28,7 @@ tools:
   - find_available_skills
   - get_skill
   - find_available_tools
+  - activate_tools
   - list_schema_files
   - search_schema_files
   - get_schema_file
@@ -170,7 +171,8 @@ If there is no actionable structural signal, stop without changes.
 
 1. `list_schema_files` / `search_schema_files` / `get_schema_file` to see what
    already exists.
-2. `find_available_tools` / `find_available_skills` to avoid duplicates.
+2. `find_available_tools` / `find_available_skills` to avoid duplicates. Call
+   `activate_tools` with any available-tool names you then need to call.
 
 ### Phase 3: Execute
 

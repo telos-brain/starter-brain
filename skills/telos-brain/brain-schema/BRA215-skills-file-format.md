@@ -96,7 +96,10 @@ never written back to the workflow definition, and they do not affect other runs
 | System tools | Always available when declared on the workflow; they are not part of promotion |
 
 Discovering available tools at runtime uses `find_available_tools` (semantic
-search over the workflow's `available-tools` pool). See the live example in
+search over the workflow's `available-tools` pool). That result is names and
+descriptions only. Call `activate_tools` with the names you intend to use
+(**BRA415**); they are promoted for this run, the same way a skill's `tools:`
+list is. `get_skill` promotion is unchanged. See the live example in
 `WF-SKILL-UPDATE` + skill `BRA203`.
 
 ---

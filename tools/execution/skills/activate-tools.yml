@@ -1,0 +1,16 @@
+name: activate_tools
+version: 1
+description: >-
+  Makes tools from this workflow's available-tools pool callable for the rest
+  of this run. Pass a comma-separated list of tool names from
+  find_available_tools. Definitions are available on your next step.
+system:
+  tool: activate_tools
+parameters:
+  - name: tools
+    param: tools
+    description: >-
+      Comma-separated tool names to activate, for example
+      "xero_get_invoices, xero_get_invoice".
+    type: string
+    required: true

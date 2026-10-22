@@ -7,5 +7,6 @@ tools:
   - get-skill.yml
   - list-skills.yml
   - find-available-tools.yml
+  - activate-tools.yml
   - compact-context.yml
   - transcribe-image.yml

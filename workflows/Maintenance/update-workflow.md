@@ -5,7 +5,7 @@ description: >-
   Autonomously applies learnings to workflow instructions and tool definitions
   (create or update). Triggered for WORKFLOW_UPDATE and TOOL_UPDATE at high
   learning mode when inbox weight is 5 or higher.
-version: 10
+version: 11
 
 # :high:5 gates Stage 1 (task create) and Stage 2 (auto-run on the parent
 # entry's current Weight). Below weight 5, triage-created tasks park at
@@ -30,6 +30,7 @@ tools:
   - find_available_skills
   - get_skill
   - find_available_tools
+  - activate_tools
   - list_schema_files
   - search_schema_files
   - get_schema_file
@@ -140,6 +141,8 @@ Discard noise, truisms, and speculative rewrites of working workflows.
    tool paths.
 2. `get_schema_file` on each candidate before editing.
 3. Use `find_available_tools` when checking whether a capability already exists.
+   Call `activate_tools` with the names you intend to use. The search result
+   does not make them callable.
 
 Do not create duplicates. Prefer updating an existing workflow/tool over adding
 a parallel one.
