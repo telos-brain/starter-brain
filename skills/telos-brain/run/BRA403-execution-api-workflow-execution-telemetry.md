@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 24
+version: 25
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -12,7 +12,8 @@ description: How to list a brain's workflows (with pending inbox-task counts),
   parameters and turn totals on run
   telemetry. Documents when a run settles Failed (max-turns exhausted, final
   max_tokens with no retries). Also notes when a Completed, Failed, or
-  AwaitingInput run becomes eligible for learning evals (BRA207). Documents
+  AwaitingInput run becomes eligible for learning evals (BRA207). A tool that
+  requires approval leaves the run AwaitingApproval instead (BRA218). Documents
   SSRF rules for async callbackUrl (allowed-callback-domains).
 ---
 
@@ -219,7 +220,7 @@ Response `202 Accepted`:
 
 Returns `404 Not Found` if the workflow code does not resolve within the brain.
 
-The engine executes the run in the background (`Queued → Running → Completed / Failed`). A run settles `Failed` (not `Completed`) when the model hits a terminal limit — the workflow's `max-turns` cap is exhausted, or the final `output-tokens` attempt stops with `max_tokens` and no further retry remains — as well as on transport / API errors and cancellation. If a `callbackUrl` was supplied, the engine **POSTs** the payload to that URL when the run finishes. The request URL is `callbackUrl` unchanged (an existing query string stays; the payload is not added to it). The body is the JSON payload, with `Content-Type: application/json; charset=utf-8`.
+The engine executes the run in the background (`Queued → Running → Completed / Failed`). A tool with `requires-approval: yes` on a Pro or Enterprise brain leaves the run **AwaitingApproval** instead of Completed or Failed. The callback is not posted and the inbox is not settled until a person approves or declines (**BRA218**). That status is not a chat session and not a learning-eval target. A run settles `Failed` (not `Completed`) when the model hits a terminal limit — the workflow's `max-turns` cap is exhausted, or the final `output-tokens` attempt stops with `max_tokens` and no further retry remains — as well as on transport / API errors and cancellation. If a `callbackUrl` was supplied, the engine **POSTs** the payload to that URL when the run finishes. The request URL is `callbackUrl` unchanged (an existing query string stays; the payload is not added to it). The body is the JSON payload, with `Content-Type: application/json; charset=utf-8`.
 
 ```http
 POST https://app.example.com/brain/callbacks/run-complete

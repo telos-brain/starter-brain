@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 7
+version: 8
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -181,8 +181,8 @@ more than the successful work.
 
 | Field | Cost job |
 |---|---|
-| `description` | When to call, when *not* to call, and one example value. Tight, but sufficient. |
-| Parameter `description` | Format, example, and allowed values. The model only sees params that are not bound to `value` / `secret` / `entity` / `unitofwork` / `input`. |
+| `description` | Why the caller uses this tool, and which neighbouring tool to choose instead. Tight. Full writing rules: **BRA214**. |
+| Parameter `description` | The value to pass. A format, allowed set, or example only when a wrong value fails the call. Leave out case folding and other internals. |
 | Parameter `type` | `int` / `decimal` / `date` / `datetime` so the router coerces before dispatch — parse failures become a clear tool error instead of a bad HTTP call. |
 | Hidden bindings | Tenant ids, API keys, and run inputs are **not** LLM-facing. Bind them; do not ask the model to copy a UUID. |
 | `response-markdown` | Compact success text. Tell the model what happened and the reference to use next. |
@@ -211,9 +211,13 @@ error-markdown: |
   `widgetSvc_listV2`).
 - Hide everything the model cannot know or must not see.
 - Keep the description short — it is billed on every cache write of the
-  prefix.
+  prefix. Describe the caller's job. Leave matching rules and other
+  resilience (for example that a parameter accepts any case) in the
+  implementation (**BRA214**).
 - If evals show the same argument mistake, fix the parameter description
-  or `error-markdown`, not the workflow instructions.
+  or `error-markdown`, not the workflow instructions. Add the constraint
+  the caller must satisfy. Do not document behaviour the tool already
+  forgives.
 
 ---
 
@@ -309,14 +313,17 @@ with `XAI_API_KEY`, or a `local_N/…` runner (**BRA106**).
 Match the model to the workflow, not the brain:
 
 - Chat / general agent: `telosbrain/xai/grok-4.6` on Telos Cloud, or
-  `xai/grok-4.5` / `xai/grok-4.6` with your own key, unless you have a
-  Claude-specific reason (native `web_search` / `web_fetch`, thinking modes).
+  `xai/grok-4.5` / `xai/grok-4.6` with your own key. Native `web_search` and
+  `web_fetch` work on that Grok path and on Claude.
 - Compaction, ask-question, routing: Haiku or `xai/grok-4.3`.
 - Do not put Opus on a heartbeat or eval loop.
 
-Native tools (`web_search`, `web_fetch`) are Anthropic-shaped and are
-skipped on OpenAI / xAI / Telos Brain (**BRA210** §6). If a workflow needs them, keep
-Claude for that workflow only.
+Native `web_search` and `web_fetch` run on Claude as server tools. On Grok
+(`xai/…` and `telosbrain/…`) they run as the server-side `web_search` Agent
+Tool, for any workflow that lists them. A Grok run that does not list them
+does not send that tool. OpenAI sends `web_search_options` only on a search
+model. OpenRouter, Azure, and local runners skip them. If a workflow needs
+the web on a provider that skips it, keep Claude for that workflow (**BRA210** §7).
 
 Organisation `LlmPrices` must include the model you pick. A missing price
 row leaves `CostCents` null — telemetry still shows tokens, but daily /

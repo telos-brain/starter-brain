@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Authentication & Conventions"
 code: BRA401
-version: 5
+version: 6
 description: How to authenticate with the Telos Brain Execution API, how tenancy
   is resolved, the brain identity endpoint, and the common conventions (status
   codes, error format, content types) that apply across all endpoints.
@@ -16,7 +16,7 @@ The Execution API is the runtime surface of a Telos Brain. It is entirely separa
 | Purpose | Provision & configure brains | Run workflows against entities/units of work |
 | Auth | Clerk org JWT / `tbk_` org API key | Per-brain API key |
 | Tenant scope | Explicit `BrainId` per query | Implicit — resolved from the API key |
-| Routes | `/brains/...` | `/brain`, `/entities`, `/units-of-work`, `/workflows`, `/runs`, `/inbox`, `/skills`, `/transcription` |
+| Routes | `/brains/...` | `/brain`, `/entities`, `/units-of-work`, `/workflows`, `/runs`, `/inbox`, `/skills`, `/transcription`, `/users` |
 
 ---
 
@@ -92,6 +92,10 @@ Does **not** return the API key or organisation id.
 | `200 OK` | Successful read or idempotent action |
 | `201 Created` | Resource created |
 | `202 Accepted` | Async run queued |
+| `204 No Content` | Successful delete with an empty body |
 | `400 Bad Request` | Missing/invalid field, or unknown type code |
 | `401 Unauthorized` | Missing or invalid API key |
 | `404 Not Found` | Resource not found within the brain's scope |
+| `409 Conflict` | The request clashes with an existing resource, such as a duplicate user email |
+
+User add, update, and remove, and write-only user variables, are **BRA416**.

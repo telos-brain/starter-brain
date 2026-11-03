@@ -1,7 +1,7 @@
 ---
 name: Activate Tools System Tool
 code: BRA415
-version: 1
+version: 2
 description: The activate_tools system tool. After find_available_tools returns
   names, pass the ones you intend to call. They are promoted for the rest of
   the run, and onto the MCP server tool list for the rest of the session when
@@ -57,6 +57,7 @@ envelope.
 | Name in `available-tools` | Appended to this run's promoted tools. Call it on the **next** step. The definition (name, description, parameters) arrives on that request. |
 | Name already in `tools:` (injected) | Reported as already callable. Not an error. |
 | Unknown, or not in this workflow's available tools | Reported as not activated. Not written. |
+| Name the caller may not use (`roles:` on the tool, **BRA214**) | Treated as not in the available pool. Not written. `find_available_tools` does not return it either. The reply does not mention Roles. Omit `roles` and every caller can use the tool. |
 
 A second call appends. It does not replace names already promoted, including
 names `get_skill` promoted.

@@ -382,31 +382,36 @@ later). Grok cannot disable reasoning and has no `max`.
 `thinking-budget` is sent only on OpenRouter `extended` (`reasoning.max_tokens`).
 Grok, OpenAI, Azure, and local have no thinking token budget.
 
-**Response-side reasoning (xAI / OpenAI-compatible / local):** Grok returns
-chain-of-thought in `message.reasoning_content` (especially on tool-call turns
-where `content` is empty). Current vLLM and Ollama return the same text in
-`message.reasoning` — vLLM used to call this `reasoning_content`, and a response
-can still include that older field empty. Both are stored on the run so the UI
-can show them. Grok sends `reasoning_content` back unchanged on later requests
-in the same run; a local runner sends `reasoning` back the same way.
-Omitting it misses the prompt cache ([What Breaks Caching](https://docs.x.ai/developers/advanced-api-usage/prompt-caching/multi-turn)).
+**Response-side reasoning (xAI / OpenAI-compatible / local):** Grok Chat
+Completions returns chain-of-thought in `message.reasoning_content` (especially
+on tool-call turns where `content` is empty). Current vLLM and Ollama return
+the same text in `message.reasoning` — vLLM used to call this `reasoning_content`,
+and a response can still include that older field empty. Both are stored on the
+run so the UI can show them. Grok Chat Completions sends `reasoning_content`
+back unchanged on later requests in the same run; a local runner sends
+`reasoning` back the same way. Omitting it misses the prompt cache
+([What Breaks Caching](https://docs.x.ai/developers/advanced-api-usage/prompt-caching/multi-turn)).
 
 **Grok prompt cache key.** xAI caches automatically. Chat Completions has no
 `prompt_cache_key` body field; the equivalent is the `x-grok-conv-id` header,
-set to the workflow run id on every Grok call unless `caching: none`. That
-pins the run to one server so later turns (tool steps and chat continuations)
-can reuse the prefix. Continuations replay the previous messages, including
-tool results and `reasoning_content`, and only append the new user message.
-`caching: automatic` is still what turns on Claude's automatic cache breakpoint;
-on xAI it is not required for the header.
+set to the workflow run id on every Grok call unless `caching: none`. A Grok
+run that lists native web tools uses `POST /v1/responses` and sends that same
+run id as `prompt_cache_key` (xAI maps the field onto `x-grok-conv-id`). The
+header is still set. That pins the run to one server so later turns can reuse
+the prefix. Chat Completions continuations replay the previous messages,
+including tool results and `reasoning_content`, and only append the new user
+message. A Responses turn replays the previous response output on the next
+call, including the server-side web search item and the encrypted reasoning
+when the API returned them. `caching: automatic` is still what turns on
+Claude's automatic cache breakpoint; on xAI it is not required for the header.
 
 ---
 
 ## 7. Native tools
 
-Provider-native tools such as `web_search` and `web_fetch` are Anthropic-shaped
-today. On OpenAI / xAI / Telos Brain / OpenRouter / Azure / local-runner runs they are skipped rather than sent as
-unknown capabilities. Declared and system tools still work on every provider.
+Provider-native tools `web_search` and `web_fetch` are executed by the provider that hosts them.
+
+Claude receives them as server tools. On xAI and Telos Brain (the same Grok client) a run that lists either tool calls `POST /v1/responses` with one server-side `web_search` tool. xAI has no separate fetch tool. Web search browses pages, so `web_fetch` uses that same tool. A Grok run that does not list them stays on Chat Completions and does not send `web_search`. Live Search (`search_parameters`) is not sent. OpenAI Chat Completions receives `web_search_options` only when the model is a search model. OpenRouter, Azure, and local runners leave the tools off the request. They are not sent as functions. Declared and system tools still work on every provider.
 
 ---
 

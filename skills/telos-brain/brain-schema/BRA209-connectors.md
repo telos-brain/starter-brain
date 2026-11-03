@@ -1,12 +1,13 @@
 ---
 name: Connectors
 code: BRA209
-version: 21
+version: 26
 description: "How to author connector YAML files for external services (OAuth 2,
   API key, none, or caller-jwt). Covers file layout, brain-compose registration, optional
   platform type (e.g. elevenlabs), parameter declarations vs secret storage,
   url vs url-env, parameter secret: bindings, request-defaults for shared
-  headers and common params, parameter as:/in:/value: for any OAuth names,
+  headers and common params (hidden when secret or value is set, otherwise a
+  model parameter with an optional description), parameter as:/in:/value: for any OAuth names,
   oauth-request for non-standard flows, oauth-captures, the production OAuth
   redirect URI https://go.telosbrain.com/oauth/callback, deploy behaviour, and
   worked examples."
@@ -35,8 +36,8 @@ schema edit tools are in **BRA203**.
 | Piece | Where it lives | Role |
 |---|---|---|
 | **Connector YAML** | `connectors/{name}.yml` | Name, URL, auth type, scope, **declared** auth parameters |
-| **Parameter values** (client id, API key, …) | Brain environment variables (from `.env` / Management API) | Encrypted secrets — **never** in the YAML |
-| **OAuth access / refresh tokens** | Runtime (OAuth flow) | Acquired via OAuth; not authored in the schema |
+| **Parameter values** (client id, client secret) | Brain environment variables (from `.env` / Management API) | Encrypted secrets — **never** in the YAML. Same store for `scope: brain` and `scope: user` |
+| **API key and OAuth tokens** | Brain token row when `scope` is `brain`. User variables when `scope` is `user` (**BRA416**) | The person's key or tokens. A shared header from a brain environment variable is still sent (`request-defaults` `secret:`, or a tool parameter `secret:` with `header:`) |
 
 Connectors are **configuration**. Tokens are **runtime state**. Mixing them
 (e.g. stuffing tokens into environment variables as free-form keys) is
@@ -89,7 +90,7 @@ url: https://api.example.com       # XOR with url-env — static HTTPS base URL
 # url-env: ACME_API_URL            # XOR with url — brain env var name for the base URL
 auth-type: oauth2                  # REQUIRED — oauth2 | api-key | none | caller-jwt
 # type: elevenlabs                 # optional — platform identity (see Type below)
-scope: brain                       # optional — defaults to brain; only brain is valid today
+scope: brain                       # optional — brain (default) or user. entity is rejected
 parameters:                         # optional — omit the key entirely when empty
   - name: client-id                # REQUIRED per parameter
     description: OAuth 2 client ID # REQUIRED per parameter
@@ -106,11 +107,11 @@ parameters:                         # optional — omit the key entirely when em
 | `url-env` | one of | Name of a brain environment variable (from `.env`) whose value is the base URL (HTTPS, or HTTP for those local hosts). Resolved at tool/OAuth dispatch — same schema, different domains per brain. |
 | `auth-type` | yes | Exactly one of: `oauth2`, `api-key`, `none`, `caller-jwt`. |
 | `type` | no | Optional platform identity. Free text; omit when unused. First convention value: `elevenlabs`. Distinct from `auth-type`. |
-| `scope` | no | Defaults to `brain`. Entity-scoped connectors are out of scope for now. |
+| `scope` | no | `brain` (default) or `user`. Omitted scope is stored as `brain`. `entity` is rejected. `user` keeps that person's API key and OAuth access, refresh, and expiry as user variables (**BRA416**). Client id and client secret stay brain environment variables for both scopes. A user-scoped connector still reads other brain environment variables: `url-env`, OAuth `client-id` / `client-secret`, `request-defaults` `secret:`, and tool parameter `secret:` headers. |
 | `api-key-header` | no | For `api-key` auth only. Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
 | `parameters` | no | List of `{ name, description, secret?, as?, in?, value? }`. You may declare **any** parameter names, not only `client-id` / `client-secret`. `secret:` names a brain environment variable. `as:` is the provider-facing OAuth name (`clientId`, `redirectUri`). `in:` is `authorize`, `token`, or `both`. `value:` is a static non-secret. For `api-key` auth `secret:` binds the API key (omit → `CONNECTOR_{connectorId}_CLIENT_SECRET`). For `oauth2` auth `secret:` on `client-id` / `client-secret` binds `.env` names (omit → `CONNECTOR_{connectorId}_CLIENT_ID` / `_CLIENT_SECRET`). Omit the `parameters` key when there are none — do **not** emit `parameters: []`. |
 | `oauth-request` | no | Optional OAuth request customisation for non-RFC providers. See **OAuth request customisation** below. |
-| `request-defaults` | no | Shared headers and query/body values applied to **every** tool call on this connector. Same placement as a tool parameter (`header:`, `secret:`, `value:`). A tool-level declaration of the same header or key wins. See **Request defaults** below. |
+| `request-defaults` | no | Shared headers and query/body values on **every** tool call. Fields: `name`, optional `description`, `header`, `secret`, `value`. `secret:` or `value:` injects the value and hides it. With neither, the model supplies it and `description:` is the text the model sees. A tool-level declaration of the same name or header wins. See **Request defaults** below. |
 
 ### Auth types
 
@@ -219,8 +220,10 @@ oauth-captures:
 Declare headers and common parameters **once on the connector** instead of
 repeating them on every tool. Placement matches **BRA214**: `header:` sends
 an HTTP header; without it the value is a GET query parameter or POST/PUT
-JSON field. `secret:` reads a brain environment variable; `value:` is a
-static string (`{secret}` works as a template when both are set).
+JSON field. `header:` does not hide the parameter. `secret:` reads a brain
+environment variable; `value:` is a static string (`{secret}` works as a
+template when both are set). Either of those supplies the value and hides
+the default from the model.
 
 ```yaml
 request-defaults:
@@ -230,12 +233,35 @@ request-defaults:
   - name: tenant-id
     header: X-Tenant-Id
     secret: EXAMPLE_TENANT_ID
+  - name: tenantId
+    description: The Xero organisation to query.
+    header: Xero-Tenant-Id
   - name: summary-only
     value: "true"
 ```
 
 - Applied to every `api:` tool (and as headers on `mcp:` tools) that uses
-  this connector.
+  this connector, including `scope: user`. The person's API key or access
+  token is a separate header. A `secret:` here is still a brain environment
+  variable.
+- **Hidden when a variable or fixed value is set.** `secret:` or `value:`
+  injects the default. The model does not see that parameter. `accept` and
+  `tenant-id` in the example above stay hidden.
+- **Shown when nothing else supplies it.** A default with no `secret:` and
+  no `value:` is an optional model parameter on every `api` and `mcp` tool
+  that uses the connector. The name the model uses is `name`. The value it
+  supplies is sent as `header:` when that is set, otherwise as a query
+  parameter (GET) or JSON field. `tenantId` in the example is sent as
+  `Xero-Tenant-Id`. A tool parameter with the same name or the same header
+  replaces it. An `oauth-captures` header still owns that header, so that
+  default is not shown and is not sent from here.
+- **`description:`** is the text the model sees for a shown default, the
+  same role as a tool parameter `description`. It is stored with the other
+  request-default fields in the connector's `RequestDefaults` JSON. Leave
+  it out and the model is told only where the value is sent: `Sent as the
+  Xero-Tenant-Id header.` when `header:` is set, or `Sent as {name}.` when
+  it is not. A `description` on a hidden (`secret:` / `value:`) default is
+  stored and round-trips, and is not shown.
 - A tool parameter with the same header name or payload key **overrides** the
   default.
 - One source per header: if an `oauth-captures` entry also sets `header:`
@@ -547,10 +573,13 @@ mcp:
 At API dispatch the Tool Router resolves the connector URL (+ optional path),
 validates it with SSRF guards, and injects that connector's `auth-type`
 (OAuth2 Bearer, API key, or caller JWT). Shared extra headers and params
-come from `request-defaults` and from `oauth-captures` → `header:`. A tool
-may still declare its own `header:` / `secret:` (**BRA214**); those override
-a default with the same name. A brain `.env` value is unused until a tool
-`secret:`, a `request-defaults` `secret:`, or a capture `store:` names it.
+come from `request-defaults` and from `oauth-captures` → `header:`. A
+request-default with `secret:` or `value:` is injected and hidden. One with
+neither is a model parameter (`description:` is shown when set; otherwise
+the placement sentence is). A tool may still declare its own `header:` /
+`secret:` (**BRA214**); those override a default with the same name. A brain
+`.env` value is unused until a tool `secret:`, a `request-defaults`
+`secret:`, or a capture `store:` names it.
 
 Tools without `connector:` keep their inline URL / server behaviour. Header,
 query, body, and path placement for tool parameters is **BRA214**.
@@ -612,4 +641,5 @@ Schema system tools (**BRA203**) treat connectors as first-class schema files:
 | **BRA201** | Schema overview (which skill to load for each file type) |
 | **BRA217** | Workflow `deployment-type` / `elevenlabs-agent-id` |
 | **BRA202** | Environment variables, encryption, secret injection into tools |
+| **BRA416** | Brain users and write-only user variables, including per-user connector keys |
 | **BRA203** | Schema system tools (list / get / update connector files) |

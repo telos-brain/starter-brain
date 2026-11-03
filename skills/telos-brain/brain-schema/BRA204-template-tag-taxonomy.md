@@ -1,8 +1,8 @@
 ---
 name: Template Tag Taxonomy
 code: BRA204
-description: Canonical reference for double-curly-bracket template tags used in workflow Instructions and tool response-markdown / error-markdown. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings.
-version: 19
+description: Canonical reference for double-curly-bracket template tags used in workflow Instructions, tool response-markdown / error-markdown, and tool audit title / body. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings, and the arguments scope for the call being audited.
+version: 22
 ---
 
 # Template Tag Taxonomy
@@ -12,6 +12,7 @@ the template service. Use it when authoring or editing:
 
 - Workflow `Instructions` markdown
 - Tool YAML `response-markdown` and `error-markdown` fields
+- Tool YAML `audit.title` and `audit.body` (**BRA218**)
 
 No other reference is required. Tags that cannot be resolved render as blank —
 never an error — so typos produce empty output silently.
@@ -287,8 +288,10 @@ Notes:
 
 - **Local** uses the brain environment variable `TIMEZONE` (IANA id, e.g.
   `Pacific/Auckland`). When unset or unrecognised, local falls back to UTC.
-- Values are captured when Instructions (or tool response templates) are
-  rendered — including each chat continuation turn.
+- Values are filled in when the template is rendered: workflow Instructions,
+  the workflow named by `system-prompt-code`, and tool `response-markdown` /
+  `error-markdown`. The runtime does not add the current time to a model
+  message on its own.
 
 **Example:**
 
@@ -426,6 +429,31 @@ input-tools:
     tool: ask_question
     parameters:
       question: "{{input.seed_question}}"
+```
+
+---
+
+### 3.6a `arguments`
+
+| | |
+| --- | --- |
+| **Type** | Open-ended flat key/value bag |
+| **Sort** | N/A |
+| **Requires** | Rendering a tool `audit` title or body. Empty everywhere else, including Instructions and `response-markdown`. |
+
+| Field | Description |
+| --- | --- |
+| `arguments.{key}` | One argument from the tool call about to be recorded. Keys are case-insensitive. |
+
+The bag exists only while the audit title and body are rendered, which is
+**before** the tool runs. `{{result.*}}` is therefore empty in that block.
+Unresolved keys are blank. See **BRA218**.
+
+```yaml
+audit:
+  title: Send invoice to {{arguments.customer}}
+  body: |
+    Amount: {{arguments.amount}}
 ```
 
 ---

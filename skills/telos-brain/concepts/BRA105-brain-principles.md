@@ -1,7 +1,7 @@
 ---
 name: Brain Principles
 code: BRA105
-version: 5
+version: 6
 description: High-level principles for organising a Telos Brain — skills,
   tools, configuration, memory, and LLM budgets. Always inject when triaging
   learnings or editing the brain.
@@ -20,7 +20,9 @@ description: High-level principles for organising a Telos Brain — skills,
 - **Tools are mini-skills.** Prefer fixing the tool definition (description,
   parameter names/descriptions, response and error templates with variables and
   conditionals) over teaching the tool only in a skill. Tool defs sit in the
-  system prompt — keep them tight, but make them sufficient.
+  system prompt — keep them tight, but make them sufficient. Write why and how
+  the caller uses the tool. Leave matching rules and other internals out;
+  that resilience belongs in the tool (**BRA214**).
 - **Don't overfit one run.** Workflows repeat. Take the learning, but do not
   reconfigure for a single eval or flip-flop between one-off fixes.
 - **Categories are the lens.** Skill-book and blueprint category descriptions

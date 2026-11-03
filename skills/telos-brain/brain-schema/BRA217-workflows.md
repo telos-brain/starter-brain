@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 9
+version: 11
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, and external agent deployment. Load this when creating or editing a
@@ -363,14 +363,10 @@ Notes:
 
 ## 3a. Entity and unit-of-work scope (`entity`, `unit-of-work`)
 
-Optional. Omitted settings keep today's behaviour: Execution API `entity_id` /
-`unit_of_work_id` are stored as supplied, and an MCP `tools/call` stays unscoped.
-
-When set, a top-level run reads the named parameter and writes the matched id
-onto the run before the instructions are rendered. Execution API runs read
-`variables`. MCP runs read the tool-call arguments (those arguments are not
-copied into the run's variables). Nested `run_workflow` children and heartbeat
-successors inherit the parent's ids and do not match again.
+Optional. These fields choose the client and job for the run from an incoming
+value, before the instructions are rendered. Omit both and an Execution API
+run stores `entity_id` / `unit_of_work_id` as supplied. An MCP `tools/call`
+with neither field stays unscoped.
 
 ```yaml
 entity: clients:slug:slug
@@ -380,20 +376,41 @@ unit-of-work: jobs:reference:reference
 Each value is `type-code:parameter-name:match-key`. Two parts are allowed
 (`clients:entityId`); the match key then defaults to `id`.
 
-- `type-code` is the entity type or unit-of-work type code on this brain.
-- `parameter-name` is the incoming key. The match is case-sensitive. A missing
-  or blank value leaves that id unset.
-- `id` matches `Entities.Id` or `UnitsOfWork.Id`. Any other match key, including
-  `reference`, is an entity variable or unit-of-work variable key. The built-in
-  8-character Reference column is not used. Names are not used.
-- The first match wins (`CreatedAt`, then `Id`). A miss does not fail the run
-  and does not fall back to a caller-supplied id.
-- Unit of work is resolved only after an entity is in scope, and only among
-  that entity's units of work.
-- A malformed value fails deploy. An unknown type code does not: it matches
-  nothing at run time.
-- These keys do not read an inbox entry. An inbox task that should keep the
-  entry's entity uses `scope` below, not `entity`.
+| Part | Meaning |
+| ---- | ------- |
+| `type-code` | Entity type or unit-of-work type code on this brain |
+| `parameter-name` | Incoming key. The match is case-sensitive |
+| `match-key` | `id` matches `Entities.Id` or `UnitsOfWork.Id`. Any other key, including `reference`, is an entity variable or unit-of-work variable. The built-in 8-character Reference column is not used. Names are not used |
+
+`entity: clients:slug:slug` reads a parameter named `slug` and selects the
+`clients` entity whose variable `slug` equals that value.
+
+**Where the parameter is read**
+
+| Start | Parameter source |
+| ----- | ---------------- |
+| Execution API | `variables` |
+| MCP `tools/call` | Tool-call arguments. They are not copied into the run's variables |
+| `run_workflow` | Tool arguments overlaid on the parent run's variables. The same key uses the tool argument |
+| `workflow:` tool | The tool call's arguments, keyed by parameter `name`. A resolved parameter fills a key the caller did not send. When the caller sent the key, that argument is the value |
+| Heartbeat successor | The completed run's client and job. These fields are not read |
+
+The client is resolved first. The job is then resolved only among that
+client's jobs. The first match wins (`CreatedAt`, then `Id`). A malformed
+value fails deploy. An unknown type code matches nothing at run time. A miss
+does not fail the run.
+
+On an Execution API or MCP start, a missing, blank, or unmatched value leaves
+that id unset. A caller-supplied id is not used for a side that has YAML.
+
+On `run_workflow` or a `workflow:` tool, the child starts from the parent's
+client and job. A match replaces the client, then the job. A missing, blank,
+or unmatched value keeps the parent's id. If the client misses, the job YAML
+is not read and the parent's job stays. If the client matches and the job
+misses, the parent's job stays only when it belongs to that client.
+
+These keys do not read an inbox entry. An inbox task that should keep the
+entry's entity uses `scope` below, not `entity`.
 
 ## 3b. Inbox task scope (`scope`)
 

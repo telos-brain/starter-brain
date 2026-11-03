@@ -1,7 +1,7 @@
 ---
 name: Local Development
 code: BRA106
-version: 14
+version: 16
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
   host.docker.internal, and running workflows or embeddings against a local
@@ -362,7 +362,7 @@ brain start
 
 `brain start` rewrites the compose file, so a later start picks up a new export. Eval and inbox runs that find the runner full are parked and retried on a 5, 10, 15, then 30 minute schedule. They do not use this wait. `POST /runs/{id}/stop` takes a parked retry (one that has already waited) off that schedule. A heartbeat, or a run that has not started, stays Scheduled and stop returns 409.
 
-Local auto-compaction stays off until something sets a prompt-token threshold. A workflow `auto-compaction` value wins. Otherwise the brain env `LOCAL_LLM_N_AUTO_COMPACTION` (same N as the runner) wins. Otherwise the server value `LocalLlm__DefaultAutoCompactionTokens` wins. Blank, zero, and non-integers are ignored. Cloud models and an OpenRouter failover hop ignore all three. `48000` is the figure to try on a box; it is not applied when the settings are unset. A live local parent compacts on that same runner, and the summary keeps the last 4 turns verbatim. OpenAI and xAI keep the last 2. Injected skills and workflow instructions stay outside the compacted span. `{{now.*}}` inside instructions is still rendered on every turn, so it can still change the prefix and miss the KV cache until that is addressed separately.
+Local auto-compaction stays off until something sets a prompt-token threshold. A workflow `auto-compaction` value wins. Otherwise the brain env `LOCAL_LLM_N_AUTO_COMPACTION` (same N as the runner) wins. Otherwise the server value `LocalLlm__DefaultAutoCompactionTokens` wins. Blank, zero, and non-integers are ignored. Cloud models and an OpenRouter failover hop ignore all three. `48000` is the figure to try on a box; it is not applied when the settings are unset. A live local parent compacts on that same runner, and the summary keeps the last 4 turns verbatim. OpenAI and xAI keep the last 2. Injected skills and workflow instructions stay outside the compacted span. `{{now.*}}` is a template variable rendered where it is written. The runtime does not append the current time to model messages.
 
 A trailing `/v1` is accepted and stripped. The conversant calls
 `{base}/v1/chat/completions`.

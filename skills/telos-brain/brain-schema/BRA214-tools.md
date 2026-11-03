@@ -1,11 +1,12 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 6
-description: How to author tool groups and tool YAML — api, mcp, system,
-  workflow, and native tools, plus parameters (headers vs query vs body vs path,
-  secrets, entity / unit-of-work / input bindings, URL path tokens, and outbound
-  types). Load this when creating or editing a tool.
+version: 14
+description: How to author tool groups and tool YAML — caller-facing
+  descriptions, api, mcp, system, workflow, and native tools, optional roles,
+  optional audit and approval, plus parameters (headers vs query vs body vs
+  path, secrets, entity / unit-of-work / input bindings, URL path tokens, and
+  outbound types). Load this when creating or editing a tool.
 ---
 
 # Brain Schema Tools
@@ -43,7 +44,97 @@ name: add_ticket_comment               # REQUIRED — the AI-facing tool name
 version: 1.0                           # optional (see **BRA201** versioning); defaults to 1
 description: >-                         # REQUIRED
   Adds a comment to an existing ticket…
+# roles: Finance, Support              # optional — omit so every caller can use it
 ```
+
+### Descriptions
+
+The tool `description`, and the `description` on each parameter the model can
+see, are how the caller decides to use the tool. Write that decision. The same
+text sits in the cached prompt prefix (**BRA212**), so keep it short.
+
+**Why and how the caller uses it.** Name the outcome the caller wants. When a
+neighbouring tool is the better choice, say so in one clause. When a wrong
+value fails the call, give the format or the allowed set, and one example.
+When an empty result is success, say so in one clause so the caller does not
+retry.
+
+**Leave the mechanism out.** Case folding, trimming, substring matching, type
+coercion, default limits, sort order, storage keys, and which service does the
+work are resilience inside the tool. Publishing them invites the caller to
+depend on an internal courtesy. Describe the value the caller should pass.
+
+`required: true` already marks the argument mandatory. Leave "Required." out
+of the description.
+
+```yaml
+# Weak — narrates the match and the payload
+description: >-
+  Searches schema files by matching the query (case-insensitive substring)
+  against each file's code and title. Returns CSV with columns
+  path,type,code,title.
+parameters:
+  - name: query
+    description: >-
+      Text to match against code and title (case-insensitive substring).
+
+# Strong — the caller's job
+description: >-
+  Finds schema files when you know part of a code or title and need the
+  path. Use list_schema_files for the full catalogue, and get_schema_file
+  to read a path. An empty result is success — only the header row comes
+  back.
+parameters:
+  - name: query
+    description: >-
+      Words from the file's code or title, e.g. "inbox" or "BRA214".
+```
+
+A parameter hidden with `value`, `secret`, `entity`, `unitofwork`, or `input`
+is not shown to the caller. Its `description` is for authors. A short label
+is enough.
+
+### Roles
+
+`roles:` is optional. It is a **comma-separated string**, not a YAML list.
+Labels are stored as you type them. The case is not changed.
+
+```yaml
+roles: Finance, Support
+```
+
+- **Omit `roles`, or leave it blank or whitespace.** Every caller can list and call the tool. That includes members, organisation Admins, API keys, and legacy tokens.
+- **Set `roles`.** The caller must hold at least one of those labels. Matching is case-insensitive, so `finance` matches `Finance`.
+- The labels are the caller's **Roles** — the comma-separated list on their organisation membership. `Admin` and `Member` are a separate access role. An organisation Admin does not bypass `roles:`.
+- A caller with no member (an organisation API key, or a run that was not started by a signed-in member) cannot use a tool that has Roles.
+- There is no catalogue. An unknown label is allowed. It simply will not match until a membership holds it.
+- A tool the caller may not use is left off every list: the workflow tool list, MCP `tools/list`, `find_available_tools`, skill promotion (`get_skill`), and `activate_tools`. Nothing tells the model that it was hidden.
+- Calling it anyway is rejected as `The tool '{name}' was not found.` The error does not mention Roles.
+- A nested `run_workflow` or workflow tool keeps the same caller, so the child run uses the same Roles.
+
+### Audit
+
+`audit:` is optional and separate from `roles:`. Roles decide who may call the
+tool. Audit records the call, and can hold it for a person to approve. Full
+behaviour, email, the audit log, and retention: **BRA218**.
+
+```yaml
+audit:
+  title: Send invoice to {{arguments.customer}}
+  body: |
+    Amount: {{arguments.amount}}
+  requires-approval: yes          # yes or no; true and false are accepted
+  approver-role: Finance          # optional tag role
+  approver-email: finance@example.com   # optional; must be an org member
+```
+
+- Omit `audit:`, or leave it empty, and nothing is recorded.
+- The block is honoured only on **Pro** and **Enterprise**. PAYG, and an organisation with no plan, never writes a row and never pauses.
+- Without `requires-approval: yes`, the call is stored as Recorded and then runs.
+- With `requires-approval: yes`, the call is stored as Pending, the tool does not run, and the run waits at AwaitingApproval until someone approves or declines.
+- `title` and `body` are markdown rendered before the call. `{{arguments.key}}` is that call's arguments. `{{result.*}}` is empty. Unresolved tags are blank.
+- `approver-role` emails every member who holds that tag role. `approver-email` emails that address only when it belongs to an organisation member. Either, both, or neither is valid.
+- A simulation run writes nothing.
 
 **API tool** (executed by calling an HTTP endpoint):
 
@@ -109,10 +200,13 @@ Hardcoded `value:` params and `entity:`-bound params are included; `secret:`
 params are never forwarded into a child prompt. The same values are not repeated
 as the child run's user message — read them with `{{input.*}}`.
 
-That child run uses its own `model` and `tools`, inherits the calling run's
-brain / entity / unit-of-work scope, and its final reply is returned as the tool
-result. The target workflow is normally `type: TOOL`. Nesting is capped (depth 5)
-to prevent runaway recursion.
+That child run uses its own `model` and `tools`. It starts under the calling
+run's brain, client, and job. When the target workflow sets `entity` or
+`unit-of-work` (**BRA217** §3a), the tool call's argument for that parameter
+`name` supplies the value. A resolved parameter is used only when the caller
+did not send that key. A value that does not match leaves the caller's client
+and job in place. The child's final reply is this tool's result. The target
+workflow is normally `type: TOOL`. Nesting is capped (depth 5).
 
 **Example — target workflow Instructions using the param:**
 
@@ -131,7 +225,9 @@ native:
   type: web_search                     # REQUIRED — capability key (web_search | web_fetch)
 ```
 
-A native tool is enabled directly on the model and executed by the provider. Unlike every other type it makes no outbound call and takes **no `parameters`**. Add it to a workflow's `tools` list by `name`; at run time it is passed to the model as a built-in capability. Supported keys: `web_search`, `web_fetch`.
+A native tool is enabled directly on the model and executed by the provider. Unlike every other type it makes no outbound call and takes **no `parameters`**. Add it to a workflow's `tools` list by `name`. Supported keys: `web_search`, `web_fetch`.
+
+Claude receives them as server tools. A Grok run (`xai/…` or `telosbrain/…`) that lists `web_search` or `web_fetch` sends one server-side `web_search` tool on `POST /v1/responses`. xAI has no separate fetch tool, so `web_fetch` uses that same tool, which searches and browses pages. Grok runs that do not list either tool stay on Chat Completions and do not send it. Live Search (`search_parameters`) is not sent. OpenAI Chat Completions receives `web_search_options` only when the model is a search model. Other OpenAI models, and OpenRouter, Azure, and local runners, leave the tools off the request. They are not sent as functions.
 
 ## 3. Worked example: `web_search` and `web_fetch`
 
@@ -220,8 +316,10 @@ parameters:
 ```
 
 Key behaviour: a parameter is **exposed to the LLM only when it has no `value`,
-`secret`, `entity`, `unitofwork`, `input` or `header`**. Set `value` to pin a
-param and hide it. `name` and `description` are required on every parameter.
+`secret`, `entity`, `unitofwork` or `input`**. `header:` chooses where the
+value is sent; it does not hide the parameter. Set `value` to pin a param
+and hide it. `name` and `description` are required on every parameter.
+Exposed descriptions follow **Descriptions** above.
 
 #### Where a parameter is sent
 
@@ -230,7 +328,7 @@ joins the request payload; the HTTP method decides the shape.
 
 | Declaration | Outbound placement | Exposed to the LLM? |
 |---|---|---|
-| `header: Header-Name` | HTTP request header `Header-Name` | No (`header:` always hides it) |
+| `header: Header-Name` | HTTP request header `Header-Name` | Yes, unless also `secret` / `value` / `entity` / `unitofwork` / `input` |
 | `{name}` or `{param}` in `api.path`, or `path:` on the parameter | URL path token | Yes, unless also `secret` / `value` / `entity` / `unitofwork` / `input` |
 | Neither of the above, `method: GET` | Query string (`?key=value`, url-encoded) | Yes if exposed |
 | Neither of the above, `POST` / `PUT` / `PATCH` / … | JSON body field | Yes if exposed |
@@ -248,11 +346,28 @@ call is special. A tool-level `header:` / payload key overrides the
 connector default with the same name. An `oauth-captures` `header:` owns
 that header — a `request-defaults` entry for the same name is ignored. A
 missing header secret or capture value fails the tool before the HTTP call
-(**BRA209**).
+(**BRA209**). A request-default with neither `secret` nor `value` is a model
+parameter on every `api` and `mcp` tool that uses the connector, placed the
+same way as a tool parameter.
 
 Putting a name in `.env` does nothing by itself. The value is used only when
 a tool `secret:`, a connector `request-defaults` `secret:`, or a capture
 `store:` names that variable, **and** the value has been uploaded (**BRA202**).
+
+#### Model-supplied headers (`header:` with no variable)
+
+A header is hidden only when `secret`, `entity`, `unitofwork`, `input`, or
+`value` supplies it — the same rule as a body or query parameter. With none
+of those, the model sees the parameter and the value it supplies is sent as
+that header.
+
+```yaml
+parameters:
+  - name: tenantId
+    description: The Xero organisation to query.
+    header: Xero-Tenant-Id
+    required: true
+```
 
 #### Fixed headers (`header:` + `value:`)
 

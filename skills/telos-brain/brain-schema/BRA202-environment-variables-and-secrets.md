@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 30
+version: 32
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -321,8 +321,13 @@ this same encrypted store. They are never written into the connector YAML.
 - Put the values in `.env` (or upsert via the Management API secrets endpoint,
   which uses connector-scoped keys such as `CONNECTOR_{connectorId}_CLIENT_ID`
   when `secret:` is omitted).
-- OAuth **access / refresh tokens** are runtime state (the OAuth flow), not
-  environment variables — do not put bearer tokens in `.env` for that purpose.
+- OAuth **access / refresh tokens** for `scope: brain` are runtime state (the
+  OAuth flow), not environment variables — do not put bearer tokens in `.env`
+  for that purpose. For `scope: user`, the API key and those tokens are user
+  variables on the brain user, not this store (**BRA416**). Client id and
+  client secret stay here for both scopes. A user-scoped API connector can
+  still send a value from this store as a header (`request-defaults` `secret:`
+  or a tool parameter `secret:`) alongside that person's key.
 
 A connector may also take its **base URL** from this store via YAML `url-env:`
 (instead of a static `url:`). Put the URL in `.env` under that variable name;

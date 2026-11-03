@@ -1,7 +1,7 @@
 ---
 name: Skills File Format
 code: BRA215
-version: 1
+version: 2
 description: How to author skillbook.yml and skill markdown files — categories,
   skill codes, frontmatter, and skill-declared tools for mid-run promotion.
   Load this when creating or editing a skill file. For category design and
@@ -92,8 +92,9 @@ never written back to the workflow definition, and they do not affect other runs
 | ------- | --------- |
 | Tool in skill `tools:` **and** workflow `available-tools:` | Promoted for this run |
 | Tool in skill `tools:` but **not** in the workflow available pool | Silently skipped (workflow curation wins) |
+| Tool the caller may not use (`roles:` on the tool, **BRA214**) | Silently skipped, the same as not being in the pool. Omit `roles` and every caller can use it |
 | Tool already in workflow `tools:` (injected) | Already declared; promotion is a no-op / deduped |
-| System tools | Always available when declared on the workflow; they are not part of promotion |
+| System tools | Not part of skill promotion. A declared system tool is offered when the caller may use it (**BRA214**) |
 
 Discovering available tools at runtime uses `find_available_tools` (semantic
 search over the workflow's `available-tools` pool). That result is names and

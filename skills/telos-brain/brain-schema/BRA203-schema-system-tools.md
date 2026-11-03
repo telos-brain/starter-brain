@@ -1,7 +1,7 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 8
+version: 9
 description: The in-brain system tools that let a running brain inspect, edit,
   and create its own configuration-as-code schema — list_schema_files,
   search_schema_files, get_schema_file, update_schema_file, create_skill and
@@ -44,7 +44,7 @@ declarations for the rest of that run — see `WF-SKILL-UPDATE` for the wiring.
 | Tool | Purpose | Parameters | Returns |
 |---|---|---|---|
 | **`list_schema_files`** | List every schema file for the brain. | none | CSV: `path,type,code` |
-| **`search_schema_files`** | Filter files whose **code** or **title** contains a query (case-insensitive substring). | `query` | CSV: `path,type,code,title` |
+| **`search_schema_files`** | Find files when you know part of the code or title. | `query` | CSV: `path,type,code,title` |
 | **`get_schema_file`** | Read the full canonical content (YAML or markdown) of one file. | `path` | file content |
 | **`update_schema_file`** | Apply a targeted string-replace edit to one file and persist it. | `path`, `str_replace_old`, `str_replace_new` | success / error |
 | **`create_skill`** | Create a skill in a SkillBook category with an auto-assigned code. | `skillbook_code`, `category_title`, `title`, `description`, `content` | new skill code / error |
@@ -89,9 +89,9 @@ plus one row per workflow, skill, tool, blueprint entry and connector. Use
 
 ## `search_schema_files`
 
-Requires `query`. Matches the query as a case-insensitive substring against each
-file's **code** and **title**, returning CSV with an extra `title` column. A
-query with no matches returns just the header row — this is **not** an error.
+Requires `query`. Finds files by code or title and returns CSV with an extra
+`title` column. A query with no matches returns just the header row — this is
+**not** an error.
 
 ## `get_schema_file`
 
@@ -120,8 +120,8 @@ the agent can correct and retry.
 ## `create_skill`
 
 Requires `skillbook_code`, `category_title`, `title`, `description`, and
-`content`. Resolves the SkillBook by code and a category by title
-(case-insensitive), auto-assigns the next skill code in that category range
+`content`. Resolves the SkillBook by code and a category by title,
+auto-assigns the next skill code in that category range
 (deleted codes stay reserved), defaults version to 1, and returns the new
 code (e.g. `BRA209`). Prefer this over `create_schema_file` for skills.
 

@@ -1,10 +1,10 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 53
+version: 56
 description: Overview of the brain-schema format — mental model, directory
   layout, deploy, versioning, and which skill to load for each file type. Do
-  not load this for field-level authoring; use BRA213–BRA217, BRA209, or
+  not load this for field-level authoring; use BRA213–BRA218, BRA209, or
   BRA202 instead.
 ---
 
@@ -20,9 +20,11 @@ instead of treating this page as the field reference.
 | When you are authoring… | Load |
 | --- | --- |
 | `brain-compose.yml` (entities, units of work, variables, checkpoints, callback domains) | **BRA213** |
-| Tool groups and tool YAML (`api` / `mcp` / `system` / `workflow` / `native`, parameters) | **BRA214** |
+| Tool groups and tool YAML (`api` / `mcp` / `system` / `workflow` / `native`, parameters, optional `roles`) | **BRA214** |
+| Tool audit and approval (`audit:` on a tool, paused runs, the audit log) | **BRA218** |
 | Connectors | **BRA209** |
 | Environment variables and secrets | **BRA202** |
+| `users.yml` (names and emails only; variable values are write-only) | **BRA416** |
 | `skillbook.yml` and skill markdown | **BRA215** (design/ranges: **BRA208**) |
 | `blueprint.yml` and blueprint entries | **BRA216** |
 | Workflow markdown (frontmatter, triggers, tools, input-tools, LLM settings, entity / unit-of-work scope) | **BRA217** |
@@ -58,7 +60,10 @@ Two authoring styles are used, deliberately:
 
 All referenced paths inside a manifest are **relative to that manifest's own
 folder** (no `./` prefix needed). Anything **not listed** in `brain-compose.yml`
-is not deployed, even if the file exists on disk.
+is not deployed, even if the file exists on disk. `users.yml` is the exception:
+it lives at the brain root, is not listed in the compose file, and is always
+part of the schema. It upserts names and emails and never holds variable
+values (**BRA416**).
 
 ---
 
@@ -69,6 +74,7 @@ Names are conventional, not required — the compose file is the source of truth
 ```
 brain-schema/
   brain-compose.yml              # entry point — everything is referenced from here
+  users.yml                      # names and emails only; always present (BRA416)
   package.json                   # provides `npm run deploy`
   .env.example                   # template for deploy credentials (copy to .env)
   .gitignore                     # ignores .env, node_modules, brain.lock
@@ -177,10 +183,11 @@ on the skill in the last column.
 | File | Required fields | Detail |
 | --- | --- | --- |
 | `brain-compose.yml` | `name` | **BRA213** |
+| `users.yml` | `users` list; each entry needs `name` and `email`. No variable values | **BRA416** |
 | — entity | `name`, `code`; each `variables` item needs `key` | **BRA213** |
 | Connector YAML | `name`, `url` or `url-env`, `auth-type`; each parameter needs `name` + `description` | **BRA209** |
 | Tool group `tools.yml` | `name`, `description` | **BRA214** |
-| Tool definition | `name`, `description`, exactly one of `api`/`mcp`/`system`/`workflow`/`native` | **BRA214** |
+| Tool definition | `name`, `description`, exactly one of `api`/`mcp`/`system`/`workflow`/`native`. Optional `roles` (omit it and every caller can use the tool) | **BRA214** |
 | Tool parameter | `name`, `description` (not used by `native` tools) | **BRA214** |
 | `skillbook.yml` | `name`, `code`, `prefix`; each category needs `name` | **BRA215** |
 | Skill markdown | frontmatter `name`, `code` + non-empty body | **BRA215** |

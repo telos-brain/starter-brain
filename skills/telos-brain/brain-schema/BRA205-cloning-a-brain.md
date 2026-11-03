@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 7
+version: 8
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -114,6 +114,7 @@ Runtime / operational data stays on the source brain only:
 - Units of work and their context / data
 - Inbox entries and tasks
 - OAuth access / refresh tokens (the clone must reconnect)
+- Brain users and their variables (`users.yml` is not copied — **BRA416**)
 - ElevenLabs agent ids (`elevenlabs-agent-id`) — the clone must deploy its own agent
 
 The clone is a clean configuration twin — not a copy of live jobs, chat history,
