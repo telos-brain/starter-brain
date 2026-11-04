@@ -1,11 +1,11 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 14
+version: 15
 description: How to author tool groups and tool YAML — caller-facing
   descriptions, api, mcp, system, workflow, and native tools, optional roles,
   optional audit and approval, plus parameters (headers vs query vs body vs
-  path, secrets, entity / unit-of-work / input bindings, URL path tokens, and
+  path, secrets, entity / unit-of-work / user / input bindings, URL path tokens, and
   outbound types). Load this when creating or editing a tool.
 ---
 
@@ -442,7 +442,7 @@ mark that it belongs in the URL. Do not set both `path:` and `header:` on the
 same parameter.
 
 This works for ordinary parameters and for `secret:`, `entity:`,
-`unitofwork:`, and `input:` parameters — put `{name}` or `{param}` in
+`unitofwork:`, `user:`, and `input:` parameters — put `{name}` or `{param}` in
 `api.path` and the resolved value is placed there.
 
 `required` is **false when omitted**. Set `required: true` for parameters the
@@ -618,7 +618,40 @@ parameters:
   as an Execution API `variables` entry or as a workflow-tool / `run_workflow`
   parameter when the binding is required.
 - Resolution order when several bindings are set on one parameter: `secret` →
-  `entity` → `unitofwork` → `input` → hardcoded `value` → model argument.
+  `entity` → `unitofwork` → `user` → `input` → hardcoded `value` → model argument.
+
+#### Binding a parameter to an acting user's variable
+
+A parameter can pull its value from the **acting brain user** (BRA512).
+Declare a `user:` field naming that user's variable. `secret:` on the same
+tool is still a brain environment variable.
+
+```yaml
+parameters:
+  - name: authorization
+    description: Bearer token for the JBOP API. Hidden from the model.
+    header: Authorization
+    secret: JBOP_API_KEY
+    value: Bearer {secret}
+  - name: jollyApiKey
+    description: Acting user's Jolly API key. Hidden from the model.
+    param: jollyApiKey
+    user: jollyApiKey
+```
+
+- `user: id` injects the acting user's id. Any other name is that user's
+  encrypted variable, decrypted at dispatch. The plaintext is not stored on
+  the run and is not logged.
+- The parameter is **hidden from the LLM**. `header:` still chooses placement.
+- The acting user is the Execute API `userId` when the caller sent one, or the
+  brain user linked to the MCP member. A run with no acting user has nothing
+  to inject.
+- **If there is no acting user, or that user has no value for the key**,
+  behaviour depends on `required`. An optional binding (`required` omitted or
+  `false`) is **omitted** and the call continues. A required binding
+  (`required: true`) **fails the call**.
+- `user:` is also forwarded into a workflow tool or `run_workflow` child as
+  an input value. `secret:` is not.
 
 #### End-to-end example: an authenticated API tool that uses a variable
 

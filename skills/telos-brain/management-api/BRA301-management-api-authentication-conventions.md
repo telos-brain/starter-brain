@@ -1,7 +1,7 @@
 ---
 name: "Management API: Authentication, Conventions & Signup"
 code: BRA301
-version: 1
+version: 2
 description: How to authenticate with the Telos Brain Management API, the
   common conventions that apply across deploy-plane endpoints, and the public
   organisation signup endpoint (POST /organisations/signup) used for
@@ -23,8 +23,9 @@ for the Execution API contract.
 | Routes | `/organisations/...`, `/brains/...` | `/brain`, `/entities`, `/units-of-work`, `/workflows`, `/runs`, `/inbox`, `/skills`, `/transcription` |
 
 Specific Management API operations live in other skills where they belong to
-schema work: cloning (**BRA205**), update-from-template (**BRA206**). This skill
-covers authentication, shared conventions, and public signup.
+schema work: cloning (**BRA205**), update-from-template (**BRA206**). Daily
+cost rows for one Brain are **BRA302**. This skill covers authentication,
+shared conventions, and public signup.
 
 ---
 

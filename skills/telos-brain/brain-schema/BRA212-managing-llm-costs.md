@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 8
+version: 9
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -22,7 +22,9 @@ you enforce that: workflow frontmatter, tool YAML, and `brain-compose.yml`.
 Seven levers do most of the work. Apply them together — a cheap model with
 uncached, JSON-heavy, retry-prone tools still burns money.
 
-Measure after you change something. Run telemetry (**BRA403**) reports
+Measure after you change something. For a daily chart of one Brain (LLM cost,
+brain-minute cost, tokens, minutes, embeddings), call the Management API cost
+series (**BRA302**). Run telemetry (**BRA403**) reports
 `gen_ai.usage.input_tokens`, `output_tokens`, `cache_read_input_tokens`,
 `cache_creation_input_tokens`, `telos.turns.used` / `telos.turns.max`, and
 `CostCents`. For OpenRouter, `CostCents` is the sum of billed `usage.cost`

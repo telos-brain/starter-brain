@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Users and user variables"
 code: BRA416
-version: 3
+version: 4
 description: How to add, update, and remove brain users on the Execution API,
   and how their encrypted variables are written. Covers users.yml, which
   upserts names and emails and never contains variable values. There is no
@@ -150,6 +150,12 @@ McpOnly access. The link is set when the brain user is added and when the
 member later gains that access. Without it, Connect does not store a key.
 Dispatch reads the keys for the run's acting user and fails closed when there
 is no acting user or the secret is missing (**BRA209**).
+
+A tool parameter `user:` names one of these variables (or `id` for the acting
+user's id) and injects it on that call. `secret:` on a tool parameter remains
+a brain environment variable. See **BRA214**. The Execute API `userId` is
+optional; when present it must be a user of this brain. MCP uses the linked
+brain user and still runs when there is no link.
 
 ---
 
