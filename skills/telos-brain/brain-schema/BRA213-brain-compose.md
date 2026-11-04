@@ -1,7 +1,7 @@
 ---
 name: Brain Compose Manifest
 code: BRA213
-version: 5
+version: 4
 description: How to author brain-compose.yml — name, models, entities, units of
   work, variables, checkpoint strategy, and the outbound callback-domain
   allowlist. Load this when creating or editing the compose file.
@@ -85,11 +85,7 @@ Rules:
   Used only when the workflow omits `model:`. A set workflow `model:` is
   the whole run and does not fall through to this default. Stepping,
   skip-on-missing-credential, and leftover-key rules: **BRA210**.
-  This starter sets `llm-model: telosbrain/xai/grok-4.6` so Telos Cloud runs
-  without a provider key. A deploy writes that value over Settings. Comment
-  the line only when Settings or `DEFAULT_LLM_MODEL` should keep the default.
-  Local Docker cannot use `telosbrain/…`; change the value before
-  `brain deploy --env local`.
+  Leave starter-brain commented so deploy does not stomp Settings.
   Deploy warns (does not fail) when executable workflows have no `model:` and
   no default is set.
 - `transcription-model` is optional (a vision `provider/model` used for image

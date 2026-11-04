@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Users and user variables"
 code: BRA416
-version: 2
+version: 3
 description: How to add, update, and remove brain users on the Execution API,
   and how their encrypted variables are written. Covers users.yml, which
   upserts names and emails and never contains variable values. There is no
@@ -143,10 +143,13 @@ Adding that email again creates a new user id. Old variable rows stay deleted.
 | Account label | `CONNECTOR_{connectorId}_CONNECTED_AS` |
 
 `{connectorId}` is the connector GUID. Connect on the admin Connectors page
-writes these keys for the linked member. Until that member is linked to a
-brain user, Connect does not store a key. Dispatch reads them for the run's
-acting user and fails closed when there is no acting user or the secret is
-missing (**BRA209**).
+writes these keys for the linked member. The brain user is linked to the
+Clerk member when the emails match and that member can use this brain through
+MCP: they are an Admin of the brain's organisation, or a Member with Full or
+McpOnly access. The link is set when the brain user is added and when the
+member later gains that access. Without it, Connect does not store a key.
+Dispatch reads the keys for the run's acting user and fails closed when there
+is no acting user or the secret is missing (**BRA209**).
 
 ---
 
