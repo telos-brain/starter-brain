@@ -1,10 +1,10 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 56
+version: 57
 description: Overview of the brain-schema format — mental model, directory
   layout, deploy, versioning, and which skill to load for each file type. Do
-  not load this for field-level authoring; use BRA213–BRA218, BRA209, or
+  not load this for field-level authoring; use BRA213–BRA219, BRA209, or
   BRA202 instead.
 ---
 
@@ -23,6 +23,7 @@ instead of treating this page as the field reference.
 | Tool groups and tool YAML (`api` / `mcp` / `system` / `workflow` / `native`, parameters, optional `roles`) | **BRA214** |
 | Tool audit and approval (`audit:` on a tool, paused runs, the audit log) | **BRA218** |
 | Connectors | **BRA209** |
+| `playbooks/{name}.yml` (design of a business process; not executable) | **BRA219** |
 | Environment variables and secrets | **BRA202** |
 | `users.yml` (names and emails only; variable values are write-only) | **BRA416** |
 | `skillbook.yml` and skill markdown | **BRA215** (design/ranges: **BRA208**) |
@@ -45,6 +46,7 @@ that **points to** self-contained definitions:
 | **Entities** | Top-level things the brain reasons about (e.g. `Application`). | Inline in `brain-compose.yml` (**BRA213**). |
 | **Units of work** | A scoped piece of work operating across entities (e.g. `Ticket`). | Inline in `brain-compose.yml` (**BRA213**). |
 | **Connectors** | Named external-service integrations (URL, auth, declared params). | Connector YAML (`connectors/{name}.yml`). **BRA209**. |
+| **Playbooks** | A named design of a business process on the four-channel canvas. Not executable. | `playbooks/{name}.yml`, discovered by folder. **BRA219**. |
 | **Tools** | Callable actions (HTTP API, MCP, or in-brain system tools). | Tool-group folders (`tools.yml`). **BRA214**. |
 | **Skills** | Reusable knowledge/practices, grouped into skillbooks. | Skillbook folders (`skillbook.yml`). **BRA215**. |
 | **Blueprints** | Long-form scoped knowledge (vision, architecture, concepts…). | Blueprint folders (`blueprint.yml`). **BRA216**. |
@@ -60,10 +62,12 @@ Two authoring styles are used, deliberately:
 
 All referenced paths inside a manifest are **relative to that manifest's own
 folder** (no `./` prefix needed). Anything **not listed** in `brain-compose.yml`
-is not deployed, even if the file exists on disk. `users.yml` is the exception:
-it lives at the brain root, is not listed in the compose file, and is always
-part of the schema. It upserts names and emails and never holds variable
-values (**BRA416**).
+is not deployed, even if the file exists on disk. Two locations are exceptions.
+`users.yml` lives at the brain root, is not listed in the compose file, and is
+always part of the schema. It upserts names and emails and never holds variable
+values (**BRA416**). `playbooks/{name}.yml` is discovered by folder and is not
+listed in the compose file. A playbook file that is present is upserted; one
+that is absent is left unchanged (**BRA219**).
 
 ---
 
@@ -75,6 +79,8 @@ Names are conventional, not required — the compose file is the source of truth
 brain-schema/
   brain-compose.yml              # entry point — everything is referenced from here
   users.yml                      # names and emails only; always present (BRA416)
+  playbooks/
+    accounts-payable.yml         # one playbook per file; not listed in compose (BRA219)
   package.json                   # provides `npm run deploy`
   .env.example                   # template for deploy credentials (copy to .env)
   .gitignore                     # ignores .env, node_modules, brain.lock
@@ -140,9 +146,10 @@ Key facts:
   handling: **BRA202**.
 - The **whole brain is parsed up front**, so any schema error fails the deploy
   before a single API call is made. Use `--dry-run` while authoring.
-- Deploy order is fixed: **skills → connectors → tools → workflows → memory
-  (blueprints)** (then entity / unit-of-work types). Connectors precede tools so
-  tool definitions can reference connector names. Workflows reference
+- Deploy order is fixed: **skills → connectors → playbooks → tools → workflows
+  → memory (blueprints)** (then entity / unit-of-work types). Connectors
+  precede tools so tool definitions can reference connector names. Playbooks
+  are folder-discovered and have no version (**BRA219**). Workflows reference
   skills/tools by code/name, so those codes must be correct.
 
 Local Docker / host-app wiring: **BRA106**.
@@ -171,7 +178,9 @@ them all to the **leading integer** (the "major"):
 Implication: **equal majors redeploy and overwrite**; only a lower incoming major
 is skipped. Bump the leading integer (e.g. `1.x` → `2`) when you want a clear
 newer release marker, or when destination already holds a higher version.
-Connectors have no version — they upsert-always (**BRA209**).
+Connectors have no version — they upsert-always (**BRA209**). Playbooks have
+no version either — they upsert-always, and a playbook missing from the bundle
+is kept (**BRA219**).
 
 ---
 
@@ -186,6 +195,7 @@ on the skill in the last column.
 | `users.yml` | `users` list; each entry needs `name` and `email`. No variable values | **BRA416** |
 | — entity | `name`, `code`; each `variables` item needs `key` | **BRA213** |
 | Connector YAML | `name`, `url` or `url-env`, `auth-type`; each parameter needs `name` + `description` | **BRA209** |
+| `playbooks/{name}.yml` | `name` (kebab-case, matches the filename). Nodes need `id`, `type`, `channel`, `name` | **BRA219** |
 | Tool group `tools.yml` | `name`, `description` | **BRA214** |
 | Tool definition | `name`, `description`, exactly one of `api`/`mcp`/`system`/`workflow`/`native`. Optional `roles` (omit it and every caller can use the tool) | **BRA214** |
 | Tool parameter | `name`, `description` (not used by `native` tools) | **BRA214** |
@@ -206,7 +216,8 @@ When creating or extending a brain:
    `connectors:` (**BRA209**). Put secret values in `.env`, not YAML (**BRA202**).
 3. For each other capability, create its self-contained folder/file **and** add
    its path to the matching list in `brain-compose.yml` (unlisted files are
-   ignored).
+   ignored). Playbooks are the other exception: put `playbooks/{name}.yml` in
+   the folder and do not add a compose entry (**BRA219**).
 4. Keep relative paths correct — they resolve against the manifest's own folder.
 5. Ensure cross-references resolve: workflow `tools` / `available-tools` → tool
    `name`s; skill `tools` → tool `name`s that the hosting workflow also lists
@@ -215,7 +226,7 @@ When creating or extending a brain:
    `category` → a manifest category; scope `code` → an entity/unit code.
 6. Give every long-form markdown file a **non-empty body**.
 7. Bump the **leading integer** of `version` on anything you change (connectors
-   have no version — they upsert-always).
+   and playbooks have no version — they upsert-always).
 8. Use British English spelling in content.
 9. Validate with `npm run deploy:dry` before deploying — it parses and validates
    the entire brain without touching the API.

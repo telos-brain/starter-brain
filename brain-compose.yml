@@ -102,6 +102,7 @@ workflows:
   - workflows/wf-sim.md
   - workflows/wf-compact.md
   - workflows/wf-inbox-plan.md
+  - workflows/wf-build-playbook.md
   - workflows/Maintenance/brain-system.md
   - workflows/Maintenance/triage.md
   - workflows/Maintenance/update-skill.md

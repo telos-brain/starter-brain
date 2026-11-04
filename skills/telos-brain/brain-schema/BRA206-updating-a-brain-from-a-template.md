@@ -1,7 +1,7 @@
 ---
 name: Updating a Brain from a Template
 code: BRA206
-version: 6
+version: 7
 description: How to update an existing brain's configuration from a source
   (template) brain via the Management API — POST
   /brains/{targetInstance}/update-from/{sourceInstance} — including version
@@ -171,6 +171,7 @@ version field. They are always created or refreshed. They never produce
 | **Brain header** | Instance name, API key, embedding model, display name — left unchanged on the destination |
 | **OAuth tokens** | Runtime Connect state; the destination must reconnect. Tokens are also excluded from clone. |
 | **Brain users** | Names, emails, and user variables stay on the destination. `users.yml` is not copied (**BRA416**). |
+| **Playbooks** | `playbooks/{name}.yml` stays on the destination. Update-from does not copy playbooks (**BRA219**). |
 | **Runtime data** | Workflow runs, entities, units of work, inbox entries and tasks, etc. |
 
 ### Transactionality

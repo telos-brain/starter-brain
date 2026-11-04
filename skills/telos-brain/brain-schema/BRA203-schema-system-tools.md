@@ -1,7 +1,7 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 9
+version: 10
 description: The in-brain system tools that let a running brain inspect, edit,
   and create its own configuration-as-code schema — list_schema_files,
   search_schema_files, get_schema_file, update_schema_file, create_skill and
@@ -25,7 +25,7 @@ tools:
 skill covers the complementary runtime capability: a **running brain editing its
 own schema**. Six `system` tools expose the brain's configuration-as-code as a
 virtual filesystem — list, search, read, edit and create workflow, skill, tool,
-blueprint and connector files — without any outbound HTTP call. This is how a
+blueprint, connector and playbook files — without any outbound HTTP call. This is how a
 learning-review workflow applies an approved learning back into the brain.
 
 These are ordinary `system` tools (see BRA214): they are declared with a
@@ -61,7 +61,7 @@ read the file to copy the exact text, then edit it. For creates, prefer
 Every file is addressed by a stable **path** and carries a **type** token and a
 stable **code**. The path prefix matches the resource family, e.g.
 `workflows/wf-review.md`, `skills/eng/EP101.md`, `tools/core/load-customer.yml`,
-`connectors/my-connector.yml`.
+`connectors/my-connector.yml`, `playbooks/accounts-payable.yml`.
 
 The `type` column uses these tokens (leaf resources use the resource token to
 match the path prefix; container manifests use a distinct token so a listing
@@ -78,13 +78,15 @@ never conflates a manifest with a resource of the same family):
 | `blueprint` | a blueprint entry |
 | `blueprint-manifest` | a blueprint manifest |
 | `connector` | a connector definition (`connectors/{name}.yml` — see **BRA209**) |
+| `playbook` | a playbook (`playbooks/{name}.yml` — see **BRA219**) |
 
 ---
 
 ## `list_schema_files`
 
 Takes no parameters. Returns a flat CSV (`path,type,code`) of the root manifest
-plus one row per workflow, skill, tool, blueprint entry and connector. Use
+plus one row per workflow, skill, tool, blueprint entry, connector and
+playbook. Use
 `search_schema_files` when you also need titles.
 
 ## `search_schema_files`
@@ -112,6 +114,8 @@ Requires `path`, `str_replace_old` and `str_replace_new`.
   the matched text (the key must still be present).
 - On success the file is persisted through the brain's normal deploy path, which
   **bumps the file's version automatically** — no manual version bump is needed.
+  Playbooks have no version; the edit upserts `playbooks/{name}.yml` in place
+  (**BRA219**).
 - The generated `brain-compose.yml` manifest **cannot** be edited this way.
 
 Zero-match, multi-match, unknown-path and parse errors are returned verbatim so
@@ -139,6 +143,8 @@ These apply to every schema-authoring workflow, including Plan (`WF-PLAN`):
    - Tools: `tools/{group}/{name}.yml` — a missing group folder is created
    - Skills: `skills/{book}/{code}-{title}.md` (optional category folders)
    - Blueprints: `blueprints/{code}/{title}.md`
+   - Playbooks: `playbooks/{name}.yml` only — no extra folder, and no compose
+     entry (**BRA219**)
 2. **Manifest is generated.** Do **not** `create_schema_file` or
    `update_schema_file` on `brain-compose.yml`, `tools/*/tools.yml`,
    `skills/*/skillbook.yml`, or `blueprints/*/blueprint.yml`. Creating the
@@ -156,6 +162,7 @@ Requires `path` and `content` (full file). Supported paths:
 | `tools/{group}/{name}.yml` | Tool (group folder created if missing) |
 | `skills/{book}/{code}-{title}.md` | Skill (optional category folders) |
 | `blueprints/{code}/{title}.md` | Blueprint entry |
+| `playbooks/{name}.yml` | Playbook (**BRA219**). Not listed in `brain-compose.yml`. |
 
 Rejected: `brain-compose.yml` and generated group manifests
 (`tools/*/tools.yml`, `skills/*/skillbook.yml`, `blueprints/*/blueprint.yml`).
@@ -177,8 +184,9 @@ confirmation also says how to add it to a workflow's `tools:` /
 On failure, the tool's `error-markdown` (see
 `tools/brain-schema/create-schema-file.yml`) names the skills that define each
 file type's format — **BRA217** (workflows), **BRA214** (tools), **BRA215** +
-**BRA208** (skills), **BRA216** (blueprints), plus **BRA204** when template tags
-are involved. Load those with `get_skill`, fix the content, and retry.
+**BRA208** (skills), **BRA216** (blueprints), **BRA219** (playbooks), plus
+**BRA204** when template tags are involved. Load those with `get_skill`, fix
+the content, and retry.
 
 ---
 

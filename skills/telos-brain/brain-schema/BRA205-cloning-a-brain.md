@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 8
+version: 9
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -102,6 +102,7 @@ semantic search keep working on the clone.
 | **Workflows** | Workflows (all LLM settings, skill-code lists, versions, `deployment-type`) with injected/available tools re-linked and `input-tools` copied. `elevenlabs-agent-id` is **not** copied — the clone creates its own agent on first deploy. |
 | **Skills** | Skill books, categories, and skills (including embeddings and tool-code lists) |
 | **Memory** | Blueprints, categories, entries, chunks, and embeddings |
+| **Playbooks** | Playbook name, title, explanation, canvas, and file path (`playbooks/{name}.yml`). New ids. See **BRA219**. |
 | **Schema types** | Entity types and their variable keys; unit-of-work types |
 | **Secrets** | Encrypted environment variables (copied with the clone — see §3) |
 
