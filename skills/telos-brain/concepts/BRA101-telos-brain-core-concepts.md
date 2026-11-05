@@ -1,7 +1,7 @@
 ---
 name: Telos Brain Core Concepts
 code: BRA101
-version: 5
+version: 7
 description: The building blocks of a Telos Brain, how they relate, and the two
   authoring styles used to define them — the essential mental model before
   authoring or deploying a brain.
@@ -26,7 +26,7 @@ Everything is wired together from a single entry-point manifest (`brain-compose.
 | **Skills** | Reusable knowledge and practices, grouped into skillbooks. | Skillbook folders (`skillbook.yml`). |
 | **Blueprints** | Long-form scoped knowledge (vision, architecture, concepts…). | Blueprint folders (`blueprint.yml`). |
 | **Workflows** | Runnable instructions that wire together tools and skills. | A single markdown file per workflow. |
-| **Playbooks** | A named design of a business process. Not executable. | `playbooks/{name}.yml`, discovered by folder and not listed in compose. See **BRA219**. |
+| **Playbooks** | A named design of a business process. Not executable. | `playbooks/{name}.yml`, listed under `playbooks:` in the generated compose. Design **BRA221**. File **BRA219**. |
 
 ---
 

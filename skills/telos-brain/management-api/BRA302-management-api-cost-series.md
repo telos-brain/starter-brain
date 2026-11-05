@@ -1,11 +1,11 @@
 ---
 name: "Management API: Cost series"
 code: BRA302
-version: 1
+version: 2
 description: How to read daily cost rows for one Brain over a required date
   range — GET /brains/{instance}/cost-series — so an organisation API key
   caller can graph LLM cost, derived brain-minute cost, tokens, minutes, and
-  embeddings. Not the admin costs page.
+  embeddings, including a per-user breakdown. Not the admin costs page.
 ---
 
 # Management API: Cost series
@@ -45,7 +45,7 @@ Snake_case. There is no `page`, `page_size`, `status`, or `group_key`.
 |---|---|---|
 | `from` | Yes | Inclusive calendar date, `yyyy-MM-dd`, in the Brain timezone. |
 | `to` | Yes | Inclusive calendar date, `yyyy-MM-dd`. Must be on or after `from`. |
-| `group_by` | No | `none` (default, including omitted or blank; case-insensitive), or exactly `model`, `workflow`, `entity`, or `unitOfWork`. |
+| `group_by` | No | `none` (default, including omitted or blank; case-insensitive), or exactly `model`, `workflow`, `entity`, `unitOfWork`, or `user`. |
 
 `from` and `to` are dates, not timestamps. `2026-11-04T00:00:00` is rejected.
 
@@ -66,7 +66,7 @@ Typical `400` messages:
 - `from and to are required`
 - `from and to must be calendar dates (yyyy-MM-dd)`
 - `from must be on or before to`
-- `group_by must be one of: none, model, workflow, entity, unitOfWork`
+- `group_by must be one of: none, model, workflow, entity, unitOfWork, user`
 
 ---
 
@@ -112,6 +112,7 @@ field and omits the rest:
 | `workflow` | `workflow` | Workflow title. Runs whose workflow is missing are left out of this grouping only. |
 | `entity` | `entity` | Entity name, or `—` when the run has none |
 | `unitOfWork` | `unitOfWork` | Unit-of-work title, or `—` when the run has none |
+| `user` | `user` | Brain user name (`BrainUsers.Name`), or `—` when the run has no acting user |
 
 `—` is an em dash, not a hyphen. One row per day per group value.
 
@@ -151,7 +152,7 @@ GET /brains/acme/cost-series?from=2026-11-04&to=2026-11-04&group_by=model
 3. Pass a bounded `from` and `to`. The server returns every bucket in that range; there is no page size.
 4. Plot `date` on the x-axis. Plot `llmCostCents`, `brainCostCents`, `totalTokens`, `totalMinutes`, or `embeddingCount` on the y-axis.
 5. Keep null `llmCostCents` as a gap or an "unpriced" series. Do not coerce it to `0` before summing, or unpriced usage looks free.
-6. For a stacked chart, set `group_by` and use the extra field as the series name. `—` is the series for runs with no model, entity, or unit of work.
+6. For a stacked chart, set `group_by` and use the extra field as the series name. `group_by=user` splits each day by the acting brain user's name. `—` is the series for runs with no model, entity, unit of work, or user.
 7. Insert a zero (or a gap) for calendar days the array skips. The API does not do that.
 
 The date is the Brain's `TIMEZONE` environment variable (IANA, for example

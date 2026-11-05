@@ -1,7 +1,7 @@
 ---
 name: Brain Compose Manifest
 code: BRA213
-version: 4
+version: 5
 description: How to author brain-compose.yml — name, models, entities, units of
   work, variables, checkpoint strategy, and the outbound callback-domain
   allowlist. Load this when creating or editing the compose file.
@@ -11,9 +11,12 @@ description: How to author brain-compose.yml — name, models, entities, units o
 
 The compose file is the deploy entry point. Anything not listed under
 `connectors`, `tools`, `skills`, `blueprints`, or `workflows` is not deployed,
-even if the file exists on disk. Overview, directory layout, deploy, and
-versioning: **BRA201**. Connectors: **BRA209**. Environment variables: **BRA202**.
-Tool parameter bindings that read entity / unit-of-work variables: **BRA214**.
+even if the file exists on disk. Playbooks are listed under `playbooks:` by
+snapshot and clone (**BRA219**). A `playbooks/{name}.yml` file in the bundle
+is still deployed when that list omits it, and a path in the list must be
+present. Overview, directory layout, deploy, and versioning: **BRA201**.
+Connectors: **BRA209**. Environment variables: **BRA202**. Tool parameter
+bindings that read entity / unit-of-work variables: **BRA214**.
 
 ```yaml
 name: kappa                      # REQUIRED: the brain's name
@@ -67,6 +70,10 @@ blueprints:
 
 workflows:
   - workflows/review-blueprint.md
+
+# Playbooks: one file per job. Snapshot and clone write this list.
+playbooks:
+  - playbooks/accounts-payable.yml
 ```
 
 Rules:
@@ -98,6 +105,10 @@ Rules:
 - `connectors`, `tools`, `skills`, `blueprints`, `workflows` are optional lists of
   relative paths. Anything **not listed here is not deployed**, even if the file
   exists on disk.
+- `playbooks` is the optional list of `playbooks/{name}.yml` paths. Snapshot
+  and clone write it. A file in the bundle is still deployed when the list
+  omits it. A path in the list must be in the bundle. A playbook missing from
+  the bundle is left unchanged.
 
 ## 1. Entity and unit-of-work variables (per-instance key/value pairs)
 

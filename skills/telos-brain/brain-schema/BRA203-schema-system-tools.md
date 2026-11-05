@@ -1,7 +1,7 @@
 ---
 name: Schema System Tools
 code: BRA203
-version: 10
+version: 12
 description: The in-brain system tools that let a running brain inspect, edit,
   and create its own configuration-as-code schema — list_schema_files,
   search_schema_files, get_schema_file, update_schema_file, create_skill and
@@ -78,7 +78,7 @@ never conflates a manifest with a resource of the same family):
 | `blueprint` | a blueprint entry |
 | `blueprint-manifest` | a blueprint manifest |
 | `connector` | a connector definition (`connectors/{name}.yml` — see **BRA209**) |
-| `playbook` | a playbook (`playbooks/{name}.yml` — see **BRA219**) |
+| `playbook` | a playbook (`playbooks/{name}.yml` — design **BRA221**, format **BRA219**) |
 
 ---
 
@@ -143,8 +143,8 @@ These apply to every schema-authoring workflow, including Plan (`WF-PLAN`):
    - Tools: `tools/{group}/{name}.yml` — a missing group folder is created
    - Skills: `skills/{book}/{code}-{title}.md` (optional category folders)
    - Blueprints: `blueprints/{code}/{title}.md`
-   - Playbooks: `playbooks/{name}.yml` only — no extra folder, and no compose
-     entry (**BRA219**)
+   - Playbooks: `playbooks/{name}.yml` only — no extra folder. Snapshot and
+     clone list the path under `playbooks:` (**BRA219**)
 2. **Manifest is generated.** Do **not** `create_schema_file` or
    `update_schema_file` on `brain-compose.yml`, `tools/*/tools.yml`,
    `skills/*/skillbook.yml`, or `blueprints/*/blueprint.yml`. Creating the
@@ -162,7 +162,7 @@ Requires `path` and `content` (full file). Supported paths:
 | `tools/{group}/{name}.yml` | Tool (group folder created if missing) |
 | `skills/{book}/{code}-{title}.md` | Skill (optional category folders) |
 | `blueprints/{code}/{title}.md` | Blueprint entry |
-| `playbooks/{name}.yml` | Playbook (**BRA219**). Not listed in `brain-compose.yml`. |
+| `playbooks/{name}.yml` | Playbook (**BRA219**). Listed under `playbooks:` in the generated `brain-compose.yml`. |
 
 Rejected: `brain-compose.yml` and generated group manifests
 (`tools/*/tools.yml`, `skills/*/skillbook.yml`, `blueprints/*/blueprint.yml`).
@@ -184,7 +184,8 @@ confirmation also says how to add it to a workflow's `tools:` /
 On failure, the tool's `error-markdown` (see
 `tools/brain-schema/create-schema-file.yml`) names the skills that define each
 file type's format — **BRA217** (workflows), **BRA214** (tools), **BRA215** +
-**BRA208** (skills), **BRA216** (blueprints), **BRA219** (playbooks), plus
+**BRA208** (skills), **BRA216** (blueprints), **BRA221** (what to draw on a
+playbook) and **BRA219** (playbook file format), plus
 **BRA204** when template tags are involved. Load those with `get_skill`, fix
 the content, and retry.
 

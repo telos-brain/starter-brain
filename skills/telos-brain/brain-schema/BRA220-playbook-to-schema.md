@@ -1,20 +1,22 @@
 ---
 name: Playbook to schema
 code: BRA220
-version: 1
+version: 2
 description: How to turn a playbook into brain schema — channels, node types,
   connections, and notes. Load this when building schema from a playbook.
-  File format is BRA219. Field formats stay in BRA209, BRA214, BRA215, and BRA217.
+  Designing the playbook is BRA221. File format is BRA219. Field formats stay
+  in BRA209, BRA214, BRA215, and BRA217.
 ---
 
 # Playbook to schema
 
 A playbook is a picture of a business process, written so a person can plan
-one job at a time. The brain schema is the mechanics that process will run
-on. Read every node, every connection, and every note. Then decide what the
-schema needs. Do not make one schema file per canvas node, and do not copy
-the playbook's split. Five playbooks about pushing financial data into an
-accounting system may still be one workflow and one tool.
+one job at a time. How to design that picture is **BRA221**. This skill
+starts once the picture exists. The brain schema is the mechanics that
+process will run on. Read every node, every connection, and every note. Then
+decide what the schema needs. Do not make one schema file per canvas node,
+and do not copy the playbook's split. Five playbooks about pushing financial
+data into an accounting system may still be one workflow and one tool.
 
 This pass builds the skeleton: what is a connector, what is a tool, what is
 a workflow, and what an agent is allowed to call. It does not fill in the

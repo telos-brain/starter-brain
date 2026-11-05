@@ -1,10 +1,10 @@
 ---
 name: Playbooks
 code: BRA219
-version: 5
-description: How to author playbooks/{name}.yml — a named design of a business
-  process on the four-channel canvas. Load this when creating or editing a
-  playbook file. Playbooks are not workflows, not memory, and not executable.
+version: 7
+description: File format for playbooks/{name}.yml — path, fields, node types,
+  channels, and connections. Load this when writing or editing the YAML. What
+  to draw, and why, is BRA221. Playbooks are not executable.
 ---
 
 # Playbooks
@@ -13,6 +13,10 @@ A playbook documents a business process. It is a sales and design layer: a
 named YAML file the canvas can draw and save. It does not run. It is not a
 workflow (**BRA217**), not a skill book (**BRA215**), and not a blueprint
 (**BRA216**).
+
+This skill is the file. What belongs on the canvas — one job, which of the
+four systems, what is a node, what stays in the notes, and which way the
+lines go — is **BRA221**.
 
 Overview of where the file sits: **BRA201**. Schema tools that read and write
 it: **BRA203**.
@@ -26,9 +30,10 @@ playbooks/
 
 - The path is `playbooks/{name}.yml`. No extra folders.
 - `{name}` is kebab-case (`accounts-payable`) and must equal the `name` field.
-- Playbooks are **discovered by folder**. Do not list them in
-  `brain-compose.yml`. A file that is present on deploy is upserted. A
-  playbook that is missing from the bundle is left as it is — deploy does not
+- Snapshot and clone list every playbook under `playbooks:` in
+  `brain-compose.yml`. A file in the bundle is still upserted when that list
+  omits it. A path named in the list must be in the bundle.
+- A playbook that is missing from the bundle is left as it is — deploy does not
   delete it.
 - There is no `version`. Each deploy overwrites the playbook with that name.
   A previously deleted playbook with the same name is restored.
@@ -91,8 +96,8 @@ be from 0 to 1.
 
 ## 4. Channels
 
-The canvas is four systems. Any node type may sit on any channel; these are
-the usual homes.
+The canvas is four systems. Choosing the system for a job is **BRA221**. Any
+node type may sit on any channel; these are the usual homes.
 
 | `channel` | System | Usual nodes |
 | --- | --- | --- |
