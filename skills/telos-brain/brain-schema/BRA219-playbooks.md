@@ -1,7 +1,7 @@
 ---
 name: Playbooks
 code: BRA219
-version: 7
+version: 8
 description: File format for playbooks/{name}.yml — path, fields, node types,
   channels, and connections. Load this when writing or editing the YAML. What
   to draw, and why, is BRA221. Playbooks are not executable.
@@ -45,6 +45,11 @@ name: accounts-payable          # REQUIRED. Kebab-case. Matches the filename.
 title: Accounts payable         # optional display label; omit when it equals name
 explanation: |                  # optional. What the process is.
   Accounts payable runs on three inbound channels.
+channels:                       # optional left-to-right column order. Omit for the default.
+  - engagement
+  - action
+  - intelligence
+  - record
 nodes:
   - id: n1                      # REQUIRED. Unique within this file.
     type: connector             # REQUIRED. See §3.
@@ -59,6 +64,8 @@ nodes:
 connections:
   - from: n1                    # REQUIRED. A node id in this file.
     to: n4                      # REQUIRED. A node id in this file.
+    arrow-from: true            # optional. Arrow head at `from`. Omit when off.
+    arrow-to: true              # optional. Arrow head at `to`. Omit when off.
     title: Posts the bill       # optional text, drawn at the middle of the line
     notes: |                    # optional text
       Only approved invoices.
@@ -70,6 +77,8 @@ Unknown keys are ignored. Empty `explanation`, `notes`, `tools`, connection
 `title`, and `schema-name` are omitted when the file is written back. The
 playbook `title` is omitted when it is the same as `name`. `kind` is omitted
 when the action is `scheduled`, and is never written on any other node type.
+`channels` is omitted when it is the default order. `arrow-from` and
+`arrow-to` are omitted when off.
 
 `x` and `y` are fractions of the channel and the canvas, not pixels. Each must
 be from 0 to 1.
@@ -99,6 +108,12 @@ be from 0 to 1.
 The canvas is four systems. Choosing the system for a job is **BRA221**. Any
 node type may sit on any channel; these are the usual homes.
 
+`channels` is the left-to-right order of these four. Omit it for the default
+order in the table below. A custom order lists each channel once. An unknown
+name is rejected. A channel left out of the list is placed after the ones
+that are listed, still in the default order. Nodes keep their `channel`; only
+the column positions change.
+
 | `channel` | System | Usual nodes |
 | --- | --- | --- |
 | `engagement` | System of Engagement | Connector, action |
@@ -112,6 +127,10 @@ A connection joins two node ids in the same file. `title` is plain text, drawn
 at the middle of the line. `notes` is text kept with the connection. `tools`
 lists tool names that travel with that connection, typically the tools of a
 connector at one end. Omit `title`, `notes`, and `tools` when they are empty.
+
+`arrow-from` draws an arrow head at the `from` node. `arrow-to` draws one at
+the `to` node. Both are off unless set, and an off arrow is omitted from the
+file.
 
 ## 6. What a playbook is not
 

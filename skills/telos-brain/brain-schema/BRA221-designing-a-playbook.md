@@ -1,7 +1,7 @@
 ---
 name: Designing a Playbook
 code: BRA221
-version: 1
+version: 2
 description: How to turn one problem into a playbook on the four-channel
   canvas. Load this when a user wants to solve a problem and the first
   artefact is a playbook YAML. Decides the system, the nodes, the notes,
@@ -135,7 +135,9 @@ finance lead") when the note is about who is allowed to do the step.
 ## 5. Connections
 
 A connection is the direction information moves. `from` is where it is. `to`
-is where it goes. `title` says what is happening, in a few words.
+is where it goes. `title` says what is happening, in a few words. An arrow
+head at either end is optional and stays off unless that end needs the
+direction drawn. The keys are in **BRA219**.
 
 | What is happening | Draw |
 | --- | --- |
@@ -155,9 +157,10 @@ inbox. The rest of the job then continues left to right.
 
 ## 6. How the picture reads
 
-The columns are fixed, left to right: engagement, action, intelligence,
-record. Do not move a node into another column to make a line shorter. Move
-it because that is the system it belongs to.
+The columns default to left to right: engagement, action, intelligence,
+record. A playbook can store a different order. Do not move a node into
+another column to make a line shorter. Move it because that is the system it
+belongs to.
 
 Time runs top to bottom. What happens first sits higher. What happens later
 sits lower. Two nodes that are the same moment — an inbox and the action
