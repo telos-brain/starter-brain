@@ -1,7 +1,7 @@
 ---
 name: What Is a Skill Book
 code: BRA103
-version: 4
+version: 5
 description: What a Skill Book is — a self-contained folder of categorised
   skills managed by skillbook.yml, portable between brains, with codes that let
   skills reference each other for progressive disclosure. Use when explaining
@@ -41,8 +41,11 @@ of everything at once.
 
 A Skill Book is a **self-contained folder**. The folder holds the skill markdown
 files and a `skillbook.yml` manifest that declares the book's name, code,
-prefix, categories, and which skills belong in each category. Because everything
-the book needs lives in that folder, a Skill Book can be copied between brains
+prefix, categories, and which skills belong in each category. Optional
+`sync-mode` and `api-key-env` on that manifest keep the book in step with
+Skill Book; the API key itself stays in the brain environment (**BRA215**).
+Because everything the book needs lives in that folder, a Skill Book can be
+copied between brains
 (or referenced from `brain-compose.yml`) without rewriting its contents — only
 the compose path that points at `skillbook.yml` needs to change.
 

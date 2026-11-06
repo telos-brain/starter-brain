@@ -1,7 +1,7 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 59
+version: 60
 description: Overview of the brain-schema format — mental model, directory
   layout, deploy, versioning, and which skill to load for each file type. Do
   not load this for field-level authoring; use BRA213–BRA221, BRA209, or
@@ -202,7 +202,7 @@ on the skill in the last column.
 | Tool group `tools.yml` | `name`, `description` | **BRA214** |
 | Tool definition | `name`, `description`, exactly one of `api`/`mcp`/`system`/`workflow`/`native`. Optional `roles` (omit it and every caller can use the tool) | **BRA214** |
 | Tool parameter | `name`, `description` (not used by `native` tools) | **BRA214** |
-| `skillbook.yml` | `name`, `code`, `prefix`; each category needs `name` | **BRA215** |
+| `skillbook.yml` | `name`, `code`, `prefix`; each category needs `name`. Optional `sync-mode` and `api-key-env` (name only) | **BRA215** |
 | Skill markdown | frontmatter `name`, `code` + non-empty body | **BRA215** |
 | `blueprint.yml` | `name`; each category needs `name`; `scope` code if entity/unitofwork | **BRA216** |
 | Blueprint entry markdown | frontmatter `name`, `category` + non-empty body | **BRA216** |

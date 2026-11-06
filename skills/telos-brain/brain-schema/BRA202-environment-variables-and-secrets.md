@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 32
+version: 33
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -349,7 +349,19 @@ See **BRA209** for the connector file format and examples.
 
 ---
 
-## 5. Checklist
+## 5. Skill Book sync key
+
+A skill book can sync with Skill Book. `skillbook.yml` stores only the
+**variable name** in `api-key-env` (for example `SKILLBOOK_API_KEY`). The key
+value belongs in `.env` with every other secret, and is encrypted on the brain
+like the rest of this store. Deploy of the manifest does not upload the key.
+The brain reads the named variable when it calls Skill Book. See **BRA215**
+for `sync-mode` and for the rule that omitting the keys leaves stored sync
+settings unchanged.
+
+---
+
+## 6. Checklist
 
 1. Put every secret the brain needs in the schema's `.env` (never commit it).
 2. Name the Claude key exactly `ANTHROPIC_API_KEY` (and OpenAI `OPENAI_API_KEY`,
@@ -367,3 +379,6 @@ See **BRA209** for the connector file format and examples.
    the API key (or OAuth client secret) in `.env` under that variable name.
 6. Redeploy to rotate a secret — the value is upserted (replaced) against the
    brain and re-encrypted.
+7. For Skill Book sync, put the API key in `.env` under the name declared as
+   `api-key-env` in `skillbook.yml`. Never put the key in the manifest
+   (**BRA215**).

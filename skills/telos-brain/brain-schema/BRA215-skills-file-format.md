@@ -1,11 +1,11 @@
 ---
 name: Skills File Format
 code: BRA215
-version: 2
+version: 3
 description: How to author skillbook.yml and skill markdown files — categories,
-  skill codes, frontmatter, and skill-declared tools for mid-run promotion.
-  Load this when creating or editing a skill file. For category design and
-  ranges see BRA208.
+  skill codes, frontmatter, skill-declared tools, and optional Skill Book sync
+  (sync-mode, api-key-env). Load this when creating or editing a skill file.
+  For category design and ranges see BRA208.
 ---
 
 # Skills File Format
@@ -37,6 +37,35 @@ categories:
     skills:
       - frontend/EP201-component-design.md
 ```
+
+### Skill Book sync (optional)
+
+A book can stay in step with [Skill Book](https://app.skill-book.ai/). Put the
+settings on the skillbook manifest, not on individual skills. Both keys are
+optional.
+
+```yaml
+sync-mode: two-way                 # off | inbound | outbound | two-way
+api-key-env: SKILLBOOK_API_KEY     # name of a brain environment variable (BRA202)
+```
+
+| `sync-mode` | What deploy stores |
+| --- | --- |
+| omitted | Leave the stored mode unchanged. An admin setting survives a deploy that does not mention the key. |
+| `off` | Do not send or receive changes. This is the default, and the only way to turn sync off from YAML. |
+| `inbound` | Skill Book can update this brain. Full sync copies Skill Book onto the brain. |
+| `outbound` | Accepted skill creates and content updates in this brain are pushed to Skill Book. Full sync copies the brain onto Skill Book. |
+| `two-way` | Both directions. Full sync asks which way to copy. An inbound apply does not push the same change straight back. |
+
+Rules:
+
+- An unknown `sync-mode` is rejected at deploy. Use `off`, `inbound`, `outbound`, or `two-way`.
+- `api-key-env` is the **name** of a brain environment variable, not the key. Put the key in `.env` (for example `SKILLBOOK_API_KEY=…`). The value is encrypted on the brain (**BRA202**). Never write the key, a webhook token, or a webhook URL in `skillbook.yml`.
+- A blank `api-key-env:` clears the stored name. Omitting the key leaves the stored name unchanged.
+- Extract writes `sync-mode` only when it is not `off`, so a book that does not sync is not rewritten. It writes `api-key-env` when a name is stored.
+- Sync copies skill title and instructions. It does not copy version numbers between the brain and Skill Book. Category `index` must be a Skill Book range (100, 200, 300, …) when the brain is pushed to Skill Book.
+- Day-to-day sync creates and updates skills. It does not delete. Full sync, from the admin skill book screen, makes the target categories and skills match the source and removes extras. A one-way book can only be full-synced in that direction.
+- Clone copies the mode and the env-var name, and issues a new webhook token. Update-from does not copy sync settings onto the destination.
 
 ## 2. Skill file (markdown + frontmatter)
 
