@@ -1,10 +1,11 @@
 ---
 name: Workflows
 code: BRA217
-version: 11
+version: 12
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
-  timeout, and external agent deployment. Load this when creating or editing a
+  timeout, external agent deployment, and how a workflow tool's execution-mode
+  decides whether this run waits. Load this when creating or editing a
   workflow.
 ---
 
@@ -146,6 +147,12 @@ Rules:
 - `input-tools` (optional) declares tools to call automatically at run
   startup. See **Pre-called tools** below.
 
+A `workflow:` tool starts another workflow in this brain (**BRA214**). Omit
+`execution-mode` and this run waits; the tool result is the child's reply.
+`async` returns at once with `get_mcp_tool_result` instructions, adds that
+tool for the rest of this run, and this run may finish while the child is
+still going. `run_workflow` always waits.
+
 ## 1. Pre-called tools (`input-tools`)
 
 Use `input-tools` when a workflow needs structured context fetched before the
@@ -192,6 +199,9 @@ input-tools:
 5. Results are capped at 200,000 characters (same limit as LLM-loop tool
    results). Extract omits the `input-tools` key entirely when there are no
    rows — never writes `input-tools: []`.
+6. A workflow tool in this list follows its `execution-mode` (**BRA214**).
+   Omitted, the pre-call waits for the child. `async` injects the poll
+   instruction, and the child keeps running after this run has moved on.
 
 **Worked example — API variables → pre-called tool**
 

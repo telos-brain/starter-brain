@@ -1,7 +1,7 @@
 ---
 name: "Workflow run variables & pre-called input-tools"
 code: BRA409
-version: 3
+version: 4
 description: How harness apps pass string variables into a workflow run via the
   Execution API, how those values surface as {{input.*}} template tags, and how
   workflows declare input-tools to call tools automatically at startup using
@@ -188,7 +188,10 @@ writes `input-tools: []`.
 
 - The tool must be routable by name (declared tool or system tool).
 - Prefer cheap, deterministic tools for pre-calls; nested workflow tools (e.g.
-  `ask_question`) work but start a full child run.
+  `ask_question`) work but start a full child run. They wait for that child
+  unless the tool sets `execution-mode: async` (**BRA214**). Async stores the
+  poll instruction as this pre-call's result, and the child keeps running
+  after the parent has moved on.
 - List tools the AI may still call mid-run under `tools:` / `available-tools:`
   as usual — `input-tools` does not replace that permission envelope.
 

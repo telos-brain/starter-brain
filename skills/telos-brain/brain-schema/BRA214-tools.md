@@ -1,11 +1,12 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 15
+version: 16
 description: How to author tool groups and tool YAML — caller-facing
-  descriptions, api, mcp, system, workflow, and native tools, optional roles,
-  optional audit and approval, plus parameters (headers vs query vs body vs
-  path, secrets, entity / unit-of-work / user / input bindings, URL path tokens, and
+  descriptions, api, mcp, system, workflow, and native tools, optional
+  execution-mode (sync or async) on a workflow tool, optional roles, optional
+  audit and approval, plus parameters (headers vs query vs body vs path,
+  secrets, entity / unit-of-work / user / input bindings, URL path tokens, and
   outbound types). Load this when creating or editing a tool.
 ---
 
@@ -185,6 +186,7 @@ learning-eval authoring that uses it is in BRA207. Image URL transcription
 ```yaml
 workflow:
   code: WF-ASK-QUESTION                # REQUIRED (the target workflow's code)
+  # execution-mode: async              # optional — sync | async (see below)
 
 parameters:
   - name: question                     # AI-facing name → {{input.question}}
@@ -205,8 +207,41 @@ run's brain, client, and job. When the target workflow sets `entity` or
 `unit-of-work` (**BRA217** §3a), the tool call's argument for that parameter
 `name` supplies the value. A resolved parameter is used only when the caller
 did not send that key. A value that does not match leaves the caller's client
-and job in place. The child's final reply is this tool's result. The target
-workflow is normally `type: TOOL`. Nesting is capped (depth 5).
+and job in place. Whether this tool's result is the child's reply depends on
+`execution-mode` below. The target workflow is normally `type: TOOL`. Nesting
+is capped (depth 5).
+
+### `execution-mode`
+
+Optional, on a `workflow:` tool only. `sync` or `async`. Omit the key to keep
+the caller default. Any other value fails deploy. Extract omits the key when
+it is unset.
+
+| Caller | Omitted | `sync` | `async` |
+| --- | --- | --- | --- |
+| MCP `tools/call` | Returns immediately | Waits, and the result is the child's reply | Returns immediately |
+| A parent workflow, including `input-tools` | Waits, and the result is the child's reply | Waits, and the result is the child's reply | Returns immediately |
+
+`run_workflow` has no tool file, so this key does not apply. It always waits.
+
+A call that returns immediately puts `get_mcp_tool_result` instructions in the
+tool result. Pass `run_id` as the GUID from that message. Call it again while
+the text says the run is still going. The finished answer is the child's final
+reply. An MCP host may abort a `tools/call` that stays open too long, so
+`sync` on a tool exposed through MCP is an override that can hit that limit.
+
+On MCP `tools/call`, that `run_id` is the shell created for the call.
+`tools/list` already includes `get_mcp_tool_result`. The shell stays open
+until the child finishes, and the poll then returns the child's reply.
+
+On a parent workflow, that `run_id` is the child. `get_mcp_tool_result` is
+added for the rest of that run, so the workflow does not declare it. The
+parent may finish while the child is still running. The kick-off text is the
+parent's tool result and is not replaced when the child finishes.
+
+`requires-approval` still pauses before the child starts (**BRA218**). After
+approval, this setting applies. Public `/run/sync` and `/run/async` are a
+different choice and are unchanged (**BRA403**).
 
 **Example — target workflow Instructions using the param:**
 

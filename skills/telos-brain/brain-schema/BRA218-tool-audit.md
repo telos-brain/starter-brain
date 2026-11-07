@@ -1,7 +1,7 @@
 ---
 name: Tool Audit and Approval
 code: BRA218
-version: 3
+version: 4
 description: How an optional audit block on a tool records the call on Pro and
   Enterprise, and how requires-approval pauses the run until a person approves
   or declines. Load this when adding audit config, explaining a paused run, or
@@ -89,9 +89,8 @@ AwaitingInput, or Scheduled.
 
 - A synchronous stream ends. The HTTP connection is not held open.
 - An async run returns without posting the callback and without settling the inbox.
-- MCP `tools/call` returns immediately and leaves the run waiting. A workflow tool already returns a run id. When that run is **AwaitingApproval**, `get_mcp_tool_result` says the tool is waiting for approval and will resume once approved. An API, system, or outbound MCP tool that requires approval returns that same message and run id, instead of holding the HTTP call. The text "Awaiting approval." is not a finished tool result. If a run was closed with that text, approving or declining reopens it.
-- A nested workflow tool parks the child and the parent. Approving the child
-  continues the parent.
+- MCP `tools/call` returns immediately and leaves the run waiting. An API, system, or outbound MCP tool that requires approval returns a run id and `get_mcp_tool_result` instructions, instead of holding the HTTP call. A workflow tool does the same unless its `execution-mode` is `sync` (**BRA214**): `sync` waits for the child, including through approval. When the polled run is **AwaitingApproval**, `get_mcp_tool_result` says the tool is waiting for approval and will resume once approved. The text "Awaiting approval." is not a finished tool result. If a run was closed with that text, approving or declining reopens it.
+- A nested workflow tool that waits parks the child and the parent. Approving the child continues the parent. A nested workflow tool set to `async` does not park the parent: the parent already has the kick-off text and may finish while the child is still waiting for approval.
 - The runs list treats AwaitingApproval as in progress, including the status
   filter. The timeline draws it hollow, the same as AwaitingInput. It is not a
   chat session and it is not a learning-eval target.

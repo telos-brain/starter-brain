@@ -1,7 +1,7 @@
 ---
 name: Skills File Format
 code: BRA215
-version: 3
+version: 4
 description: How to author skillbook.yml and skill markdown files — categories,
   skill codes, frontmatter, skill-declared tools, and optional Skill Book sync
   (sync-mode, api-key-env). Load this when creating or editing a skill file.
@@ -64,7 +64,7 @@ Rules:
 - A blank `api-key-env:` clears the stored name. Omitting the key leaves the stored name unchanged.
 - Extract writes `sync-mode` only when it is not `off`, so a book that does not sync is not rewritten. It writes `api-key-env` when a name is stored.
 - Sync copies skill title and instructions. It does not copy version numbers between the brain and Skill Book. Category `index` must be a Skill Book range (100, 200, 300, …) when the brain is pushed to Skill Book.
-- Day-to-day sync creates and updates skills. It does not delete. Full sync, from the admin skill book screen, makes the target categories and skills match the source and removes extras. A one-way book can only be full-synced in that direction.
+- Day-to-day sync creates and updates skills. A deleted webhook removes that skill from the brain. A category move on Skill Book assigns a new code; the brain rekeys from the previous code and does not copy Skill Book's version. Full sync, from the admin skill book screen, makes the target categories and skills match the source and removes extras. A one-way book can only be full-synced in that direction. Pushing a skill into a different category lets Skill Book assign the new code, and the brain adopts it.
 - Clone copies the mode and the env-var name, and issues a new webhook token. Update-from does not copy sync settings onto the destination.
 
 ## 2. Skill file (markdown + frontmatter)
