@@ -1,12 +1,12 @@
 ---
 name: Auto-Building a Brain
 code: BRA211
-version: 1
+version: 2
 description: End-to-end process for auto-building a brain schema from an
-  existing application — entity and unit of work, skill-book categories,
-  workflows, tools, Execute API plumbing, and bidirectional secrets. Use
-  instead of the BRA104 interview when the host app already exists. Load
-  BRA105 before starting.
+  existing application — one entity per tenant, one brain user per user,
+  skill-book categories, workflows, tools, connector defaults, Execute API
+  plumbing, and bidirectional secrets. Use instead of the BRA104 interview
+  when the host app already exists. Load BRA105 before starting.
 ---
 
 # Auto-Building a Brain
@@ -30,6 +30,7 @@ that is **BRA104**.
    Do not restate those principles here.
 2. Load depth on demand, by code — **BRA101** (building blocks), **BRA201**
    (file formats), **BRA208** (skill-book categories), **BRA202** (secrets),
+   **BRA209** (connector request defaults), **BRA416** (brain users),
    **BRA401** / **BRA402** / **BRA403** (Execute API). Do not inline those
    skills.
 3. Find any existing brain schema. It may be `./brain`, or another folder that
@@ -50,23 +51,52 @@ The starter already contains learning and maintenance machinery, plus the
 
 ---
 
-## 1. Entity and unit of work
+## 1. Entity, unit of work, and users
 
-Research the application: tenancy, the primary record the work hangs off, and
-the jobs that start and finish.
+Research the application: whether it is multi-tenant, the primary record the
+work hangs off, the people who sign in, and the jobs that start and finish.
 
 | Concept | What you are looking for | Examples |
 |---|---|---|
-| **Entity** | Where siloed memory should live — a tenant or long-lived subject | Client, department, organisation, account |
+| **Entity** | Where siloed memory should live | A tenant, when the app is multi-tenant. Otherwise a long-lived subject: client, department, account |
+| **Brain user** | One person who uses the app | The app's user account, matched by email |
 | **Unit of work** | A job that starts and finishes, with context that lasts for that job | Proposal, campaign, job, ticket |
 
-Multi-tenancy usually maps to the entity. Scoped memory and tool variables
-follow from that (see **BRA102**, **BRA213**).
+### Multi-tenant: one entity per tenant
 
-Write the entity type and unit-of-work type into `brain-compose.yml`, with
-`scope: entity:<entity-code>` on the unit of work. Declare entity / unit-of-work
-**variables** for tenant or external IDs the harness will inject — never for
-the LLM to type in.
+When the app isolates data by tenant, the entity **is** the tenant. Create
+**one entity per tenant**, not one entity for the whole app and not one entity
+per user.
+
+- Declare the entity type in `brain-compose.yml` with a variable key
+  `organisationId` (**BRA213**). That value is the tenant's id in the
+  application.
+- When a tenant is created in the app, create the matching brain entity
+  (**BRA402**) and set `organisationId`. Persist the brain entity id on the
+  tenant row.
+- Scope every run for that tenant with that `entityId`. Tools then receive
+  the tenant id from the entity. The model never types it.
+
+A single-tenant app does not invent a tenant entity. Keep the entity as the
+long-lived subject in the table above, and do not send a tenant id.
+
+### One brain user per application user
+
+Create **one brain user per application user**, matched by email (**BRA416**).
+Do this whether or not the app is multi-tenant.
+
+- Put `name` and `email` in `users.yml`. That file upserts identity only. It
+  cannot store secrets.
+- Give each user a variable named `brainApiKey`. The value is that person's
+  key for the application API. Write it with `POST /users` or `PATCH /users`
+  (`variables: [{ "key": "brainApiKey", "value": "..." }]`). Never put the
+  value in `users.yml`, a workflow, or a log.
+- Persist the brain user id on the application user. When the app starts a
+  run for that person, send `userId` so the run acts as that brain user.
+
+Write the unit-of-work type into `brain-compose.yml`, with
+`scope: entity:<entity-code>`. Declare unit-of-work variables for external ids
+the harness will inject — never for the LLM to type in.
 
 ---
 
@@ -177,8 +207,31 @@ This step is large. Use the schema as the plan:
 5. Add a unit test per endpoint, hooked into the app’s existing test
    framework.
 
-Register groups in `brain-compose.yml`. Inject API keys with `secret:` and
-tenant context with `entity:` / `unitofwork:` — the model never passes those.
+Register groups in `brain-compose.yml`. Put the three shared credentials on
+the connector as `request-defaults` (**BRA209**), not on every tool. The
+model never sees them.
+
+```yaml
+request-defaults:
+  - name: apiKey
+    header: apiKey
+    secret: APP_API_KEY
+  - name: tenantId
+    entity: organisationId
+  - name: userApiKey
+    user: brainApiKey
+```
+
+| Default | Sent as | Source |
+|---|---|---|
+| `apiKey` | HTTP header `apiKey` | The system-wide application key, a brain environment variable (`secret:`) |
+| `tenantId` | Query parameter or JSON field | The current entity's `organisationId`. Include this only when the app is multi-tenant |
+| `userApiKey` | Query parameter or JSON field | The acting brain user's `brainApiKey` variable |
+
+`APP_API_KEY` is one key for the whole app. `brainApiKey` is a different key
+on each brain user. A run with no entity omits `tenantId`. A run with no
+acting user omits `userApiKey`. Do not mark either required unless that call
+cannot proceed without it.
 
 ---
 
@@ -218,12 +271,14 @@ work.
 
 Before firing the run:
 
-1. Ensure the entity exists in the brain (**BRA402**). Persist the brain
-   entity id on the application row (e.g. `BrainEntityId` on Client).
+1. Multi-tenant: ensure **this tenant's** entity exists (**BRA402**), with
+   `organisationId` set to the tenant's id in the app. Persist the brain
+   entity id on the tenant row. Pass that `entityId`.
 2. Ensure the unit of work exists if the run is for a job. Persist
-   `BrainUnitOfWorkId` the same way.
-3. Create those records if they are missing, then pass `entityId` and/or
-   `unitOfWorkId` on the run request.
+   `BrainUnitOfWorkId` the same way, then pass `unitOfWorkId`.
+3. Ensure the brain user exists for the person starting the run, with
+   `brainApiKey` set (**BRA416**). Pass that `userId`. A run without `userId`
+   cannot inject `userApiKey`.
 
 Set `allowed-callback-domains` in compose if you use async `callbackUrl`
 (**BRA213**).
@@ -236,7 +291,8 @@ Traffic goes both ways, so keys must exist on both sides. Load **BRA202**.
 
 | Direction | Secret | Where it lives |
 |---|---|---|
-| Brain → app (tools calling the app) | App API key the user mints | App `.env` **and** brain `.env` (same value). Tool parameters use `secret:`. |
+| Brain → app (every tool call) | System-wide `apiKey` | App `.env` **and** brain `.env` (same value), referenced by `secret:` on the connector default. |
+| Brain → app (the signed-in person) | That user's `brainApiKey` | A variable on that brain user. Not an environment variable. |
 | App → brain (Execute API) | Brain API key (issued on first `brain deploy`) | App `.env` after deploy. |
 
 - Put **names** in both `.env.example` files (app and brain). Do not commit
@@ -267,13 +323,15 @@ each one goes, and that they must match.
 Skip any step that is already true of the repo:
 
 - [ ] Starter schema present; Telos Brain book and starter workflows kept
-- [ ] Entity and unit of work in `brain-compose.yml`, with variables for tenancy
+- [ ] Entity and unit of work in `brain-compose.yml`. Multi-tenant: one entity per tenant, variable `organisationId`
+- [ ] One brain user per application user, with variable `brainApiKey` (not in `users.yml`)
 - [ ] Blueprint categories and application skill-book categories defined (empty)
 - [ ] Application workflows added, with LLM budgets set
 - [ ] Tool groups and tool YAML written
 - [ ] Thin AI API layer + tests; references (not UUIDs) on listed records
 - [ ] Workflows linked to the tools they need
-- [ ] Chat (sync session) and one async action wired, with brain ids stored
+- [ ] Connector defaults: header `apiKey`, `tenantId` from `entity: organisationId` when multi-tenant, `userApiKey` from `user: brainApiKey`
+- [ ] Chat (sync session) and one async action wired, with entity id, unit-of-work id, and `userId` stored and sent
 - [ ] `.env.example` names for both directions; handoff list for the user
 - [ ] Dry-run / deploy; user told how to train; snapshot noted for later
 

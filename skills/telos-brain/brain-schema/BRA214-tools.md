@@ -1,7 +1,7 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 16
+version: 17
 description: How to author tool groups and tool YAML — caller-facing
   descriptions, api, mcp, system, workflow, and native tools, optional
   execution-mode (sync or async) on a workflow tool, optional roles, optional
@@ -381,9 +381,10 @@ call is special. A tool-level `header:` / payload key overrides the
 connector default with the same name. An `oauth-captures` `header:` owns
 that header — a `request-defaults` entry for the same name is ignored. A
 missing header secret or capture value fails the tool before the HTTP call
-(**BRA209**). A request-default with neither `secret` nor `value` is a model
-parameter on every `api` and `mcp` tool that uses the connector, placed the
-same way as a tool parameter.
+(**BRA209**). A request-default can bind `secret`, `value`, `entity`,
+`unitofwork`, `user`, or `input` the same way as a tool parameter. With
+none of those it is a model parameter on every `api` and `mcp` tool that
+uses the connector, placed the same way as a tool parameter.
 
 Putting a name in `.env` does nothing by itself. The value is used only when
 a tool `secret:`, a connector `request-defaults` `secret:`, or a capture

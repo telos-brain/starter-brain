@@ -1,13 +1,13 @@
 ---
 name: Connectors
 code: BRA209
-version: 26
+version: 27
 description: "How to author connector YAML files for external services (OAuth 2,
   API key, none, or caller-jwt). Covers file layout, brain-compose registration, optional
   platform type (e.g. elevenlabs), parameter declarations vs secret storage,
   url vs url-env, parameter secret: bindings, request-defaults for shared
-  headers and common params (hidden when secret or value is set, otherwise a
-  model parameter with an optional description), parameter as:/in:/value: for any OAuth names,
+  headers and common params (hidden when secret, value, entity, unitofwork,
+  user, or input is set, otherwise a model parameter with an optional description), parameter as:/in:/value: for any OAuth names,
   oauth-request for non-standard flows, oauth-captures, the production OAuth
   redirect URI https://go.telosbrain.com/oauth/callback, deploy behaviour, and
   worked examples."
@@ -111,7 +111,7 @@ parameters:                         # optional — omit the key entirely when em
 | `api-key-header` | no | For `api-key` auth only. Header name for the key. Omit or blank → `Authorization: Bearer {key}`. Example: `X-Api-Key`. |
 | `parameters` | no | List of `{ name, description, secret?, as?, in?, value? }`. You may declare **any** parameter names, not only `client-id` / `client-secret`. `secret:` names a brain environment variable. `as:` is the provider-facing OAuth name (`clientId`, `redirectUri`). `in:` is `authorize`, `token`, or `both`. `value:` is a static non-secret. For `api-key` auth `secret:` binds the API key (omit → `CONNECTOR_{connectorId}_CLIENT_SECRET`). For `oauth2` auth `secret:` on `client-id` / `client-secret` binds `.env` names (omit → `CONNECTOR_{connectorId}_CLIENT_ID` / `_CLIENT_SECRET`). Omit the `parameters` key when there are none — do **not** emit `parameters: []`. |
 | `oauth-request` | no | Optional OAuth request customisation for non-RFC providers. See **OAuth request customisation** below. |
-| `request-defaults` | no | Shared headers and query/body values on **every** tool call. Fields: `name`, optional `description`, `header`, `secret`, `value`. `secret:` or `value:` injects the value and hides it. With neither, the model supplies it and `description:` is the text the model sees. A tool-level declaration of the same name or header wins. See **Request defaults** below. |
+| `request-defaults` | no | Shared headers and query/body values on **every** tool call. Fields: `name`, optional `description`, `header`, `secret`, `value`, `entity`, `unitofwork`, `user`, `input`, `required`. A secret, fixed value, or run binding injects the value and hides it. With none of those, the model supplies it and `description:` is the text the model sees. `required: true` fails a run binding that cannot resolve, and marks a model-supplied default required. A tool-level declaration of the same name, header, or payload key wins. See **Request defaults** below. |
 
 ### Auth types
 
@@ -220,10 +220,15 @@ oauth-captures:
 Declare headers and common parameters **once on the connector** instead of
 repeating them on every tool. Placement matches **BRA214**: `header:` sends
 an HTTP header; without it the value is a GET query parameter or POST/PUT
-JSON field. `header:` does not hide the parameter. `secret:` reads a brain
-environment variable; `value:` is a static string (`{secret}` works as a
-template when both are set). Either of those supplies the value and hides
-the default from the model.
+JSON field. On an `mcp:` tool a header is still a header; a run binding or
+model parameter with no header is an MCP argument. `header:` does not
+hide the parameter. The value comes from the same sources as a tool
+parameter, in this order: `secret:`, `entity:`, `unitofwork:`, `user:`,
+`input:`, `value:`, then the model. The first one that is set supplies the
+value and hides the default. `secret:` reads a brain environment variable.
+`value:` is a static string (`{secret}` works as a template when `secret:`
+is also set). `entity:`, `unitofwork:`, `user:`, and `input:` read the run,
+the same way as a tool parameter (**BRA214**).
 
 ```yaml
 request-defaults:
@@ -233,6 +238,18 @@ request-defaults:
   - name: tenant-id
     header: X-Tenant-Id
     secret: EXAMPLE_TENANT_ID
+  - name: orgId
+    description: SMP organisation UUID for the entity this run is scoped to.
+    header: X-Organisation-Id
+    entity: organisationId
+    required: true
+  - name: apiKey
+    header: X-User-Api-Key
+    user: apiKey
+  - name: jobId
+    unitofwork: jobId
+  - name: caller
+    input: callerId
   - name: tenantId
     description: The Xero organisation to query.
     header: Xero-Tenant-Id
@@ -243,25 +260,46 @@ request-defaults:
 - Applied to every `api:` tool (and as headers on `mcp:` tools) that uses
   this connector, including `scope: user`. The person's API key or access
   token is a separate header. A `secret:` here is still a brain environment
-  variable.
-- **Hidden when a variable or fixed value is set.** `secret:` or `value:`
-  injects the default. The model does not see that parameter. `accept` and
-  `tenant-id` in the example above stay hidden.
-- **Shown when nothing else supplies it.** A default with no `secret:` and
-  no `value:` is an optional model parameter on every `api` and `mcp` tool
-  that uses the connector. The name the model uses is `name`. The value it
-  supplies is sent as `header:` when that is set, otherwise as a query
-  parameter (GET) or JSON field. `tenantId` in the example is sent as
-  `Xero-Tenant-Id`. A tool parameter with the same name or the same header
-  replaces it. An `oauth-captures` header still owns that header, so that
-  default is not shown and is not sent from here.
+  variable. `user:` on a request-default is an extra variable on the acting
+  brain user; it is not the connector's stored API key. `user: id` is that
+  user's id.
+- **Hidden when a variable or fixed value is set.** `secret:`, `value:`,
+  `entity:`, `unitofwork:`, `user:`, or `input:` injects the default. The
+  model does not see that parameter. `accept`, `tenant-id`, `orgId`,
+  `apiKey`, `jobId`, and `caller` in the example above stay hidden.
+- **`entity:`** names an entity variable key. At dispatch the router reads
+  that key on the run's current entity. **`unitofwork:`** reads the current
+  unit of work. **`user:`** reads the acting brain user (`id` is the user's
+  id; any other name is that user's variable). **`input:`** reads the run's
+  input bag, the same bag as `{{input.*}}`.
+- **`required:`** on a run binding: `true` fails the call when the run has
+  no value (no entity in scope, blank variable, no acting user, and so on).
+  Omitted or `false` leaves that field off the request and the call
+  continues. On a model-supplied default, `required: true` marks it required
+  in the tool schema. The server still does not reject a missing model
+  argument at dispatch.
+- **Shown when nothing else supplies it.** A default with no `secret:`,
+  `value:`, `entity:`, `unitofwork:`, `user:`, or `input:` is a model
+  parameter on every `api` and `mcp` tool that uses the connector. The name
+  the model uses is `name`. The value it supplies is sent as `header:` when
+  that is set, otherwise as a query parameter (GET) or JSON field. `tenantId`
+  in the example is sent as `Xero-Tenant-Id`. A tool parameter with the same
+  name, the same header, or the same payload key replaces it. An
+  `oauth-captures` header still owns that header, so that default is not
+  shown and is not sent from here.
+- Run bindings are resolved when a tool runs. They are not applied to an
+  OAuth capture follow-up request, which has no workflow run. Use `secret:`
+  or `value:` for a header that follow-up needs. `path:` and `type:` stay on
+  the tool: a connector default has no URL of its own, and a fixed or secret
+  value is sent as a string. The body or query key is `name` unless `header:`
+  sends it as that header.
 - **`description:`** is the text the model sees for a shown default, the
   same role as a tool parameter `description`. It is stored with the other
   request-default fields in the connector's `RequestDefaults` JSON. Leave
   it out and the model is told only where the value is sent: `Sent as the
   Xero-Tenant-Id header.` when `header:` is set, or `Sent as {name}.` when
-  it is not. A `description` on a hidden (`secret:` / `value:`) default is
-  stored and round-trips, and is not shown.
+  it is not. A `description` on a hidden default is stored and round-trips,
+  and is not shown.
 - A tool parameter with the same header name or payload key **overrides** the
   default.
 - One source per header: if an `oauth-captures` entry also sets `header:`
@@ -269,9 +307,11 @@ request-defaults:
   ignored (including a `.env` `secret:`). Prefer captures for values
   collected at Connect; prefer request-defaults for static or `.env` values.
 - A header `secret:` that is not set fails the tool **before** the HTTP
-  call, naming the header and variable. A capture `header:` with no stored
-  value fails the same way and tells the caller to reconnect (follow-up
-  captures are retried on the next tool call first).
+  call, naming the header and variable. A required run binding that cannot
+  resolve fails the same way, naming the variable. An optional run binding
+  is omitted. A capture `header:` with no stored value fails the call and
+  tells the caller to reconnect (follow-up captures are retried on the next
+  tool call first).
 - If Connect ran before captures were declared, the next tool call re-runs
   follow-up capture requests and stores the values on the token.
 
@@ -574,10 +614,12 @@ At API dispatch the Tool Router resolves the connector URL (+ optional path),
 validates it with SSRF guards, and injects that connector's `auth-type`
 (OAuth2 Bearer, API key, or caller JWT). Shared extra headers and params
 come from `request-defaults` and from `oauth-captures` → `header:`. A
-request-default with `secret:` or `value:` is injected and hidden. One with
-neither is a model parameter (`description:` is shown when set; otherwise
-the placement sentence is). A tool may still declare its own `header:` /
-`secret:` (**BRA214**); those override a default with the same name. A brain
+request-default with `secret:`, `value:`, `entity:`, `unitofwork:`, `user:`,
+or `input:` is injected and hidden. One with none of those is a model
+parameter (`description:` is shown when set; otherwise the placement
+sentence is). A tool may still declare its own `header:` / `secret:` /
+`entity:` (**BRA214**); those override a default with the same name, header,
+or payload key. A brain
 `.env` value is unused until a tool `secret:`, a `request-defaults`
 `secret:`, or a capture `store:` names it.
 
