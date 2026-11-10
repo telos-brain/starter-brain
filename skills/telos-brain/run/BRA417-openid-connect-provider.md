@@ -1,7 +1,7 @@
 ---
 name: "OpenID Connect provider for Telos Brain MCP"
 code: BRA417
-version: 4
+version: 6
 description: How to run an OpenID Connect provider that Telos Brain calls as
   a confidential client. Use when a brain's MCP users must sign in at your
   identity provider. Telos Brain is the client. You are the provider.
@@ -27,6 +27,9 @@ Telos Brain does not forward them to tools.
 
 The choice is per brain. Another brain in the same organisation can keep
 Telos Brain sign-in. Organisation-scoped MCP does not use this option.
+
+OpenID Connect requires a Pro or Enterprise plan. On any other plan the
+brain's MCP page still shows the option, and it cannot be selected or saved.
 
 ## Register Telos Brain as a client
 
@@ -145,6 +148,7 @@ the key at `jwks_uri`. `none` is rejected.
 | `nonce` | The `nonce` from the authorise request, unchanged. |
 | `sub` | Required. Stable for the person. At most 255 characters. |
 | `email` | The person's email address. Used to find their brain user. |
+| `entity_id` | Optional. The id of an entity that already belongs to that brain. When present, Telos Brain locks the MCP session to it. |
 
 Telos Brain does not create a brain user from this token, and it does not
 link the subject to a Telos Brain member. It matches `email`
@@ -153,12 +157,19 @@ match injects that user's variables into the MCP run. No match still
 completes sign-in, without those variables. Put the address in the ID token
 when you can. Otherwise return it from userinfo as `email`.
 
+`entity_id` must be a GUID. Telos Brain does not create an entity from this
+claim. A value that is blank, not a GUID, or not an entity on that brain
+rejects the sign-in. Omit the claim when you are not choosing an entity. The
+MCP application can still pass its own `entity_id` to Telos Brain. When both
+are present, the ID token value is the one stored on the MCP session.
+
 ## What you do not receive
 
 - The MCP application's client id, redirect URI, or PKCE challenge. Those
   belong to Telos Brain's own MCP authorisation server.
-- An `entity_id`. Locking a run to one entity is between the MCP application
-  and Telos Brain.
+- The MCP application's `entity_id`. Telos Brain does not send that value to
+  you. Set `entity_id` on the ID token when the session should run as one of
+  that brain's entities.
 - A Telos Brain access token (`tbm_`) or an organisation API key (`tbk_`).
   If you see one, it was not sent by this client.
 
@@ -169,6 +180,7 @@ when you can. Otherwise return it from userinfo as `email`.
 | The brain will not save the issuer | Discovery did not return `200` JSON, the document redirected, `issuer` does not match, or `authorization_endpoint`, `token_endpoint`, or `jwks_uri` is missing. The host must be public HTTPS. |
 | Redirect URI mismatch | Register the MCP page's redirect URI exactly. It is Telos Brain's callback, not the MCP application's callback. |
 | Token endpoint returns `invalid_client` | Accept `client_secret_post`. Telos Brain does not use HTTP Basic authentication. |
-| Sign-in returns to the MCP application as `access_denied` | The ID token failed validation. Check `iss`, `aud` (the client id), `exp`, `nonce`, `sub`, and the signing algorithm. The key must be on `jwks_uri`. |
+| Sign-in returns to the MCP application as `access_denied` | The ID token failed validation. Check `iss`, `aud` (the client id), `exp`, `nonce`, `sub`, and the signing algorithm. The key must be on `jwks_uri`. A present `entity_id` that is blank or not a GUID fails here too. |
+| Sign-in returns to the MCP application as `invalid_request` after you issued a code | `entity_id` is not an entity on that brain. Telos Brain does not create one. |
 | The person is signed in but their variables are missing | `email` was absent from the ID token and from userinfo, or it does not match a brain user on that brain. Telos Brain does not create the user. |
 | You expected a call when the MCP session refreshed | Telos Brain does not call the provider on refresh. Identity from the original ID token is kept on the MCP token. |

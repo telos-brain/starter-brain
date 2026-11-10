@@ -26,7 +26,7 @@ name: Review Blueprint                 # REQUIRED (workflow title)
 code: WF-REVIEW                        # REQUIRED (unique workflow code)
 description: Reviews a blueprint submission and posts findings to the ticket.  # optional
 version: 1.1                           # optional (see **BRA201** versioning)
-type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | EVAL | SYSTEM | SIMULATION | COMPACTION | MCP (default RUNNABLE)
+type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | EVAL | SYSTEM | SIMULATION | COMPACTION | PLAYBOOK | MCP (default RUNNABLE)
 # trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list
 # trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier: low|medium|high
 # trigger: inbox:SKILL_UPDATE:high:10  # optional weight threshold (positive integer)
@@ -95,8 +95,8 @@ Rules:
 
 - `name` and `code` are required; the markdown **body must not be empty** (it's
   the instructions).
-- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `EVAL`, `SYSTEM`, `SIMULATION`, `COMPACTION`, `MCP`;
-  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when an inbox / unit-of-work `trigger` matches, `EVAL` = workflow-run learning eval (the **Run eval** button; `trigger` is automatic-only — **BRA207**), `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the active workflow of this type (not a specific code) handles intercepted API/MCP tools on a simulation run. `COMPACTION` = context summariser for auto-compaction and the `compact_context` system tool; at most one active per brain. `MCP` = publishable Brain MCP endpoint.
+- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `EVAL`, `SYSTEM`, `SIMULATION`, `COMPACTION`, `PLAYBOOK`, `MCP`;
+  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when an inbox / unit-of-work `trigger` matches, `EVAL` = workflow-run learning eval (the **Run eval** button; `trigger` is automatic-only — **BRA207**), `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the active workflow of this type (not a specific code) handles intercepted API/MCP tools on a simulation run. `COMPACTION` = context summariser for auto-compaction and the `compact_context` system tool; at most one active per brain. `PLAYBOOK` = the **Build Playbook** button; resolved by type, not by code; at most one active per brain. `MCP` = publishable Brain MCP endpoint.
 - Well-known `trigger` values include `inbox:<RoutingType>` / `inbox:*` (inbox
   learning loop), `unitofwork:complete` (unit-of-work learning eval), and
   `workflowrun:complete[:<workflow-code>|*][:<learning-mode>]` (workflow-run

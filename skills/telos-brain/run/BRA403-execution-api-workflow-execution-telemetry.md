@@ -319,7 +319,7 @@ Content-Type: application/json
 }
 ```
 
-`resumeMethod` defaults to `exclude_tools` when `resumeRunId` is set and the method is omitted. Omit `resumeRunId` — or send it empty — and the call starts a fresh run with no copied history, even if `resumeMethod` is present. That is the request existing clients already send. The new run uses the **requested** workflow: system prompt and instructions come from that workflow, not from the previous run. Entity, unit of work, inbox entry, variables, and `caller_jwt` come from this request only. `ParentWorkflowRunId` is not set.
+`resumeMethod` defaults to `exclude_tools` when `resumeRunId` is set and the method is omitted. Omit `resumeRunId` — or send it empty — and the call starts a fresh run with no copied history, even if `resumeMethod` is present. That is the request existing clients already send. The new run uses the **requested** workflow: system prompt and instructions come from that workflow, not from the previous run. Those instructions are stored before the copied messages. The new input follows the copied history. Entity, unit of work, inbox entry, variables, and `caller_jwt` come from this request only. `ParentWorkflowRunId` is not set.
 
 | Source status | Result |
 |---|---|
@@ -332,7 +332,7 @@ Content-Type: application/json
 
 | `resumeMethod` | What is copied |
 |---|---|
-| `exclude_tools` (default) | User and assistant text only. Tool calls, tool results, thinking, and failed attempts are dropped. Compaction summaries are kept as `<context_summary>`. |
+| `exclude_tools` (default) | Every conversational user message and every assistant text message. Tool calls are kept, including their arguments. Each tool result is replaced with `[Cleared by context management]`, the same shape as Anthropic `clear_tool_uses_20250919`: the model can see that it made the call and that the result was removed. Thinking and failed attempts are dropped. Compaction summaries are kept as `<context_summary>`. Later turns replay this shape. |
 | `all_messages` | Active `user`, `assistant`, `tool`, and `compaction` rows, including tool name and tool-call id. The first turn of the new run replays those tool pairs. Later turns on the new run use the normal text transcript. |
 | `summary` | The brain's `COMPACTION` workflow summarises the whole previous transcript. The summary is stored as a `compaction` message on the **new** run. The previous run is not modified (`CompactedAtUtc` is not set). If there is no COMPACTION workflow, or summarisation fails after one retry, the call returns `400` `{ "error": "resume_summary_failed", "message": "The previous session could not be summarised." }` and no chat run is created. Compaction cost sits on the nested COMPACTION run. |
 

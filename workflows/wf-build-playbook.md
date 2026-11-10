@@ -5,7 +5,7 @@ description: >-
   Reads the open playbook YAML and authors the workflows, tools and skills
   that documentation describes. An authoring pass, not a compiler.
 version: 2
-type: RUNNABLE
+type: PLAYBOOK
 system-prompt-code: WF-SYSTEM-PROMPT
 output-tokens: 2048, 4096
 caching: automatic
