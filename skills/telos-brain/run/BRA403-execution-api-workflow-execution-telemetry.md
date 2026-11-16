@@ -1,7 +1,7 @@
 ---
 name: "Execution API: Workflow Execution & Telemetry"
 code: BRA403
-version: 25
+version: 27
 description: How to list a brain's workflows (with pending inbox-task counts),
   run them synchronously (SSE streaming) or asynchronously (fire-and-forget
   with callback), pass optional run variables for {{input.*}} template tags
@@ -9,7 +9,9 @@ description: How to list a brain's workflows (with pending inbox-task counts),
   a single run, stop an in-flight turn without closing the session
   (POST /runs/{id}/stop), and retrieve run telemetry and unit-of-work telemetry
   via the Execution API — including model, thinking mode, temperature, sampling
-  parameters and turn totals on run
+  parameters, the rendered system prompt (`gen_ai.system_instructions`), the
+  rendered workflow instructions (the first user message), and
+  turn totals on run
   telemetry. Documents when a run settles Failed (max-turns exhausted, final
   max_tokens with no retries). Also notes when a Completed, Failed, or
   AwaitingInput run becomes eligible for learning evals (BRA207). A tool that
@@ -425,7 +427,10 @@ Response `200 OK`:
     "telos.workflow.code": "WF-SALES",
     "telos.workflow.path": "workflows/sales-chat.md",
     "telos.entity.name": "Acme",
-    "telos.unit_of_work.name": "Onboard"
+    "telos.unit_of_work.name": "Onboard",
+    "gen_ai.system_instructions": [
+      { "type": "text", "content": "You are the sales assistant. Use only the tools this workflow provides." }
+    ]
   },
   "totals": {
     "gen_ai.usage.input_tokens": 1820,
@@ -459,13 +464,14 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 | `telos.unit_of_work.name` | Unit-of-work title the run executed against (nullable) |
 | `telos.turns.used` | Completed assistant loop steps (excludes retries / `max_tokens` attempts) |
 | `telos.turns.max` | Effective max-turns cap for the run (workflow value or engine default 10) |
+| `gen_ai.system_instructions` | The system prompt stored for this run, already rendered. A list of parts, each `{ "type": "text", "content": "..." }`. Omitted when the run has no system row. Not also emitted as a span. A later edit to the system-prompt workflow does not change this value. |
 
 Span attributes:
 
 | Attribute | Notes |
 |---|---|
 | `gen_ai.message.role` | `user` \| `assistant` \| `tool` \| `compaction` \| `callback` |
-| `gen_ai.message.content` | Message content |
+| `gen_ai.message.content` | Message content. The first `user` span is the workflow Instructions for this run, already rendered. Later user spans are the triggering input. Do not re-read the workflow file to recover the instructions. A later edit to the workflow does not change this span. |
 | `gen_ai.usage.input_tokens` / `output_tokens` | Per-turn token counts |
 | `gen_ai.usage.cache_read_input_tokens` / `cache_creation_input_tokens` | Present only when the provider reports prompt-cache usage |
 | `gen_ai.tool.name` / `gen_ai.tool.call.id` | Present only on tool-call and tool-result turns |

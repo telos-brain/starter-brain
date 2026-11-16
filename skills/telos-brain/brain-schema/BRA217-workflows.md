@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 15
+version: 16
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, external agent deployment, the MCP server URL for a type MCP
@@ -135,7 +135,7 @@ Rules:
   workflow filter; any other third segment is a workflow code. Use a YAML
   list for several automatic patterns (OR). Use `{{run.telemetry}}` (BRA204)
   for OTEL GenAI telemetry of the subject run. Full authoring guide:
-  **BRA207**. Canonical example: `workflows/WF-EVAL-RUN.md`.
+  **BRA207**. Canonical example: `workflows/eval.md`.
 - `tools` (injected) and `available-tools` (searchable / promotable) reference
   tools by their `name`. `injected-skills` / `available-skills` reference skills
   by their `code`. These lists accept a single string or a list. Make sure the
