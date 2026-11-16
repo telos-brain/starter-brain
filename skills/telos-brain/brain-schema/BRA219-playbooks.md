@@ -1,7 +1,7 @@
 ---
 name: Playbooks
 code: BRA219
-version: 8
+version: 9
 description: File format for playbooks/{name}.yml — path, fields, node types,
   channels, and connections. Load this when writing or editing the YAML. What
   to draw, and why, is BRA221. Playbooks are not executable.
@@ -43,6 +43,16 @@ playbooks/
 ```yaml
 name: accounts-payable          # REQUIRED. Kebab-case. Matches the filename.
 title: Accounts payable         # optional display label; omit when it equals name
+default: true                   # optional. At most one playbook in the brain. Omit when false.
+questions:                      # optional. Omit when there are none.
+  - id: industry                # REQUIRED. Kebab-case. Unique in this file.
+    text: What industry is this business in?
+    options:                    # REQUIRED. Two or more. Single choice.
+      - Construction
+      - Professional services
+    answer: Construction        # omit when unanswered. Must equal one option.
+    notes: |                    # optional
+      Optional free text
 explanation: |                  # optional. What the process is.
   Accounts payable runs on three inbound channels.
 channels:                       # optional left-to-right column order. Omit for the default.
@@ -73,12 +83,15 @@ connections:
       - gmail_search
 ```
 
-Unknown keys are ignored. Empty `explanation`, `notes`, `tools`, connection
+Unknown keys are ignored. A question entry that lacks `id`, `text`, or two
+options is dropped. Empty `explanation`, `notes`, `tools`, connection
 `title`, and `schema-name` are omitted when the file is written back. The
-playbook `title` is omitted when it is the same as `name`. `kind` is omitted
-when the action is `scheduled`, and is never written on any other node type.
-`channels` is omitted when it is the default order. `arrow-from` and
-`arrow-to` are omitted when off.
+playbook `title` is omitted when it is the same as `name`. `default` is
+omitted when false. `questions` is omitted when empty. `answer` and question
+`notes` are omitted when empty. A question with no `answer` is unanswered.
+`kind` is omitted when the action is `scheduled`, and is never written on any
+other node type. `channels` is omitted when it is the default order.
+`arrow-from` and `arrow-to` are omitted when off.
 
 `x` and `y` are fractions of the channel and the canvas, not pixels. Each must
 be from 0 to 1.

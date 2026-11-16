@@ -261,7 +261,7 @@ allowed-callback-domains:
 
 ## Chat Sessions
 
-A synchronous run is a **chat session**: it is the *same* run for the whole conversation. Each turn appends to that run's message history, and the engine replays the run's own transcript as context on every subsequent turn — so the assistant remembers the conversation without you resending it. There is no separate session id: the **run id** (from the `run_started` event) *is* the session.
+A synchronous run is a **chat session**: it is the *same* run for the whole conversation. Each turn appends to that run's message history, and the engine replays that stored stack on every subsequent turn — user text, assistant text, tool calls, and tool results — so the assistant still has the results it already fetched. Compaction is what removes a span: those rows stay stored for audit and the summary takes their place in the prompt. There is no separate session id: the **run id** (from the `run_started` event) *is* the session.
 
 **Lifecycle.** A session moves through:
 
@@ -333,7 +333,7 @@ Content-Type: application/json
 | `resumeMethod` | What is copied |
 |---|---|
 | `exclude_tools` (default) | Every conversational user message and every assistant text message. Tool calls are kept, including their arguments. Each tool result is replaced with `[Cleared by context management]`, the same shape as Anthropic `clear_tool_uses_20250919`: the model can see that it made the call and that the result was removed. Thinking and failed attempts are dropped. Compaction summaries are kept as `<context_summary>`. Later turns replay this shape. |
-| `all_messages` | Active `user`, `assistant`, `tool`, and `compaction` rows, including tool name and tool-call id. The first turn of the new run replays those tool pairs. Later turns on the new run use the normal text transcript. |
+| `all_messages` | Active `user`, `assistant`, `tool`, and `compaction` rows, including tool name and tool-call id. Later turns keep replaying those tool calls and results until compaction removes that span. |
 | `summary` | The brain's `COMPACTION` workflow summarises the whole previous transcript. The summary is stored as a `compaction` message on the **new** run. The previous run is not modified (`CompactedAtUtc` is not set). If there is no COMPACTION workflow, or summarisation fails after one retry, the call returns `400` `{ "error": "resume_summary_failed", "message": "The previous session could not be summarised." }` and no chat run is created. Compaction cost sits on the nested COMPACTION run. |
 
 Rows already superseded by compaction are not copied. The previous run's system prompt and workflow instructions are not copied.

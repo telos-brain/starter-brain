@@ -1,12 +1,13 @@
 ---
 name: Workflows
 code: BRA217
-version: 12
+version: 15
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
-  timeout, external agent deployment, and how a workflow tool's execution-mode
-  decides whether this run waits. Load this when creating or editing a
-  workflow.
+  timeout, external agent deployment, the MCP server URL for a type MCP
+  workflow, and how a workflow tool's execution-mode decides whether this
+  run waits. Load this when creating or editing a workflow, or when you
+  need that workflow's MCP URL.
 ---
 
 # Workflows
@@ -26,7 +27,7 @@ name: Review Blueprint                 # REQUIRED (workflow title)
 code: WF-REVIEW                        # REQUIRED (unique workflow code)
 description: Reviews a blueprint submission and posts findings to the ticket.  # optional
 version: 1.1                           # optional (see **BRA201** versioning)
-type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | EVAL | SYSTEM | SIMULATION | COMPACTION | PLAYBOOK | MCP (default RUNNABLE)
+type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIGGERED | EVAL | SYSTEM | SIMULATION | COMPACTION | PLAYBOOK | ONBOARDING | MCP | AUDITREVIEW (default RUNNABLE)
 # trigger: inbox:SKILL_UPDATE           # optional; TRIGGERED only — scalar or YAML list
 # trigger: inbox:SKILL_UPDATE:low      # optional learning-mode qualifier: low|medium|high
 # trigger: inbox:SKILL_UPDATE:high:10  # optional weight threshold (positive integer)
@@ -95,8 +96,8 @@ Rules:
 
 - `name` and `code` are required; the markdown **body must not be empty** (it's
   the instructions).
-- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `EVAL`, `SYSTEM`, `SIMULATION`, `COMPACTION`, `PLAYBOOK`, `MCP`;
-  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when an inbox / unit-of-work `trigger` matches, `EVAL` = workflow-run learning eval (the **Run eval** button; `trigger` is automatic-only — **BRA207**), `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the active workflow of this type (not a specific code) handles intercepted API/MCP tools on a simulation run. `COMPACTION` = context summariser for auto-compaction and the `compact_context` system tool; at most one active per brain. `PLAYBOOK` = the **Build Playbook** button; resolved by type, not by code; at most one active per brain. `MCP` = publishable Brain MCP endpoint.
+- `type` (case-insensitive) must be one of `TOOL`, `RUNNABLE`, `TRIGGERED`, `EVAL`, `SYSTEM`, `SIMULATION`, `COMPACTION`, `PLAYBOOK`, `ONBOARDING`, `MCP`, `AUDITREVIEW`;
+  omitted defaults to `RUNNABLE`. `TOOL` = callable by another workflow (e.g. exposed via a `workflow` tool), `RUNNABLE` = executed manually, `TRIGGERED` = fired when an inbox / unit-of-work `trigger` matches, `EVAL` = workflow-run learning eval (the **Run eval** button; `trigger` is automatic-only — **BRA207**), `SYSTEM` = never invoked directly; referenced by other workflows via `system-prompt-code` to supply the system prompt. `SIMULATION` = tool-response synthesis for simulation interception; the active workflow of this type (not a specific code) handles intercepted API/MCP tools on a simulation run. `COMPACTION` = context summariser for auto-compaction and the `compact_context` system tool; at most one active per brain. `PLAYBOOK` = the **Build Playbook** button; resolved by type, not by code; at most one active per brain. `ONBOARDING` = the **Answer questions** survey; resolved by type, not by code; at most one active per brain. `MCP` = publishable Brain MCP endpoint (URL below). `AUDITREVIEW` = optional advisory review of a pending tool-call approval (Pro/Enterprise, `requires-approval` tools only); the platform starts it when the approval is recorded, passes the record as `{{input.title}}`, `{{input.body}}`, `{{input.parameters}}`, `{{input.toolName}}`, `{{input.initiatingMember}}` and `{{input.runId}}`, and stores the final reply as the approval's Review. It never approves, declines, or edits the approval. Resolved by type; when more than one is active the lowest code wins.
 - Well-known `trigger` values include `inbox:<RoutingType>` / `inbox:*` (inbox
   learning loop), `unitofwork:complete` (unit-of-work learning eval), and
   `workflowrun:complete[:<workflow-code>|*][:<learning-mode>]` (workflow-run
@@ -152,6 +153,27 @@ A `workflow:` tool starts another workflow in this brain (**BRA214**). Omit
 `async` returns at once with `get_mcp_tool_result` instructions, adds that
 tool for the rest of this run, and this run may finish while the child is
 still going. `run_workflow` always waits.
+
+## MCP server URL
+
+A workflow with `type: MCP` is reached at:
+
+```
+https://mcp.telosbrain.com/{orgCode}/{instanceName}/{workflowCode}
+```
+
+The Management API does not return this URL. Build it from the fields below.
+A trailing `/mcp` is the same server. Any other workflow type does not resolve.
+
+| Segment | Management API |
+| --- | --- |
+| `orgCode` | `GET /brains/{instance}` → `orgCode`. The organisation email-integration public key (16–20 letters and digits). Created on the first brain read when the organisation has none. |
+| `instanceName` | Same response → `instanceName`. The brain slug, not the display `name`. |
+| `workflowCode` | `GET /brains/{instance}/workflows/{code}` → `code`, and `type` must be `MCP`. `GET /brains/{instance}/workflows/mcp` lists those workflows (`id`, `name`, `code`). `GET /brains/{instance}/workflows?type=MCP` returns the same workflows with the full workflow fields. |
+
+Authentication is the Management API (**BRA301**). The MCP host is
+`https://mcp.telosbrain.com`, separate from the Management API host.
+Percent-encode each path segment.
 
 ## 1. Pre-called tools (`input-tools`)
 
@@ -407,17 +429,35 @@ Each value is `type-code:parameter-name:match-key`. Two parts are allowed
 
 The client is resolved first. The job is then resolved only among that
 client's jobs. The first match wins (`CreatedAt`, then `Id`). A malformed
-value fails deploy. An unknown type code matches nothing at run time. A miss
-does not fail the run.
+value fails deploy. An unknown type code matches nothing at run time.
 
-On an Execution API or MCP start, a missing, blank, or unmatched value leaves
-that id unset. A caller-supplied id is not used for a side that has YAML.
+A workflow that sets `entity:` or `unit-of-work:` fails when the caller
+supplies a non-blank identifier and it does not resolve. No run is created.
+A missing or blank parameter does not fail. Set `fail-if-no-match: false`
+to keep the miss policy: the id is left unset at the top level, and a nested
+child keeps the parent's id.
+
+```yaml
+fail-if-no-match: false
+```
+
+On an Execution API or MCP start, a supplied miss fails the run. With
+`fail-if-no-match: false`, a missing, blank, or unmatched value leaves that
+id unset. A caller-supplied id is not used for a side that has YAML.
 
 On `run_workflow` or a `workflow:` tool, the child starts from the parent's
-client and job. A match replaces the client, then the job. A missing, blank,
-or unmatched value keeps the parent's id. If the client misses, the job YAML
-is not read and the parent's job stays. If the client matches and the job
-misses, the parent's job stays only when it belongs to that client.
+client and job. A match replaces the client, then the job. Omitting the
+entity argument inherits the parent's entity and still resolves the job
+among that entity's jobs. A supplied identifier that misses fails the child
+and does not keep the parent's ids. With `fail-if-no-match: false`, a
+missing, blank, or unmatched value keeps the parent's id. If the client
+misses under that opt-out, the job YAML is not read and the parent's job
+stays. If the client matches and the job misses, the parent's job stays
+only when it belongs to that client.
+
+A lookup that fails because the store is unavailable is not a miss. The
+call fails as an unexpected error so the caller can retry. `{{#if entity}}`
+and `{{#if unitOfWork}}` are false when that scope did not resolve.
 
 These keys do not read an inbox entry. An inbox task that should keep the
 entry's entity uses `scope` below, not `entity`.

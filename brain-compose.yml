@@ -103,6 +103,7 @@ workflows:
   - workflows/wf-compact.md
   - workflows/wf-inbox-plan.md
   - workflows/wf-build-playbook.md
+  - workflows/wf-audit-review.md
   - workflows/Maintenance/brain-system.md
   - workflows/Maintenance/triage.md
   - workflows/Maintenance/update-skill.md

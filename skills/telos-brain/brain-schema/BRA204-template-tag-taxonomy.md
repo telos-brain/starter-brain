@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions, tool response-markdown / error-markdown, and tool audit title / body. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings, and the arguments scope for the call being audited.
-version: 22
+version: 24
 ---
 
 # Template Tag Taxonomy
@@ -109,10 +109,11 @@ new scope is a provider + DI registration — the parser itself does not change.
 | --- | --- |
 | **Type** | Scalar + open key/value bag |
 | **Sort** | N/A |
-| **Requires** | `EntityId` on the run; otherwise the scope is empty |
+| **Requires** | `EntityId` on the run; otherwise only `entity.resolved` (false) is set |
 
 | Field | Description |
 | --- | --- |
+| `entity.resolved` | `true` when the run has an entity id **and** the entity loaded; `false` when the id is missing or not found (no query when missing). `{{#if entity}}` and `{{#if entity.resolved}}` are both false in that case |
 | `entity.name` | Entity display name |
 | `entity.{variableKey}` | Value of a runtime entity variable (any key set on the entity) |
 
@@ -130,9 +131,16 @@ Region: {{entity.region}}
 
 | | |
 | --- | --- |
-| **Type** | Two enumerable collections |
+| **Type** | Scalars + variable bag + two enumerable collections |
 | **Sort** | Date ascending (then creation order) for both collections |
-| **Requires** | `UnitOfWorkId` on the run; otherwise the scope is empty |
+| **Requires** | `UnitOfWorkId` on the run and the row found; otherwise only `unitOfWork.resolved` (false) is set |
+
+| Field | Description |
+| --- | --- |
+| `unitOfWork.resolved` | `true` when the run has a unit-of-work id **and** the row loaded; `false` otherwise. `{{#if unitOfWork}}` and `{{#if unitOfWork.resolved}}` are both false in that case |
+| `unitOfWork.title` | Unit-of-work title |
+| `unitOfWork.name` | Same value as `unitOfWork.title` |
+| `unitOfWork.{variableKey}` | Value of a unit-of-work variable. Reserved fields (`resolved`, `title`, `name`, `context`, `data`, `combined`) win over a variable with the same key |
 
 | Collection | Item fields (short form inside the loop) |
 | --- | --- |
