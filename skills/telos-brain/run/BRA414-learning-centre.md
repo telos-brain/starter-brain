@@ -1,7 +1,7 @@
 ---
 name: Learning Centre
 code: BRA414
-version: 1
+version: 2
 description: How the learning centre turns inbox entries from evals, email,
   meetings, and uploads into trusted learning signals. Weight, clustering, and
   when a signal becomes specific tasks. Inject when triaging or planning an
@@ -79,4 +79,6 @@ states the structural change.
 No task is a successful outcome. An unjustified extra task is worse than a
 miss. Do not mine a long document for more work.
 
-Tool contracts: **BRA405**, **BRA413**.
+Tool contracts: **BRA405**, **BRA413**. Which layer the task should change
+— the workflow, the tool definition, the data a tool returns, or work
+outside the schema — is **BRA222**.

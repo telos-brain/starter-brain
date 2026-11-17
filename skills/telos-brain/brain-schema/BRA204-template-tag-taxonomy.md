@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions, tool response-markdown / error-markdown, and tool audit title / body. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings, and the arguments scope for the call being audited.
-version: 24
+version: 25
 ---
 
 # Template Tag Taxonomy
@@ -200,7 +200,7 @@ Notes:
 | `run.workflowName` | Subject workflow **title** (falls back to code; not the eval workflow) |
 | `run.entityName` | Entity name the subject run executed against (nullable) |
 | `run.unitOfWorkName` | Unit-of-work **title** the subject run executed against (nullable) |
-| `run.telemetry` | OTEL GenAI telemetry for the subject run as indented JSON (same shape as `GET /runs/{id}/telemetry`, compacted for eval prompts). Includes `workflowName`, `entityName`, and `unitOfWorkName` alongside the ids. |
+| `run.telemetry` | The subject run as indented JSON. This is the `run` object inside the file from **Export telemetry** on the run page: full messages, full thinking, full tool results. It is not shortened. |
 
 Notes:
 
@@ -208,14 +208,14 @@ Notes:
   `SubjectRunId` on the eval's `WorkflowRunRequest` — it is **not** the eval
   run's own id.
 - When the subject run is missing, the `run` scope is empty (both tags blank).
-- **`run.reference` is not a shortened Guid.** Telemetry's `runId` field is the
-  first 8 hex characters of the UUID and must **not** be passed to
-  `set_run_grading` — always use `{{run.reference}}`.
-- Compacted for eval prompts: GUID values inside telemetry JSON are shortened to
-  their first 8 hex characters, and `gen_ai.message.content` / `error.message`
-  longer than 500 characters are truncated with an explicit marker
-  (`...[truncated, full content length: N]`). The Execution API
-  `GET /runs/{id}/telemetry` response stays full fidelity.
+- **`run.reference` is not the run id.** `id` inside `{{run.telemetry}}` is the
+  run's UUID. Pass `{{run.reference}}` to `set_run_grading`.
+- The export file also carries `exportedAt` and `brainInstance` around that
+  `run` object. The eval receives the `run` object itself, with the same
+  fields the file's `run` has, including each message's `content` and
+  `thinking` in full.
+- `GET /runs/{id}/telemetry` is a separate OpenTelemetry projection
+  (**BRA403**). The eval does not use it.
 - Authoring guide for manual / automatic run evals: **BRA207**. Grading tool:
   **BRA406**.
 

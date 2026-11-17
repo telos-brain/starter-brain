@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 16
+version: 15
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, external agent deployment, the MCP server URL for a type MCP
@@ -135,7 +135,7 @@ Rules:
   workflow filter; any other third segment is a workflow code. Use a YAML
   list for several automatic patterns (OR). Use `{{run.telemetry}}` (BRA204)
   for OTEL GenAI telemetry of the subject run. Full authoring guide:
-  **BRA207**. Canonical example: `workflows/eval.md`.
+  **BRA207**. Canonical example: `workflows/WF-EVAL-RUN.md`.
 - `tools` (injected) and `available-tools` (searchable / promotable) reference
   tools by their `name`. `injected-skills` / `available-skills` reference skills
   by their `code`. These lists accept a single string or a list. Make sure the
@@ -174,6 +174,27 @@ A trailing `/mcp` is the same server. Any other workflow type does not resolve.
 Authentication is the Management API (**BRA301**). The MCP host is
 `https://mcp.telosbrain.com`, separate from the Management API host.
 Percent-encode each path segment.
+
+### Short URL for a template workflow
+
+When the brain is a live template, the same workflow is also reached without
+the organisation code:
+
+```
+https://mcp.telosbrain.com/{instanceName}/{workflowCode}
+```
+
+A trailing `/mcp` is the same server. It resolves only when a live template
+with that `instanceName` has an MCP workflow with that `workflowCode`;
+otherwise it returns 404. Sign-in is Telos Brain (Clerk) only, on a combined
+sign-in or sign-up screen. OpenID Connect is not used on this URL. At consent
+the person's current organisation is used: an existing brain with that
+`instanceName` is reused, or an Admin gets a copy of the template (the same
+copy as Add Brain from a template). A person with no organisation sets one up
+first. If more than one live template has that `instanceName` and the person
+has no brain of that name, consent returns 409. The issued token works only on
+this URL and only for the person's own brain. The organisation-coded URL above
+is unchanged.
 
 ## 1. Pre-called tools (`input-tools`)
 

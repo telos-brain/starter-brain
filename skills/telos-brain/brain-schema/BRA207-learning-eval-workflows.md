@@ -1,7 +1,7 @@
 ---
 name: Learning Eval Workflows
 code: BRA207
-version: 14
+version: 13
 description: How to author type EVAL (workflow-run) and TRIGGERED
   (unit-of-work) learning-eval workflows that grade a completed unit of work
   or workflow run, inject telemetry via template tags, persist a 0–100 score
@@ -52,20 +52,15 @@ system-prompt-code: <your-system-prompt-workflow-code>
 # Optional — omit for Run eval only. A learning-mode qualifier enables auto:
 # trigger: workflowrun:complete:WF-REVIEW:high
 
-output-tokens: 8192, 20000, 20000
+output-tokens: 4096, 8192
 caching: automatic
-max-turns: 25
+max-turns: 15
 thinking: effort
 max-runs-per-hour: 500
 
 tools:
   - create_inbox_entry
   - set_run_grading
-  - list_schema_files
-  - search_schema_files
-  - get_schema_file
-  - find_available_skills
-  - get_skill
 ---
 ```
 
@@ -98,28 +93,24 @@ Reference (use this exact value for set_run_grading): {{run.reference}}
 
 1. Reconstruct what was asked, what the agent did (including tool calls), and
    how it turned out.
-2. Read the system prompt from `resource.gen_ai.system_instructions` and the
-   workflow instructions from the first user message. Do not reload the
-   workflow file for that text. Follow §5 for compaction, impossible
-   instructions, and output-token stops.
-3. Assign an integer grade 0–100 against expected outcomes.
-4. Identify discrete, actionable learnings. If nothing to improve, create no
+2. Assign an integer grade 0–100 against expected outcomes.
+3. Identify discrete, actionable learnings. If nothing to improve, create no
    entries.
-5. For each learning, call `create_inbox_entry` exactly once with:
+4. For each learning, call `create_inbox_entry` exactly once with:
    - `title`, `body`, `routing_type`
    - optional `status: PROCESSED` when the finding should not fire inbox
      trigger workflows (typical for grade-linked findings)
    - omit `workflow_name`, `entity_name`, `unit_of_work_name` — the tool fills
      them from the subject run (workflow code, entity name, unit-of-work title).
      Those names are also on `{{run.telemetry}}`.
-6. Call `set_run_grading` exactly once with:
+5. Call `set_run_grading` exactly once with:
    - `run_reference` — the subject reference shown above ({{run.reference}})
    - `grading` — the integer 0–100
    - `inbox_entry_reference` — optional; the primary learning's reference
-7. Reply with a one- or two-line grade summary and how many learnings you recorded.
+6. Reply with a one- or two-line grade summary and how many learnings you recorded.
 ```
 
-Canonical reference workflow: **`WF-EVAL-RUN`** in `workflows/eval.md`.
+Canonical reference workflow: **`WF-EVAL-RUN`** in `workflows/WF-EVAL-RUN.md`.
 
 ### 1.3 System tools
 
@@ -175,7 +166,7 @@ Persists the quality score on the **subject** WorkflowRun. Declare under
 
 | Parameter | Notes |
 | --- | --- |
-| `run_reference` | Required — use **`{{run.reference}}`**, not a shortened Guid from telemetry |
+| `run_reference` | Required — use **`{{run.reference}}`**, not the `id` UUID inside the telemetry |
 | `grading` | Required — integer 0–100 |
 | `inbox_entry_reference` | Optional — links the grade tag to an InboxEntry |
 
@@ -288,14 +279,14 @@ workflow code **`WF-EVAL`** by convention. Prefer a separate code
 | Tag | Scope | When it resolves |
 | --- | --- | --- |
 | `{{run.reference}}` | `run` | Subject run's 8-character AI-facing reference (for `set_run_grading`) |
-| `{{run.telemetry}}` | `run` | Compacted OTEL GenAI JSON for the subject Completed run |
+| `{{run.telemetry}}` | `run` | The subject run, same `run` object as Export telemetry. Full messages and thinking |
 | `{{#unitOfWork.context}}` / `{{#unitOfWork.data}}` | `unitOfWork` | Eval run request carries `UnitOfWorkId` |
 
 Unresolvable tags render blank (BRA204 silent-blank contract). Always put the
 telemetry blocks in the Instructions, not only in the short trigger message.
 
-**Important:** `runId` inside `{{run.telemetry}}` is a **shortened Guid**, not
-the 8-character run reference. Always use `{{run.reference}}` for `set_run_grading`.
+**Important:** `id` inside `{{run.telemetry}}` is the run's UUID, not the
+8-character run reference. Always use `{{run.reference}}` for `set_run_grading`.
 
 ---
 
@@ -303,48 +294,13 @@ the 8-character run reference. Always use `{{run.reference}}` for `set_run_gradi
 
 Good eval instructions:
 
-- Require evidence from the injected telemetry, and from schema files only
-  when the cause depends on them. Telemetry shows what the agent did, the
-  rendered system prompt (`gen_ai.system_instructions`), and the rendered
-  workflow instructions (the first `user` span). Give the eval
-  `list_schema_files`, `search_schema_files`, and `get_schema_file`, plus
-  `find_available_skills` / `get_skill` when the question is whether a skill
-  exists. Open the workflow file for frontmatter the messages do not carry
-  (`tools`, `output-tokens`, `auto-compaction`, `system-prompt-code`), not to
-  re-read the instructions.
-- Judge the system prompt from `resource.gen_ai.system_instructions` and the
-  instructions from the first user message (BRA403). Both are the rendered
-  text this run used. The system-prompt key is omitted when the run had no
-  system prompt. Open the system-prompt file when the learning will change
-  that source. Do not grade against the current file in place of the
-  telemetry text.
-- When the run loops, repeats a tool, apologises for skipping a lookup, or
-  stops on `max_tokens`, also read the `COMPACTION` workflow and the
-  subject's `output-tokens` / `auto-compaction`, and load **BRA217** and
-  **BRA212** for what those settings mean.
-- Ask whether the instructions can be fulfilled with the tools on the workflow.
-  A system prompt that demands a capability the workflow does not provide is
-  the wrong prompt when the job does not need that capability, and a missing
-  tool when it does. Skills are the usual case: "mandatory to use skills" with
-  no skill tools.
-- Do not treat a repeated call, or an apology for skipping a lookup, as a weak
-  model or a bad workflow until compaction has been ruled out. Compaction can
-  drop the tool call the agent then redoes.
-- Do not treat a `max_tokens` failure as too much thinking. The ladder may
-  never have given the job room. A useful `output-tokens` list starts lower
-  and then jumps, sometimes repeating the high cap. The eval should recommend
-  a shape, not one prescribed number.
-- If two causes remain plausible after the files are read, the learning says
-  so. It does not pick one to sound decisive.
+- Require evidence from the injected telemetry / logs
 - Ask for an explicit **integer 0–100** and call `set_run_grading` once
-- Ask for **discrete** learnings (one inbox entry each), each naming the layer
-  (system prompt, workflow, tool, compaction, or output tokens)
+- Ask for **discrete** learnings (one inbox entry each)
 - Allow "nothing to improve" with zero `create_inbox_entry` calls — still call
   `set_run_grading` when you have a score
 - Map each learning to a single `routing_type`
-- Give the eval itself an `output-tokens` ladder that can finish the extra
-  reading. A short first cap and a jump is the same pattern it should look for
-  in the subject.
+- Use a capable model and enough `output-tokens` / `thinking` for reflection
 
 Suggested score bands (aligned with the admin UI traffic-light tag):
 
@@ -358,10 +314,7 @@ Avoid:
 
 - Dumping the same learning twice
 - Inventing failures not present in the logs
-- Blaming tools or the model from the transcript alone, without reading the
-  system prompt, the workflow, and (when the run raises it) compaction and
-  `output-tokens`
-- Passing a shortened Guid as `run_reference`
+- Passing the telemetry `id` as `run_reference`
 - Auto-applying schema or code changes from the eval (humans apply via inbox)
 
 ---
@@ -370,6 +323,7 @@ Avoid:
 
 | Resource | Role |
 | --- | --- |
+| **BRA222** | What to change once a learning is trusted (tool, prompt, budget, or a person) |
 | **BRA217** | Workflow frontmatter (`type`, `trigger`, `trigger-mode`, tools) |
 | **BRA204** | `run.reference`, `run.telemetry`, `unitOfWork.*` tag taxonomy |
 | **BRA403** | OTEL run telemetry shape; session close → eligible for eval |
@@ -377,5 +331,5 @@ Avoid:
 | **BRA405** | Inbox system tools (`create_inbox_entry`, `create_inbox_cluster`, …) |
 | **BRA406** | `set_run_grading` contract and operator surfaces |
 | **BRA413** | `create_inbox_cluster` — consolidate related inbox entries |
-| `workflows/eval.md` | Canonical `type: EVAL` run-eval workflow |
+| `workflows/WF-EVAL-RUN.md` | Canonical `type: EVAL` run-eval workflow |
 | Salesmate `wf-eval.md` / `wf-eval-run.md` | Sample brain copies |

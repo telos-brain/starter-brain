@@ -1,15 +1,16 @@
 ---
 name: Learning Eval (Run)
 code: WF-EVAL-RUN
-version: 10
+version: 11
 type: EVAL
 description: >-
-  Manual workflow-run learning eval (BRA207 / BRA406). Reads the subject
-  workflow, its system prompt, and the rest of the schema the run depended
-  on before grading. Scores a Completed or Failed run from {{run.telemetry}}
-  on a 0–100 rubric (job done efficiently 40 / tool use 35 / skill use 25),
-  persists the score with set_run_grading, and files each learning as a
-  PENDING inbox entry (routing_type EVAL).
+  Manual workflow-run learning eval (BRA207 / BRA222 / BRA406). Reads the
+  subject run, including each message's thinking, and the schema the run
+  depended on. Scores a Completed or Failed run from {{run.telemetry}} on a
+  0–100 rubric (job done efficiently 40 / tool use 35 / skill use 25). Names
+  the layer that owns a problem — the job, the tool, or the size of the work
+  — and files that as a PENDING inbox entry (routing_type EVAL). One run is
+  one data point, not a workflow rewrite.
 system-prompt-code: WF-SYSTEM-PROMPT
 trigger: workflowrun:complete
 trigger-mode: manual
@@ -32,16 +33,23 @@ improve the brain over time. This workflow is run **manually** (admin clicks Run
 eval on a Completed or Failed run). The input message is only a short trigger.
 
 Telemetry shows what the agent did, the system prompt it was given
-(`resource.gen_ai.system_instructions`), and the workflow instructions it
-followed (the first user message). It does not show the tool list or the
-output-token ladder. A loop, a repeated tool call, an apology for skipping a
-lookup, or a run that stopped on `max_tokens` can come from those
-instructions, that system prompt, a missing tool, compaction, or the
-output-token ladder. Read the prompt and the instructions in the telemetry,
-and the schema those questions still depend on, before you name a cause. A
-learning that blames the wrong layer is worse than no learning. Do not invent
-failures that are not in the logs, and do not pick a cause just to sound
-decisive.
+(`resource.gen_ai.system_instructions`), the workflow instructions it
+followed (the first user message), and each message's `thinking` when that
+text was stored. It does not show the tool list or the output-token ladder.
+A loop, a repeated tool call, an apology for skipping a lookup, or a run
+that stopped on `max_tokens` can come from those instructions, that system
+prompt, a guardrail, a missing tool, a tool result, compaction, unstored
+thinking, or a job that does not fit one turn. Read the prompt, the
+instructions, and the thinking in the telemetry, and the schema those
+questions still depend on, before you name a cause. A learning that blames
+the wrong layer is worse than no learning. Do not invent failures that are
+not in the logs, and do not pick a cause just to sound decisive.
+
+One run is one data point. Name the layer that owns the problem. Do not
+rewrite the workflow to cover this trace, and do not add workflow text to
+explain a bad tool result. Stop at the first layer that owns it: was the job
+possible, did a tool return something the model could not use, or is the job
+too big for one turn.
 
 ## Subject run
 
@@ -92,6 +100,9 @@ From the telemetry only, establish the facts. Do not explain them yet.
    span.
 9. Cost signals where present: turn count, output size, work that burned tokens
    without advancing the goal.
+10. Thinking: each message's `thinking`, or the fact that it is absent.
+    `telos.thinking.mode` when a span carries it. `thinking: none` stores
+    nothing, even when the model thought.
 
 ## Step 2: Read the picture
 
@@ -124,43 +135,72 @@ whether the workflow names one.
    required: `get_schema_file` on the tool definitions the workflow lists, and
    `find_available_skills` / `get_skill` when you need to know whether a useful
    skill actually exists.
-5. When the run stopped on `max_tokens`, exhausted `max-turns`, or the ladder
-   looks wrong for the job: `get_skill` for **BRA217** (workflow settings,
-   including `output-tokens` and `system-prompt-code`) and **BRA212**
-   (compaction and token budgets). Use them as the reference for what the
-   settings mean. Do not treat either skill as a script.
+5. When the run raises one of the questions below, `get_skill` for the matching
+   reference and use it as a reference, not as a script. **BRA222** is the
+   order. **BRA224** is the job. **BRA223** is the tool. **BRA225** is the
+   size of the work, including thinking that was not stored. **BRA217** is
+   what `output-tokens`, `thinking`, and `system-prompt-code` mean. **BRA212**
+   is the short budget a frontier model stays on.
 
-Answer these before you score. Write the answers in your reasoning. They are
-questions, not a catalogue of bugs — follow only the ones the run raises.
+Answer these before you score, and stop at the first layer that owns the
+problem. Write the answers in your reasoning. They are questions, not a
+catalogue of bugs — follow only the ones the run raises.
 
-- **Can the instructions be fulfilled?** Read the first user message and the
-  telemetry system prompt together, against the tools the workflow actually
-  lists. A loop or a stall is often an instruction the tools cannot carry out.
-- **Is this the right system prompt?** A prompt that demands something the
-  workflow does not provide is not automatically a missing tool. Ask whether
-  this job needs that thing. A prompt that says skills are mandatory, on a
-  workflow with no `find_available_skills` or `get_skill`, is the wrong system
-  prompt when the job does not need skills. It is a missing tool when the job
-  does need skills and the schema has skills that would have helped. The same
-  question applies to any other capability the prompt requires.
+- **Was the job possible?** Read the first user message, the telemetry system
+  prompt, each message's `thinking`, and the tools the workflow actually
+  lists. A thinking loop — the model cannot decide the next step — usually
+  means the job cannot be done with what it was given.
+  - **Wrong system prompt, or none needed.** A short workflow whose own
+    instructions are enough is better with no system prompt, or a short one
+    written for that kind of job. A prompt that requires skills, tools, or a
+    procedure this workflow does not use will stall the model. That is not
+    automatically a missing tool. A prompt that says skills are mandatory, on
+    a workflow with no `find_available_skills` or `get_skill`, is the wrong
+    system prompt when the job does not need skills.
+  - **Guardrail.** The caller asked for something this workflow is not allowed
+    to do. Do not recommend adding the tool. The learning is that the workflow
+    should know how to answer at that boundary.
+  - **Forgotten tool.** The definition already exists, the job needs it, and
+    it is safe to offer. A create without an update, or a list without a read,
+    leaves the only available action as the wrong one.
+  - **No definition, or no endpoint.** The capability is not in the schema, or
+    the API does not exist. That is a person, outside the schema. Do not
+    invent the behaviour in the workflow.
+- **Did a tool return something the model could not use?** Walk back to the
+  result that led to the failing call. A later error is often an earlier
+  result that handed the model the wrong next step. A repeated call means
+  that result was not usable. Check compaction before you call a repeat a
+  bad result. Do not recommend workflow text that explains the result, and
+  do not recommend telling the model to call the tool only once.
+  - **Data.** The payload is confusing, incomplete, or scoped to the wrong
+    thing. The schema cannot change the endpoint. The learning is for a
+    person, whether or not we own the software behind the tool. Do not cover
+    it in the workflow.
+  - **Definition.** The result is already clear, and the model needs to know
+    how to call the tool or how to read it. Allowed values belong on the
+    parameter description, so the next run does not have to fail to learn them.
+- **Is the job too big for one turn?** A long series of tool calls that
+  exhausts output or context is a design problem. Do not raise the budget to
+  cover it. The parent divides the work. A sub-workflow does one portion.
+  Synchronous when a later portion must see the earlier result; asynchronous
+  when the portions are independent.
+- **Was thinking stored?** A turn that stops at the cap with an empty reply
+  and no `thinking` is unstored thinking, not an unexplained stall, and not
+  "too much thinking". For a cheaper, small, or local model, the candidate is
+  `thinking: adaptive` and a higher ladder — `10000`, then `25000`, then
+  `50000` — because thinking shares the cap with the reply. A frontier model
+  stays on the short budget in **BRA212**. Do not copy the high ladder onto it.
 - **Did compaction hide a lookup?** An apology for answering without a lookup,
-  or the same tool called again, is not automatically a weak model or a bad
-  workflow. Compaction can drop tool calls and results. If the summary or the
-  dropped span removed a lookup the agent then redid or disowned, the learning
-  is the compaction workflow (or `auto-compaction`), not the agent.
-- **Did the output ladder anticipate the thinking?** A run that dies on
-  `max_tokens` is not "too much thinking" unless the workflow already gave a
-  high cap, retried, and the attempts were spent wandering. Often the workflow
-  never gave the job room to finish. A useful ladder starts lower and then
-  jumps — a few thousand, then the tens of thousands, sometimes repeating the
-  high cap — with the size of the jump set by how much thinking and reply the
-  job actually needs. Look at the caps in the telemetry and at `output-tokens`
-  on the workflow. Recommend a shape, not a single magic number.
+  or the same tool called again, is not automatically a weak model, a bad
+  workflow, or a bad tool result. Compaction can drop tool calls and results.
+  If the summary or the dropped span removed a lookup the agent then redid or
+  disowned, the learning is the compaction workflow (or `auto-compaction`),
+  not the agent and not the tool.
 
 Do not file a learning, and do not deduct for tool or skill misuse, until the
-relevant questions are answered from the telemetry and from any file the
-question required. If two causes are still plausible, keep both and say what
-you could not separate.
+relevant questions are answered from the telemetry and from any file or skill
+the question required. If two causes are still plausible, keep both and say
+what you could not separate.
 
 Even a clean run: read the telemetry system prompt and the first user message.
 File a learning only when they will break a later run. Do not file a
@@ -173,8 +213,10 @@ Assess tool use with concrete evidence (tool name + what was called), in light
 of Step 2:
 
 1. **Efficiency** — Was each call necessary, or redundant? A repeat is not
-   redundant when compaction had removed the earlier result. Flag genuine
-   redundancy: the same lookup again when the result was still in context.
+   redundant when compaction had removed the earlier result, and it is not an
+   agent fault when the earlier result was unusable. That learning belongs to
+   the tool. Do not describe it as "should have called once". Flag genuine
+   redundancy: the same lookup again when a usable result was still in context.
 2. **Appropriate data** — Did each result advance the task? Note errors, empty
    results, or blind retries.
 3. **Right tool** — Was the correct tool chosen from the tools the workflow
@@ -221,10 +263,12 @@ The single most important question: did the session achieve the user's /
 workflow's goal, and at what cost (turns, redundant work, token burn)?
 
 A run that Failed because the last output-token attempt was still `max_tokens`,
-or because the instructions could not be fulfilled, did not finish the job.
-Score the goal honestly. Name the configuration cause in the rationale. Do not
-describe that failure as the model thinking too much, or as the agent ignoring
-tools, unless Step 2 showed that.
+or because the job could not be done as given, did not finish the job. Score
+the goal honestly. Name the layer in the rationale. Do not describe that
+failure as the model thinking too much, or as the agent ignoring tools, unless
+Step 2 showed that. Unstored thinking, a guardrail, a missing capability, an
+unusable tool result, and a job that does not fit one turn are not agent
+tool-use or skill-use failures.
 
 | Band | Points | Criteria |
 | --- | --- | --- |
@@ -289,9 +333,10 @@ Admin UI traffic light (for awareness; do not change how you score): **Green**
 80–100 · **Orange** 50–79 · **Red** 0–49.
 
 Write a one-line rationale for the integer you chose (optionally note A/B/C
-sub-scores). Name the layer when the cause is the system prompt, the workflow
-instructions, a missing tool, compaction, or the output-token ladder. Persist
-the score only via `set_run_grading` in Step 7.
+sub-scores). Name the layer when there is one: system prompt, guardrail,
+missing tool, tool data, tool definition, a person outside the schema,
+dividing the job, thinking, output tokens, compaction, or the workflow's own
+steps. Persist the score only via `set_run_grading` in Step 7.
 
 ## Step 6: Record learnings as inbox entries
 
@@ -299,25 +344,34 @@ Identify discrete, actionable learnings from Steps 2–4. If the run was clean a
 there is nothing to improve, create **no** entries and say so — you still must
 call `set_run_grading` in Step 7.
 
-Each learning names one cause and the change that follows from it. Do not
-recommend a tool change when you concluded the system prompt is wrong, or a
-prompt change when the job needs the missing tool. When Step 2 left two causes
+Each learning names one layer and the evidence for it. It is one data point
+for triage, not a decision to edit the schema. Do not recommend a workflow
+rewrite to cover this trace. Do not recommend workflow text that explains a
+bad tool result or that says to call a tool only once. Do not recommend a
+tool change when the system prompt or a guardrail owns the problem, or a
+prompt change when the job needs a missing tool. When Step 2 left two causes
 open, file one entry that states both and what you could not separate. Do not
 collapse them into a single confident recommendation.
 
-Create **separate** `EVAL` entries when the causes are distinct (for example a
-wrong system prompt and, separately, an output-token ladder).
+Create **separate** `EVAL` entries when the layers are distinct (for example a
+wrong system prompt and, separately, unstored thinking).
 
 For each learning, call `create_inbox_entry` **exactly once** with:
 
-- `title` — short, specific one-line summary that names the layer
-  (system prompt, workflow, tool, compaction, or output tokens)
-- `body` — markdown covering: what was observed in the telemetry, which schema
-  files you read, why that layer is the cause, and the concrete change you
-  recommend (reference tool names, skill codes, the system-prompt code, and
-  the workflow code). When you recommend an output-token change, describe the
-  shape of the ladder (a lower first cap, then a jump, and whether to repeat
-  the high cap), not a single prescribed number.
+- `title` — short, specific one-line summary that names the layer: system
+  prompt, guardrail, missing tool, tool data, tool definition, person,
+  divide the job, thinking, output tokens, compaction, or workflow
+- `body` — markdown covering: what was observed in the telemetry, including
+  the thinking when it bears on the cause, which schema files and skills you
+  read, and why that layer owns it. State the kind of change that layer would
+  take if the pattern holds. Reference tool names, skill codes, the
+  system-prompt code, and the workflow code. When the layer is output tokens,
+  say whether the model is a frontier model (stay on the short **BRA212**
+  budget) or a cheaper model (`thinking: adaptive`, then `10000`, `25000`,
+  `50000`). Do not prescribe a single number. When the layer is the size of
+  the job, say what the parent keeps and what a child would do, and whether
+  the portions are independent. When the layer is a person, name the system
+  the schema cannot change.
 - `routing_type` — always **`EVAL`**
 - `status` — always **`PENDING`**
 - `source` — `WF-EVAL-RUN`

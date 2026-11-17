@@ -1,10 +1,10 @@
 ---
 name: Brain Schema
 code: BRA201
-version: 60
+version: 61
 description: Overview of the brain-schema format — mental model, directory
   layout, deploy, versioning, and which skill to load for each file type. Do
-  not load this for field-level authoring; use BRA213–BRA221, BRA209, or
+  not load this for field-level authoring; use BRA213–BRA225, BRA209, or
   BRA202 instead.
 ---
 
@@ -35,6 +35,7 @@ instead of treating this page as the field reference.
 | Template tags (`{{…}}`) | **BRA204** |
 | Schema system tools (`create_skill`, `create_schema_file`, …) | **BRA203** |
 | Learning-eval workflows | **BRA207** |
+| Deciding what to change after a bad run | **BRA222** (tool use **BRA223**, prompts and guardrails **BRA224**, budgets and sub-workflows **BRA225**) |
 
 ---
 

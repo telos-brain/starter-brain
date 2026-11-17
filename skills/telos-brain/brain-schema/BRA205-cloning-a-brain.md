@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 10
+version: 11
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -189,6 +189,56 @@ usual (see BRA201 versioning rules).
 When the **source template** later gains newer configuration and you want to
 pull those improvements into the clone without overwriting destination resources
 that have moved ahead, use update-from-template — see **BRA206**.
+
+---
+
+## Creating a brain from a template
+
+Template brains (labelled by a Super Admin) can be cloned into the caller's
+organisation through the same clone implementation. Both routes need the
+**Admin** role and accept a Clerk session or an organisation API key.
+
+| Route | Purpose |
+|---|---|
+| `GET /brains/templates` | Lists live templates: `id`, `name`, `instanceName`, `organisationName`. No secrets or configuration. |
+| `POST /brains/from-template` | Creates a brain from a template. |
+
+Request body for `POST /brains/from-template`. Send **one** of
+`templateBrainId` or `templateCode`:
+
+```json
+{
+  "templateBrainId": "<template-brain-guid>",
+  "templateCode": "<template instanceName>",
+  "name": "Display name",
+  "instanceName": "new-instance"
+}
+```
+
+`templateCode` is the template's `instanceName` from the catalogue. Instance
+names are unique per organisation, not globally, so a code shared by more than
+one template returns `409`; use `templateBrainId` then.
+
+| Status | Meaning |
+|---|---|
+| `201` | `{ "id": "<new-brain-guid>", "apiKey": "" }`. No key is returned. |
+| `400` | Missing fields, both identifiers sent, or invalid instance name |
+| `404` | No live template with that id or code |
+| `409` | Instance name already used in your organisation, or ambiguous template code |
+
+Every brain created from a template gets two brain environment variables,
+encrypted like any other (see **BRA202**), so its workflows can call the
+brain's own Execution API straight away:
+
+- `BRAIN_API_URL` — the platform's public API base URL (server setting
+  `ManagementApi:BaseUrl`). Skipped if that setting is not configured.
+- `BRAIN_API_KEY` — a new Execution API key issued for the new brain. It
+  appears in the brain's API key list like any other key and expires on the
+  normal schedule.
+
+Values copied from the template for these two names are always replaced: a
+template's own URL or key is never reused. Plain create (`POST /brains`) and
+intra-org clone do not add them.
 
 ---
 

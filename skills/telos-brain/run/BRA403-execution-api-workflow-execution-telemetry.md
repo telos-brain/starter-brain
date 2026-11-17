@@ -8,10 +8,8 @@ description: How to list a brain's workflows (with pending inbox-task counts),
   and pre-called input-tools (BRA409), hold a multi-turn chat session against
   a single run, stop an in-flight turn without closing the session
   (POST /runs/{id}/stop), and retrieve run telemetry and unit-of-work telemetry
-  via the Execution API — including model, thinking mode, temperature, sampling
-  parameters, the rendered system prompt (`gen_ai.system_instructions`), the
-  rendered workflow instructions (the first user message), and
-  turn totals on run
+  via the Execution API — including model, thinking mode, captured thinking
+  text, temperature, sampling parameters and turn totals on run
   telemetry. Documents when a run settles Failed (max-turns exhausted, final
   max_tokens with no retries). Also notes when a Completed, Failed, or
   AwaitingInput run becomes eligible for learning evals (BRA207). A tool that
@@ -100,7 +98,9 @@ and async endpoints accept the same optional `variables` object.
 1. The map is persisted on the run before execution starts.
 2. Template tags `{{input.<key>}}` resolve to those values in workflow
    Instructions, system prompts, tool response markdown, and `input-tools`
-   parameter mappings (see **BRA217** / **BRA409**).
+   parameter mappings (see **BRA217** / **BRA409**). The rendered system
+   prompt is stored on the run's first turn. Later turns of that run, and a
+   sync resume that copies the row, send the stored text.
 3. Nested `run_workflow` / workflow-tool child runs inherit the parent's
    variables automatically.
 4. Missing keys render blank (never an error). Omitting `variables` leaves
@@ -321,7 +321,7 @@ Content-Type: application/json
 }
 ```
 
-`resumeMethod` defaults to `exclude_tools` when `resumeRunId` is set and the method is omitted. Omit `resumeRunId` — or send it empty — and the call starts a fresh run with no copied history, even if `resumeMethod` is present. That is the request existing clients already send. The new run uses the **requested** workflow: system prompt and instructions come from that workflow, not from the previous run. Those instructions are stored before the copied messages. The new input follows the copied history. Entity, unit of work, inbox entry, variables, and `caller_jwt` come from this request only. `ParentWorkflowRunId` is not set.
+`resumeMethod` defaults to `exclude_tools` when `resumeRunId` is set and the method is omitted. Omit `resumeRunId` — or send it empty — and the call starts a fresh run with no copied history, even if `resumeMethod` is present. That is the request existing clients already send. The new run uses the **requested** workflow's instructions. Its system prompt is the rendered text stored on the source run when that run has one; otherwise `system-prompt-code` on the requested workflow is rendered and stored. Those instructions are stored before the copied messages. The new input follows the copied history. Entity, unit of work, inbox entry, variables, and `caller_jwt` come from this request only. `ParentWorkflowRunId` is not set.
 
 | Source status | Result |
 |---|---|
@@ -338,7 +338,9 @@ Content-Type: application/json
 | `all_messages` | Active `user`, `assistant`, `tool`, and `compaction` rows, including tool name and tool-call id. Later turns keep replaying those tool calls and results until compaction removes that span. |
 | `summary` | The brain's `COMPACTION` workflow summarises the whole previous transcript. The summary is stored as a `compaction` message on the **new** run. The previous run is not modified (`CompactedAtUtc` is not set). If there is no COMPACTION workflow, or summarisation fails after one retry, the call returns `400` `{ "error": "resume_summary_failed", "message": "The previous session could not be summarised." }` and no chat run is created. Compaction cost sits on the nested COMPACTION run. |
 
-Rows already superseded by compaction are not copied. The previous run's system prompt and workflow instructions are not copied.
+Every method also copies the source run's stored system prompt when it has one. The summary still replaces the transcript; the system prompt row is copied as well.
+
+Rows already superseded by compaction are not copied. The previous run's workflow instructions are not copied. The previous run's system prompt is copied when it was stored. A source run with no stored system prompt renders the requested workflow's `system-prompt-code` and stores that result.
 
 Client flow: while the session is `AwaitingInput`, keep calling `POST /runs/{runId}/messages`. When that returns `run_not_continuable`, drop the old run id as the session handle and `POST /workflows/{code}/run/sync` with `resumeRunId` set to it. A `Failed` source is resumed the same way as a `Completed` one. An open session is not resumed; continue it instead.
 
@@ -417,6 +419,9 @@ Response `200 OK`:
   "resource": {
     "gen_ai.system": "telos-brain",
     "gen_ai.request.model": "anthropic/claude-sonnet-4-6",
+    "gen_ai.system_instructions": [
+      { "type": "text", "content": "You are the sales assistant for Acme." }
+    ],
     "telos.thinking.mode": "effort",
     "gen_ai.request.temperature": 0.2,
     "gen_ai.request.top_p": 0.9,
@@ -427,10 +432,7 @@ Response `200 OK`:
     "telos.workflow.code": "WF-SALES",
     "telos.workflow.path": "workflows/sales-chat.md",
     "telos.entity.name": "Acme",
-    "telos.unit_of_work.name": "Onboard",
-    "gen_ai.system_instructions": [
-      { "type": "text", "content": "You are the sales assistant. Use only the tools this workflow provides." }
-    ]
+    "telos.unit_of_work.name": "Onboard"
   },
   "totals": {
     "gen_ai.usage.input_tokens": 1820,
@@ -449,6 +451,7 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 | Attribute | Notes |
 |---|---|
 | `gen_ai.request.model` | Fully-qualified model the run executed against (`provider/model`) |
+| `gen_ai.system_instructions` | Rendered system prompt stored on the run, and only when that text was sent as the provider system message. A JSON array of parts, `[{ "type": "text", "content": "<rendered text>" }]`. Omitted when the run has no system row. A workflow with no `system-prompt-code` sends no system message on any provider, including a local runner; its instructions stay the first user message. Not also emitted as a span. The row is a `WorkflowMessage` and is deleted with the other messages once the run's retention date has passed. |
 | `gen_ai.embeddings.count` | Embeddings generated in the run (always present on `totals`). OTEL standardises `gen_ai.embeddings.dimension.count` (vector size) only; this is the count of embeddings produced. |
 | `cacheRatePercent` | Whole percent: cache reads / (uncached input + cache reads + cache writes). Null when all three are zero. |
 | `gen_ai.request.temperature` | Workflow sampling temperature. Omitted when the workflow does not set one, so the provider default is not reported as `0` or `null`. `0` is included when the workflow set it. Read from the current workflow, the same way as thinking mode. |
@@ -464,14 +467,14 @@ Resource / totals extensions (Telos-specific, alongside GenAI semantic conventio
 | `telos.unit_of_work.name` | Unit-of-work title the run executed against (nullable) |
 | `telos.turns.used` | Completed assistant loop steps (excludes retries / `max_tokens` attempts) |
 | `telos.turns.max` | Effective max-turns cap for the run (workflow value or engine default 10) |
-| `gen_ai.system_instructions` | The system prompt stored for this run, already rendered. A list of parts, each `{ "type": "text", "content": "..." }`. Omitted when the run has no system row. Not also emitted as a span. A later edit to the system-prompt workflow does not change this value. |
 
 Span attributes:
 
 | Attribute | Notes |
 |---|---|
-| `gen_ai.message.role` | `user` \| `assistant` \| `tool` \| `compaction` \| `callback` |
-| `gen_ai.message.content` | Message content. The first `user` span is the workflow Instructions for this run, already rendered. Later user spans are the triggering input. Do not re-read the workflow file to recover the instructions. A later edit to the workflow does not change this span. |
+| `gen_ai.message.role` | `user` \| `assistant` \| `tool` \| `compaction` \| `callback`. A stored system prompt is not a span; it is `gen_ai.system_instructions` on the run resource. |
+| `gen_ai.message.content` | Message content. The reply, not the thinking. |
+| `telos.message.thinking` | The model's thinking text for this turn, when it was captured. Omitted when the turn stored none. `thinking: none` does not capture text, even if the model thought. This endpoint includes the full text. An eval does not read this document: `{{run.telemetry}}` is the run export, and the same text is on each message as `thinking` (**BRA204**). |
 | `gen_ai.usage.input_tokens` / `output_tokens` | Per-turn token counts |
 | `gen_ai.usage.cache_read_input_tokens` / `cache_creation_input_tokens` | Present only when the provider reports prompt-cache usage |
 | `gen_ai.tool.name` / `gen_ai.tool.call.id` | Present only on tool-call and tool-result turns |

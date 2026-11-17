@@ -114,7 +114,7 @@ needs a continuous axis.
 | `date` | string | Brain-local calendar day, `yyyy-MM-dd`. |
 | `llmCostCents` | number or **null** | Sum of stored `CostCents` (US cents). **Null means no pricing data**, not free. A real zero-cost bucket is `0`. Null is present in the JSON; do not treat a missing field as null. |
 | `brainCostCents` | number | `(sum of RunSeconds / 60) ×` the brain's **current** `CentsPerMinute`. Derived at read time. Not a credit-ledger debit. |
-| `totalTokens` | number | Sum of `TotalInputTokens + TotalOutputTokens` on the run. Not re-summed from messages. |
+| `totalTokens` | number | Sum of uncached input + output + cache reads + cache writes on the run (`TotalInputTokens + TotalOutputTokens + TotalCacheReadTokens + TotalCacheWriteTokens`). Not re-summed from messages. |
 | `totalMinutes` | number | `sum of RunSeconds / 60`. Fractional. `RunSeconds` is active Hangfire thread time, not wall-clock, so a sync run can have LLM cost and `0` minutes. |
 | `embeddingCount` | number | Sum of run-level `EmbeddingCount`. Do not re-sum messages. |
 

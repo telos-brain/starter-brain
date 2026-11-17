@@ -1,7 +1,7 @@
 name: Telos Brain
 code: BRA
 prefix: BRA
-version: 63
+version: 64
 categories:
   - name: Concepts
     description: "The foundational theory of Telos Brain: what it is, how it works,
@@ -35,7 +35,10 @@ categories:
       budgets and spend limits), connectors to external services, cloning
       brain instances, updating a brain from a template, learning-eval
       workflows, skillbook category design and skill ranges, auto-building a
-      schema from an existing application, and schema design best practices.
+      schema from an existing application, schema design best practices, and
+      deciding what to change after a bad run (the learning is a data point;
+      fix the tool result, the tool definition, the prompt, the budget, or
+      raise a task for a person).
     index: 200
     skills:
       - ./brain-schema/BRA201-brain-schema.md
@@ -59,6 +62,10 @@ categories:
       - ./brain-schema/BRA219-playbooks.md
       - ./brain-schema/BRA220-playbook-to-schema.md
       - ./brain-schema/BRA221-designing-a-playbook.md
+      - ./brain-schema/BRA222-improving-a-brain-from-a-learning.md
+      - ./brain-schema/BRA223-fixing-tool-use.md
+      - ./brain-schema/BRA224-system-prompts-tools-and-guardrails.md
+      - ./brain-schema/BRA225-budgets-thinking-and-dividing-work.md
   - name: Management API
     description: Using the Telos Brain Management API — the deploy and admin
       plane consumed by the CLI, admin console, and agent-initiated onboarding.
