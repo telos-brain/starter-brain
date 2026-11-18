@@ -79,14 +79,14 @@ Copy `.env.example` to `.env` (or create `.env` if signup already wrote the org 
 
 ### Telos Cloud — org API key only
 
-`brain-compose.yml` sets `llm-model: telosbrain/xai/grok-4.6`. On Telos Cloud that model uses the platform Grok key, so **no LLM provider key is required** to deploy or run.
+`brain-compose.yml` sets `llm-model: telosbrain/anthropic/claude-haiku-5-5`. On Telos Cloud that model uses the platform Anthropic key, so **no LLM provider key is required** to deploy or run.
 
 ```
 TELOS_BRAIN_ORG_API_KEY=tbk_...
 TELOS_BRAIN_API_URL=https://go.telosbrain.com
 ```
 
-**LLM credits.** Telos Brain LLM (`telosbrain/…`) is billed to organisation brain credit at **double** the official xAI grok-4.6 API rate. We recommend adding your own LLM API key and changing `llm-model` in `brain-compose.yml` to that provider (for example `xai/grok-4.6` + `XAI_API_KEY`, or `anthropic/claude-sonnet-4-6` + `ANTHROPIC_API_KEY`) so you pay list price to the vendor. Compose `llm-model` wins over `DEFAULT_LLM_MODEL` at deploy — changing only the env var is not enough.
+**LLM credits.** Telos Brain LLM (`telosbrain/…`) is billed to organisation brain credit at **double** the official Claude Haiku 5.5 list rate. Prompts over 100,000 tokens use the higher band. We recommend adding your own LLM API key and changing `llm-model` in `brain-compose.yml` to that provider (for example `anthropic/claude-haiku-5-5` + `ANTHROPIC_API_KEY`, or `xai/grok-4.6` + `XAI_API_KEY`) so you pay list price to the vendor. Compose `llm-model` wins over `DEFAULT_LLM_MODEL` at deploy — changing only the env var is not enough.
 
 Optional:
 
@@ -108,7 +108,7 @@ Do not delete `brain.lock` after first deploy — subsequent deploys read the br
 
 ### Local Docker — LLM keys required
 
-`telosbrain/xai/grok-4.6` is **unavailable** on a local stack (no platform Grok key). You must supply an LLM and change the default model before workflows will run.
+`telosbrain/anthropic/claude-haiku-5-5` is **unavailable** on a local stack (no platform Anthropic key). You must supply an LLM and change the default model before workflows will run.
 
 ```bash
 brain start
@@ -116,7 +116,7 @@ brain start
 
 Then in `.env.local` (created by `brain start`) set a provider key **and** change `llm-model` in `brain-compose.yml` to match, for example:
 
-- `ANTHROPIC_API_KEY` and `llm-model: anthropic/claude-sonnet-4-6`
+- `ANTHROPIC_API_KEY` and `llm-model: anthropic/claude-haiku-5-5`
 - `XAI_API_KEY` and `llm-model: xai/grok-4.6`
 - `LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1` and `llm-model: local_1/qwen3:8b`
 

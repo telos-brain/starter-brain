@@ -1,7 +1,7 @@
 ---
 name: Workflows
 code: BRA217
-version: 15
+version: 17
 description: How to author workflow markdown — frontmatter, types, triggers,
   tools / available-tools, input-tools, LLM execution settings, session
   timeout, external agent deployment, the MCP server URL for a type MCP
@@ -37,7 +37,7 @@ type: RUNNABLE                         # optional; one of TOOL | RUNNABLE | TRIG
 # trigger:
 #   - inbox:SKILL_UPDATE
 #   - inbox:WORKFLOW_UPDATE:medium
-# model: anthropic/claude-sonnet-4-6   # optional; provider/model (see BRA210)
+# model: anthropic/claude-sonnet-5-5   # optional; provider/model (see BRA210)
 # failover-workflow: WF-BACKUP         # optional; other workflow code in this brain (BRA455)
 # model: openai/gpt-4o                 # OpenAI
 # model: telosbrain/xai/grok-4.6       # Telos-hosted Grok (brain credit, 2× xAI list)
@@ -297,7 +297,7 @@ Omit the key when unused. Extract never writes `null`.
 
 ## 3. LLM execution settings (optional)
 
-A workflow may declare fine-grained control over how the conversant runs it.
+A workflow may declare fine-grained control over how the model call runs.
 All fields below are **optional** and **kebab-case**; omit any of them to keep
 its default. Omitted `thinking` does not send a reasoning field, so Grok keeps
 its API default of `high`.
@@ -321,7 +321,7 @@ reached.
 name: Chat
 code: WF-CHAT
 type: RUNNABLE
-model: anthropic/claude-sonnet-4-6
+model: anthropic/claude-sonnet-5-5
 
 auto-compaction: 100000        # off (default) | input-token trigger (Claude server-side; OpenAI/xAI client-side via COMPACTION workflow)
 output-tokens: 2048, 4096, 16384  # 4096 (default) | ordered per-attempt output caps (Claude max_tokens); each value is the next retry when a turn stops at the cap
@@ -408,7 +408,7 @@ Notes:
 - `max-recursion-depth` caps how deep workflows may nest via `run_workflow` or
   workflow-typed tools. Depth starts at `1` for a top-level run and increments by
   `1` for each nested invocation. An invocation that would exceed the cap is
-  refused before a `WorkflowRun` is created.
+  refused before a child run is created.
 - `max-runs-per-hour` caps how many times this workflow may execute in a rolling
   one-hour window. High-frequency system workflows (for example `WF-EVAL`) should
   set an elevated value so they are not throttled under load. Omit the field to

@@ -14,7 +14,9 @@ description: >-
 system-prompt-code: WF-SYSTEM-PROMPT
 trigger: workflowrun:complete
 trigger-mode: manual
-output-tokens: 8192, 20000, 20000
+output-tokens: 5000, 10000, 20000
+thinking: adaptive
+thinking-effort: high
 caching: automatic
 max-turns: 25
 max-runs-per-hour: 500

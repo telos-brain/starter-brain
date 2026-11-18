@@ -1,7 +1,7 @@
 ---
 name: Activate Tools System Tool
 code: BRA415
-version: 2
+version: 3
 description: The activate_tools system tool. After find_available_tools returns
   names, pass the ones you intend to call. They are promoted for the rest of
   the run, and onto the MCP server tool list for the rest of the session when
@@ -27,7 +27,7 @@ via `get_skill`. Workflows that inject `find_available_tools` should inject
 `activate_tools` beside it. If it lived only in `available-tools`, the model
 could not call it until something else had already promoted it.
 
-**Scope:** always the current run (`WorkflowRunId` harness-injected). Never
+**Scope:** always the current run. The platform supplies the run. Never
 pass a brain id or a workflow id.
 
 ---

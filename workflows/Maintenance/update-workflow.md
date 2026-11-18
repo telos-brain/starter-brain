@@ -19,10 +19,11 @@ trigger:
 
 system-prompt-code: WF-BRAIN-SYSTEM
 
-output-tokens: 4096, 8192, 16384
+output-tokens: 5000, 10000, 20000
 caching: automatic
 max-turns: 40
 thinking: adaptive
+thinking-effort: high
 auto-compaction: 100000
 max-runs-per-hour: 200
 

@@ -1,7 +1,7 @@
 ---
 name: Local Development
 code: BRA106
-version: 16
+version: 17
 description: How to run Telos Brain locally with the CLI and Docker — start,
   stop, deploy, credentials, pointing connectors at a host app via
   host.docker.internal, and running workflows or embeddings against a local
@@ -340,11 +340,11 @@ LOCAL_LLM_1_BASE_URL=http://host.docker.internal:11434/v1
 
 Set these on the server process. `brain deploy` does not apply them. Restart the server after a change. A cap outside 1 to 32, or a wait outside 0 to 300 seconds, is ignored and the default is used. A wait of 0 means an interactive call does not wait. The same wait is how long an interactive call waits for the first response byte. A cold prompt of about 100,000 tokens returned no byte within 15 seconds on EdgeXpert. Set `LOCAL_LLM_PRIORITY_SLOT_WAIT_SECONDS=120` on a server that runs prompts of that size. Eval and inbox runs already wait up to 2 minutes for the first byte.
 
-| Setting | Environment variable | Default |
-| --- | --- | --- |
-| `LocalLlm:MaxInFlight` | `LocalLlm__MaxInFlight` | 4 |
-| `LocalLlm:PrioritySlotWaitSeconds` | `LocalLlm__PrioritySlotWaitSeconds` | 15 |
-| `LocalLlm:DefaultAutoCompactionTokens` | `LocalLlm__DefaultAutoCompactionTokens` | off |
+| Setting you export before `brain start` | Default |
+| --- | --- |
+| `LOCAL_LLM_MAX_IN_FLIGHT` | 4 |
+| `LOCAL_LLM_PRIORITY_SLOT_WAIT_SECONDS` | 15 |
+| `LOCAL_LLM_DEFAULT_AUTO_COMPACTION_TOKENS` | off |
 
 On a local Docker stack, export these before `brain start`, or put them in `.brain/.env`. The generated compose file passes them through. Unset values keep the defaults.
 
@@ -362,9 +362,9 @@ brain start
 
 `brain start` rewrites the compose file, so a later start picks up a new export. Eval and inbox runs that find the runner full are parked and retried on a 5, 10, 15, then 30 minute schedule. They do not use this wait. `POST /runs/{id}/stop` takes a parked retry (one that has already waited) off that schedule. A heartbeat, or a run that has not started, stays Scheduled and stop returns 409.
 
-Local auto-compaction stays off until something sets a prompt-token threshold. A workflow `auto-compaction` value wins. Otherwise the brain env `LOCAL_LLM_N_AUTO_COMPACTION` (same N as the runner) wins. Otherwise the server value `LocalLlm__DefaultAutoCompactionTokens` wins. Blank, zero, and non-integers are ignored. Cloud models and an OpenRouter failover hop ignore all three. `48000` is the figure to try on a box; it is not applied when the settings are unset. A live local parent compacts on that same runner, and the summary keeps the last 4 turns verbatim. OpenAI and xAI keep the last 2. Injected skills and workflow instructions stay outside the compacted span. `{{now.*}}` is a template variable rendered where it is written. The runtime does not append the current time to model messages.
+Local auto-compaction stays off until something sets a prompt-token threshold. A workflow `auto-compaction` value wins. Otherwise the brain env `LOCAL_LLM_N_AUTO_COMPACTION` (same N as the runner) wins. Otherwise the value `LOCAL_LLM_DEFAULT_AUTO_COMPACTION_TOKENS` wins. Blank, zero, and non-integers are ignored. Cloud models and an OpenRouter failover hop ignore all three. `48000` is the figure to try on a box; it is not applied when the settings are unset. A live local parent compacts on that same runner, and the summary keeps the last 4 turns verbatim. OpenAI and xAI keep the last 2. Injected skills and workflow instructions stay outside the compacted span. `{{now.*}}` is a template variable rendered where it is written. The runtime does not append the current time to model messages.
 
-A trailing `/v1` is accepted and stripped. The conversant calls
+A trailing `/v1` is accepted and stripped. Requests go to
 `{base}/v1/chat/completions`.
 
 Do **not** use `http://localhost:11434` while Brain is in Docker — that is the
@@ -431,13 +431,13 @@ configured", either no default/`model:` is set, or the workflow is still on
 `anthropic/…` (or another cloud prefix) and that key is missing. Setting
 `LOCAL_LLM_1_BASE_URL` alone does not change existing workflow models.
 
-`CostCents` is null for local-runner runs (no Telos Brain price row). The UI
+LLM cost is unset for local-runner runs (no Telos Brain price row). The UI
 shows `—`. Full provider contract: **BRA210**.
 
-`telosbrain/xai/grok-4.6` is **unavailable** on the local stack (no
-platform `Grok:ApiKey`). Use `xai/grok-4.6` with `XAI_API_KEY`, or a
-`local_N/…` runner. On Telos Cloud that aggregator bills brain credit at
-2× the official xAI grok-4.6 API rate (**BRA212**).
+`telosbrain/…` is **unavailable** on the local stack. Use your own provider
+key (`xai/grok-4.6` with `XAI_API_KEY`, or `anthropic/claude-haiku-5-5` with
+`ANTHROPIC_API_KEY`), or a `local_N/…` runner. On Telos Cloud that model
+bills brain credit at 2× the official list rate (**BRA212**).
 
 ---
 
@@ -450,7 +450,7 @@ platform `Grok:ApiKey`). Use `xai/grok-4.6` with `XAI_API_KEY`, or a
 | Admin UI | `http://127.0.0.1:60061` (or `--port`). |
 | Health | `http://127.0.0.1:60061/api/health` |
 | SQL | `127.0.0.1:1433` by default (`sql_port` in `brain.config.toml`). Change it if that port is already taken. |
-| MCP | `Mcp__AllowAnyHost=true` on the local stack so host checks are relaxed. |
+| MCP | Host checks are relaxed, so MCP is available on the local stack. |
 | Image | `supporttelosready/telos-brain:latest`. Recreate after changing image: `brain stop --project-id <id> --reset`, then `brain start`. |
 
 `brain.config.toml` (created by `brain start`):
@@ -498,7 +498,7 @@ brain start --image telos-brain:local
   runner whose env var is missing. Set `model: local_1/…` (or a brain default)
   and `LOCAL_LLM_1_BASE_URL`, then redeploy. A failed inbox task cannot be
   retried; create a new task or entry.
-- **Local LLM: "no free slot"** — the server cap (`LocalLlm__MaxInFlight`, default 4) is full. Lower it to match the machine (1 for a single Ollama model) or raise it on a larger GPU, then restart. See §8. Interactive calls give up after `LocalLlm__PrioritySlotWaitSeconds` (default 15). Eval and inbox runs park and retry instead. Embedding calls do not take a slot, so a chat that already holds one can still embed. A deploy can still pile embedding requests onto the same Ollama.
+- **Local LLM: "no free slot"** — the in-flight cap (`LOCAL_LLM_MAX_IN_FLIGHT`, default 4) is full. Lower it to match the machine (1 for a single Ollama model) or raise it on a larger GPU, then restart. See §8. Interactive calls give up after `LOCAL_LLM_PRIORITY_SLOT_WAIT_SECONDS` (default 15). Eval and inbox runs park and retry instead. Embedding calls do not take a slot, so a chat that already holds one can still embed. A deploy can still pile embedding requests onto the same Ollama.
 - **A run stays Scheduled and stop appears to do nothing** — a parked local retry waits out 5, 10, 15, or 30 minutes even when the runner is idle. `POST /runs/{id}/stop` moves that parked retry to AwaitingInput and clears the schedule. A heartbeat, or a run that has not started, stays Scheduled and stop returns 409. A build from before the parked-retry fix returned success and left every Scheduled row unchanged, so the minutely sweep started it again.
 - **Local LLM connection refused** — `LOCAL_LLM_1_BASE_URL` used `localhost`
   from Brain-in-Docker, or the runner is not listening. Use

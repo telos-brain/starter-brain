@@ -1,7 +1,7 @@
 ---
 name: Environment Variables, Secrets & API Keys
 code: BRA202
-version: 34
+version: 36
 description: "How a brain's .env variables are uploaded, encrypted and stored; the
   well-known \"system\" keys the platform recognises (LLM provider keys, local
   runner URLs, the brain API key); how to inject a stored secret into an api
@@ -101,16 +101,16 @@ convention** and used automatically:
 The model resolver maps a workflow's `model` prefix onto a **standard** variable
 name of the form `<PROVIDER>_API_KEY` (upper-case). So:
 
-- `anthropic/claude-sonnet-4-5` → looks up **`ANTHROPIC_API_KEY`**
+- `anthropic/claude-sonnet-5-5` → looks up **`ANTHROPIC_API_KEY`**
 - `openai/gpt-…` → looks up **`OPENAI_API_KEY`**
 - `xai/grok-4.5` → looks up **`XAI_API_KEY`**
-- `telosbrain/xai/grok-4.6` → **no brain variable**. Uses the platform
-  `Grok:ApiKey`. Billed to organisation brain credit at 2× the official
-  xAI grok-4.6 API rate (**BRA210**, **BRA212**). Unavailable locally —
-  use `xai/grok-4.6` with `XAI_API_KEY` instead.
-- `openrouter/anthropic/claude-sonnet-4.6` → looks up **`OPENROUTER_API_KEY`**
-  (wire model is `anthropic/claude-sonnet-4.6`)
-- `openrouter/auto` → looks up **`OPENROUTER_API_KEY`** (wire model is
+- `telosbrain/…` → **no brain variable**. Telos holds the provider key.
+  Billed to organisation brain credit at 2× the official list rate
+  (**BRA210**, **BRA212**). Unavailable locally — use `xai/grok-4.6` with
+  `XAI_API_KEY`, or `anthropic/claude-haiku-5-5` with `ANTHROPIC_API_KEY`.
+- `openrouter/anthropic/claude-sonnet-5.5` → looks up **`OPENROUTER_API_KEY`**
+  (model id `anthropic/claude-sonnet-5.5`)
+- `openrouter/auto` → looks up **`OPENROUTER_API_KEY`** (model id
   `openrouter/auto` — Auto Router). A bare `openrouter` is **not** this; it is
   treated as an Anthropic model name.
 - `azure/gpt-4o-prod` → looks up **`AZURE_OPENAI_API_KEY`** and

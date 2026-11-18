@@ -1,7 +1,7 @@
 ---
 name: Brain Compose Manifest
 code: BRA213
-version: 5
+version: 6
 description: How to author brain-compose.yml — name, models, entities, units of
   work, variables, checkpoint strategy, and the outbound callback-domain
   allowlist. Load this when creating or editing the compose file.
@@ -28,7 +28,7 @@ name: kappa                      # REQUIRED: the brain's name
 # learning-mode: off             # optional; off | low | medium | high (omit = off)
 # llm-model: telosbrain/xai/grok-4.6  # optional; Telos-hosted Grok (2× xAI list on brain credit)
 # llm-model: local_1/Qwen/Qwen3.6-35B-A3B, openrouter/qwen/qwen3.6-35b-a3b  # optional; used only when the workflow omits model:
-# transcription-model: anthropic/claude-sonnet-4-6  # optional; vision model for image transcription (BRA410)
+# transcription-model: anthropic/claude-sonnet-5-5  # optional; vision model for image transcription (BRA410)
 # checkpoint-strategy: Daily     # optional; see checkpoint strategy below (omit = Daily)
 # allowed-callback-domains:      # optional; shared outbound host allowlist (see below)
 #   - harness.example.com

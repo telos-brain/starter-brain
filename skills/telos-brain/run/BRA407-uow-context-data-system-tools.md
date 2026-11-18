@@ -1,7 +1,7 @@
 ---
 name: Unit of Work Context and Data System Tools
 code: BRA407
-version: 3
+version: 4
 description: The in-brain system tools for recording and reading Unit of Work
   telemetry — add_uow_context, add_uow_data, update_uow_data, list_uow_context,
   list_uow_data, get_uow_context and get_uow_data. All identity is by 8-character
@@ -133,7 +133,7 @@ Errors are plain English, e.g. `str_replace_old matched 0 times — no replaceme
 - **References only.** Agents must copy `Reference` values from list/get /
   create output — never invent Guids.
 - Prefer these system tools over outbound HTTP to `POST /units-of-work/{id}/…`
-  when already inside a ConversantFactory run.
+  when the workflow is already running.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: Cloning a Brain
 code: BRA205
-version: 11
+version: 12
 description: How to deep-clone a brain instance via the Management API —
   POST /brains/{instance}/clone — including what is copied, what is excluded,
   environment-variable overrides, and the one-time API key response.
@@ -230,8 +230,8 @@ Every brain created from a template gets two brain environment variables,
 encrypted like any other (see **BRA202**), so its workflows can call the
 brain's own Execution API straight away:
 
-- `BRAIN_API_URL` — the platform's public API base URL (server setting
-  `ManagementApi:BaseUrl`). Skipped if that setting is not configured.
+- `BRAIN_API_URL` — the platform's public API base URL. Skipped when that
+  URL is not configured.
 - `BRAIN_API_KEY` — a new Execution API key issued for the new brain. It
   appears in the brain's API key list like any other key and expires on the
   normal schedule.

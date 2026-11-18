@@ -1,7 +1,7 @@
 ---
 name: Managing LLM Costs
 code: BRA212
-version: 9
+version: 11
 description: How to keep LLM spend down in a Telos Brain — aim for 80% cache
   reads (or turn on automatic caching), convert JSON tool data to markdown or
   CSV, treat tool definitions as mini-skills to cut retries, compact older
@@ -25,11 +25,11 @@ uncached, JSON-heavy, retry-prone tools still burns money.
 Measure after you change something. For a daily chart of one Brain (LLM cost,
 brain-minute cost, tokens, minutes, embeddings), call the Management API cost
 series (**BRA302**). Run telemetry (**BRA403**) reports
-`gen_ai.usage.input_tokens`, `output_tokens`, `cache_read_input_tokens`,
-`cache_creation_input_tokens`, `telos.turns.used` / `telos.turns.max`, and
-`CostCents`. For OpenRouter, `CostCents` is the sum of billed `usage.cost`
-when every token-bearing message has one; otherwise it uses `LlmPrices` and
-is null when the organisation has no row for that model. Spend limits only
+input tokens, output tokens, cache-read tokens, cache-write tokens, turns
+used and the turn cap, and the run's LLM cost (`costUsd` on an exported
+run). For OpenRouter, that cost is the sum of billed `usage.cost`
+when every token-bearing message has one; otherwise it uses the organisation
+price list and is unset when that list has no row for the model. Spend limits only
 accumulate when prices exist (or billed cost was persisted).
 
 ---
@@ -66,11 +66,10 @@ Applied on Anthropic and xAI; OpenAI ignores it (**BRA210** §6).
 
 - **Claude:** top-level `cache_control` — the API places the breakpoint.
   `caching: automatic` is required; omitted keeps the older per-block markers.
-- **xAI / Grok:** the API caches by itself. Chat Completions uses
-  `x-grok-conv-id` (the `prompt_cache_key`) keyed by `WorkflowRunId`, sent on
-  every call unless `caching: none`. Without that header a follow-up often
-  lands on a cache-cold server and pays full input price. Later turns append
-  to the previous messages and send `reasoning_content` back. See
+- **xAI / Grok:** the API caches by itself. Later turns of the same run stay
+  tied to that run unless `caching: none`. Without that tie a follow-up
+  often pays full input price. Later turns append to the previous messages
+  and send the previous reasoning back. See
   [What Breaks Caching](https://docs.x.ai/developers/advanced-api-usage/prompt-caching/multi-turn).
 
 ### How to actually hit 80%
@@ -89,7 +88,7 @@ The cache prefix must be **byte-stable** across turns of the same run:
   same run — **BRA403**). A new run starts a new cache.
 - Do not set `caching: none` on chat or agentic loops.
 - Put volatility last: the latest user message and fresh tool results. The
-  conversant already orders messages for cache; do not fight that by
+  platform already orders messages for cache; do not fight that by
   injecting changing text into the system prompt.
 
 If cache-read share stays low after `caching: automatic`, the prefix is
@@ -260,7 +259,7 @@ one-shot summariser:
 name: Compact Context
 code: WF-COMPACT
 type: COMPACTION
-model: anthropic/claude-haiku-4-5   # or xai/grok-4.3 — keep this cheap
+model: anthropic/claude-haiku-5-5   # or xai/grok-4.3 — keep this cheap
 output-tokens: 4096
 max-turns: 1
 caching: none
@@ -281,7 +280,7 @@ have nothing to call.
 ## 5. Use a cheaper model (Grok is a great choice for cheaper without compromising quality)
 
 Workflows choose a model with `model: provider/model-name` (**BRA210**).
-Omit it and you get Anthropic `claude-sonnet-4-5` — a strong default, not
+Omit it and you get Anthropic `claude-sonnet-5-5` — a strong default, not
 a cheap one.
 
 **Grok is a great choice for cheaper without compromising quality.** Set
@@ -295,8 +294,7 @@ On Telos Cloud that string uses the **platform Grok key** — do not put
 `XAI_API_KEY` on the brain. Token cost is priced at **double** the official
 xAI grok-4.6 short-context API rate (input, output, and cache-read) and
 debited from the organisation's **brain credit**, the same ledger as run
-minutes. Platform `LlmPrices` rows are keyed `provider=telosbrain`,
-`model=xai/grok-4.6` (not `xai` / `grok-4.6`). Direct `xai/grok-4.6` on your
+minutes. Do not add your own price row for `telosbrain`. Direct `xai/grok-4.6` on your
 own key is **not** marked up.
 
 Local Docker has no platform key. Use `xai/grok-4.6` (or `xai/grok-4.5`)
@@ -308,9 +306,9 @@ with `XAI_API_KEY`, or a `local_N/…` runner (**BRA106**).
 | `xai/grok-4.6` | Same model on **your** xAI key — you pay xAI at list |
 | `xai/grok-4.5` | Flagship Grok — agentic / coding, usually cheaper than Claude Sonnet at similar quality |
 | `xai/grok-4.3` | Lower-cost long-context Grok — good for COMPACTION, classification, simple `TOOL` workflows |
-| `anthropic/claude-haiku-4-5` | Fast, cheap Claude turns (compaction, short Q&A) |
-| `anthropic/claude-sonnet-4-6` | Hard agentic work that still needs Claude |
-| `anthropic/claude-opus-4-5` | Rare — highest Claude capability, highest spend |
+| `anthropic/claude-haiku-5-5` | Fast, cheap Claude turns (compaction, short Q&A) |
+| `anthropic/claude-sonnet-5-5` | Hard agentic work that still needs Claude |
+| `anthropic/claude-opus-5-5` | Rare — highest Claude capability, highest spend |
 
 Match the model to the workflow, not the brain:
 
@@ -327,18 +325,17 @@ does not send that tool. OpenAI sends `web_search_options` only on a search
 model. OpenRouter, Azure, and local runners skip them. If a workflow needs
 the web on a provider that skips it, keep Claude for that workflow (**BRA210** §7).
 
-Organisation `LlmPrices` must include the model you pick. A missing price
-row leaves `CostCents` null — telemetry still shows tokens, but daily /
+Organisation prices must include the model you pick. A missing price
+row leaves LLM cost unset — telemetry still shows tokens, but daily /
 monthly spend limits cannot see the spend. For OpenRouter, add rows with
 **provider** `openrouter` and **model** the catalogue id
-(`anthropic/claude-sonnet-4.6`, not the native Anthropic hyphenated id).
+(`anthropic/claude-sonnet-5.5`, not the native Anthropic hyphenated id).
 OpenRouter runs that persist billed `usage.cost` do not need a matching row
-for `CostCents` to populate. Local runners and Azure OpenAI are bring-your-
-own-billing: do not seed `LlmPrices` for them; `CostCents` stays null.
-Platform credits still apply via `RunSeconds`. `telosbrain/…` is the
-exception: token `CostCents` (2× xAI list) is also debited from brain
-credit. Do not add a customer `LlmPrices` row for `telosbrain` — the
-platform seed is authoritative.
+for cost to populate. Local runners and Azure OpenAI are bring-your-
+own-billing: do not add prices for them; LLM cost stays unset.
+Platform credits still apply via runtime minutes. `telosbrain/…` is the
+exception: token cost (2× the official list rate) is also debited from brain
+credit. Do not add your own price row for `telosbrain`. Telos prices it.
 
 ---
 
@@ -369,7 +366,7 @@ max-recursion-depth: 5
 | `max-turns` | `10` | Tool-use loop cap. The run **Fails** when it is exhausted. Chat (`WF-CHAT`) may need more; a lookup workflow should stay at 3–8. |
 | `thinking` / `thinking-effort` / `thinking-budget` | thinking omitted (provider default; Grok `high`) | Applied on every provider (**BRA210** §6). `thinking-effort` is the spend lever — billed tokens *generated*, not `output-tokens`. Omitted `thinking` does not override Grok's default of `high`. `thinking-budget` is Claude and OpenRouter `extended` only. Prefer `adaptive` + `low` over `extended`. |
 | `max-runs-per-hour` | `50` | Rolling-hour cap per workflow. Heartbeats and eval batches set this *up*; user-facing tools should stay low. |
-| `max-recursion-depth` | `5` | Caps `run_workflow` / workflow-tool nesting before a child `WorkflowRun` is created. |
+| `max-recursion-depth` | `5` | Caps `run_workflow` / workflow-tool nesting before a child run is created. |
 | `session-timeout` | `30` (minutes) | Closes idle chat sessions so they stop accruing and become eligible for eval (**BRA217**). |
 
 `output-tokens` and `max-turns` apply on every provider. Do not copy
@@ -389,12 +386,12 @@ monthly-limit-usd: 50.00
 
 | Field | Effect |
 |---|---|
-| `daily-limit-usd` | Refuse new runs when today's UTC spend (`CostCents` sum) meets or exceeds the ceiling. Error `daily_spend_limit_reached`. |
+| `daily-limit-usd` | Refuse new runs when today's UTC LLM spend meets or exceeds the ceiling. Error `daily_spend_limit_reached`. |
 | `monthly-limit-usd` | Same for the UTC calendar month. Error `monthly_spend_limit_reached`. Daily is checked first. |
 
 Null ceilings are skipped (not treated as zero). Limits apply at run
 start — a run already in flight is not killed mid-turn. They only work
-when `LlmPrices` can price the models you use.
+when the organisation price list can price the models you use.
 
 There is no per-minute run cap in the schema today; use `max-runs-per-hour`
 for rate.
@@ -547,7 +544,7 @@ Checklist when reviewing a brain for cost:
 - [ ] `model` is Grok / Haiku unless Claude is required (`telosbrain/xai/grok-4.6` on Telos Cloud)
 - [ ] `output-tokens` starts small; `max-turns` matches the job
 - [ ] `daily-limit-usd` / `monthly-limit-usd` are set on the compose file
-- [ ] Organisation `LlmPrices` includes every BYO model the brain calls (OpenRouter: provider `openrouter`, catalogue id as the model). Skip `telosbrain` — platform prices at 2× xAI list.
+- [ ] Organisation prices include every BYO model the brain calls (OpenRouter: provider `openrouter`, catalogue id as the model). Skip `telosbrain` — Telos prices it at 2× the official list rate.
 - [ ] Conversational workflows inject discovery tools (`find_available_skills`,
       `get_skill`, `find_available_tools`, `activate_tools`) and keep domain
       skills/tools in `available-skills` / `available-tools`

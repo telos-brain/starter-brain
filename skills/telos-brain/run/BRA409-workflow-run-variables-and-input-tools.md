@@ -1,7 +1,7 @@
 ---
 name: "Workflow run variables & pre-called input-tools"
 code: BRA409
-version: 4
+version: 5
 description: How harness apps pass string variables into a workflow run via the
   Execution API, how those values surface as {{input.*}} template tags, and how
   workflows declare input-tools to call tools automatically at startup using
@@ -29,7 +29,7 @@ See **BRA403** for the full run-endpoint contract, **BRA204** §3.6 for the
 ```
 Harness app
   └─ POST /workflows/{code}/run/sync|async
-       body.variables  →  WorkflowRun.Variables (JSON)
+       body.variables  →  the run's variables (JSON)
                               ↓
                      Template `input` scope
                               ↓
@@ -68,7 +68,7 @@ Both sync and async endpoints accept the same optional field:
 | --- | --- |
 | Types | Keys and values are **strings** only — no coercion at the API boundary |
 | Optional | Omit the field, pass `null`, or pass `{}` → no variables stored |
-| Persistence | Non-empty maps are stored on `WorkflowRun` before the run starts |
+| Persistence | Non-empty maps are stored on the run before it starts |
 | Nested runs | Parent variables propagate into `run_workflow` / workflow-tool children |
 | Missing keys | `{{input.missing}}` renders blank — never an error |
 

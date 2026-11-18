@@ -1,7 +1,7 @@
 ---
 name: Inbox System Tools
 code: BRA405
-version: 16
+version: 17
 description: The in-brain system tools for operating the learning-signal inbox
   — create_inbox_entry, create_inbox_cluster, list_inbox_entries,
   get_inbox_entry, update_inbox_entry, list_inbox_tasks, add_inbox_task and
@@ -134,7 +134,7 @@ how many triggered tasks were created. Those tasks start `PENDING`; auto-run vs
 `AWAITING_APPROVAL` is decided later from each task's linked workflow (BRA404
 stage 2).
 
-**Depth** (mirrors `WorkflowRun.RecursionDepth`):
+**Depth** (the same counter as a nested workflow run):
 
 | How the entry is created | Depth |
 | --- | --- |
@@ -299,7 +299,7 @@ parameters:
 - **BRA217** — authoring `trigger: inbox:…` / learning-mode / weight on workflows
 - **BRA207** — learning-eval workflows that call `create_inbox_entry`
 - **BRA413** — `create_inbox_cluster` (consolidate related entries)
-- **BRA406** — `set_run_grading` (persist 0–100 score on a WorkflowRun)
+- **BRA406** — `set_run_grading` (persist 0–100 score on a run)
 - **BRA204** — `{{inboxEntry.*}}` / `{{task.*}}` / `{{#inboxTasks}}` template tags
 - **BRA408** — `list_users` / `assign_task_to_user` (Organisation members and
   task assignment)

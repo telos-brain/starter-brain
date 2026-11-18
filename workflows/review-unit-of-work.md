@@ -10,10 +10,11 @@ type: TRIGGERED
 trigger: unitofwork:complete:low
 system-prompt-code: WF-SYSTEM-PROMPT
 
-output-tokens: 4096, 8192
+output-tokens: 5000, 10000, 20000
 caching: automatic
 max-turns: 30
-thinking: effort
+thinking: adaptive
+thinking-effort: high
 max-runs-per-hour: 500
 
 tools:

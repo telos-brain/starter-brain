@@ -1,7 +1,7 @@
 ---
 name: Learning Eval Workflows
 code: BRA207
-version: 13
+version: 15
 description: How to author type EVAL (workflow-run) and TRIGGERED
   (unit-of-work) learning-eval workflows that grade a completed unit of work
   or workflow run, inject telemetry via template tags, persist a 0–100 score
@@ -46,7 +46,7 @@ code: WF-EVAL-RUN
 type: EVAL
 version: 1
 description: Grades a completed workflow run, records the score, and creates inbox learnings.
-model: anthropic/claude-sonnet-4-6
+model: anthropic/claude-sonnet-5-5
 system-prompt-code: <your-system-prompt-workflow-code>
 
 # Optional — omit for Run eval only. A learning-mode qualifier enables auto:
@@ -161,7 +161,7 @@ When the run can see more than one blueprint, pass `blueprint` to
 
 #### `set_run_grading` (BRA406)
 
-Persists the quality score on the **subject** WorkflowRun. Declare under
+Persists the quality score on the **subject** run. Declare under
 `tools/inbox/set-run-grading.yml`.
 
 | Parameter | Notes |

@@ -2,19 +2,21 @@
 name: Inbox Triage
 code: WF-TRIAGE
 description: >-
-  Triages one inbox entry using the Learning Centre skill. Entries wait at
-  weight 1 and cluster until weight 5, or go straight to tasks when the
-  learning is already clear. Routes skill, workflow, brain, research, and
-  blueprint work to the matching workflows.
+  Triages one inbox entry using the Learning Centre skill (BRA414) and the
+  layer rules (BRA222). Entries wait at weight 1 and cluster until weight 5,
+  or go straight to tasks when the learning is already a general rule. Routes
+  a skill, a tool definition, a workflow change, a sub-workflow split, a
+  person task outside the schema, research, and blueprint facts.
 version: 18
 type: TRIGGERED
 trigger: inbox:*
 trigger-mode: automatic
 system-prompt-code: WF-BRAIN-SYSTEM
-output-tokens: 2048, 4096, 8192
+output-tokens: 5000, 10000, 20000
 caching: automatic
 max-turns: 20
-thinking: effort
+thinking: adaptive
+thinking-effort: high
 max-runs-per-hour: 200
 tools:
   - add_inbox_task

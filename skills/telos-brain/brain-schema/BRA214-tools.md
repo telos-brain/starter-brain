@@ -1,7 +1,7 @@
 ---
 name: Brain Schema Tools
 code: BRA214
-version: 17
+version: 18
 description: How to author tool groups and tool YAML — caller-facing
   descriptions, api, mcp, system, workflow, and native tools, optional
   execution-mode (sync or async) on a workflow tool, optional roles, optional
@@ -262,7 +262,7 @@ native:
 
 A native tool is enabled directly on the model and executed by the provider. Unlike every other type it makes no outbound call and takes **no `parameters`**. Add it to a workflow's `tools` list by `name`. Supported keys: `web_search`, `web_fetch`.
 
-Claude receives them as server tools. A Grok run (`xai/…` or `telosbrain/…`) that lists `web_search` or `web_fetch` sends one server-side `web_search` tool on `POST /v1/responses`. xAI has no separate fetch tool, so `web_fetch` uses that same tool, which searches and browses pages. Grok runs that do not list either tool stay on Chat Completions and do not send it. Live Search (`search_parameters`) is not sent. OpenAI Chat Completions receives `web_search_options` only when the model is a search model. Other OpenAI models, and OpenRouter, Azure, and local runners, leave the tools off the request. They are not sent as functions.
+Claude, including `telosbrain/anthropic/…`, receives them as server tools. A Grok run (`xai/…` or `telosbrain/xai/…`) that lists `web_search` or `web_fetch` sends one server-side `web_search` tool on `POST /v1/responses`. xAI has no separate fetch tool, so `web_fetch` uses that same tool, which searches and browses pages. Grok runs that do not list either tool stay on Chat Completions and do not send it. Live Search (`search_parameters`) is not sent. OpenAI Chat Completions receives `web_search_options` only when the model is a search model. Other OpenAI models, and OpenRouter, Azure, and local runners, leave the tools off the request. They are not sent as functions.
 
 ## 3. Worked example: `web_search` and `web_fetch`
 

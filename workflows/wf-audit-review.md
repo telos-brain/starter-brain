@@ -8,7 +8,9 @@ description: >-
 version: 1
 type: AUDITREVIEW
 system-prompt-code: WF-SYSTEM-PROMPT
-output-tokens: 2048, 4096
+output-tokens: 5000, 10000, 20000
+thinking: adaptive
+thinking-effort: high
 caching: automatic
 max-turns: 1
 ---

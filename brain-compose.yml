@@ -18,21 +18,24 @@ learning-mode: high
 # Brain default when a workflow omits model:. One id, or an ordered
 # comma-separated list (empty entries ignored). A workflow that sets model:
 # uses that list for the whole run and does not fall through to this default.
-# Telos Cloud: telosbrain/xai/grok-4.6 uses the platform Grok key, so no brain
-# LLM env var. Token cost is billed to organisation brain credit at 2× the
-# official xAI grok-4.6 API rate (BRA210 / BRA212). Add your own provider key
-# and change this value to avoid the markup.
+# Telos Cloud: telosbrain/anthropic/claude-haiku-5-5 uses the platform
+# Anthropic key, so no brain LLM env var. Token cost is billed to
+# organisation brain credit at 2× the official Claude Haiku 5.5 list rate.
+# Prompts over 100,000 tokens (input + cache read + cache write) use the
+# higher band. Add your own provider key and change this value to avoid
+# the markup.
 # Local Docker: telosbrain is unavailable. Change this to a model you have
-# credentials for (e.g. xai/grok-4.6 + XAI_API_KEY, anthropic/… +
-# ANTHROPIC_API_KEY, or local_1/qwen3:8b + LOCAL_LLM_1_BASE_URL) before
-# `brain deploy --env local`. Compose wins over DEFAULT_LLM_MODEL at deploy.
-# llm-model: anthropic/claude-sonnet-4-6
+# credentials for (e.g. anthropic/claude-haiku-5-5 + ANTHROPIC_API_KEY,
+# xai/grok-4.6 + XAI_API_KEY, or local_1/qwen3:8b + LOCAL_LLM_1_BASE_URL)
+# before `brain deploy --env local`. Compose wins over DEFAULT_LLM_MODEL
+# at deploy.
+# llm-model: anthropic/claude-haiku-5-5
 # llm-model: xai/grok-4.6
 # llm-model: openrouter/anthropic/claude-sonnet-4.6
 # llm-model: openrouter/auto
 # llm-model: azure/gpt-4o-prod
 # llm-model: local_1/qwen3:8b
-llm-model: telosbrain/xai/grok-4.6
+llm-model: telosbrain/anthropic/claude-haiku-5-5
 
 # Checkpoints: weekly schedule plus a snapshot before each deploy.
 checkpoint-strategy: Daily,BeforeDeploy

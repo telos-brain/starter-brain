@@ -1,7 +1,7 @@
 ---
 name: Connectors
 code: BRA209
-version: 27
+version: 28
 description: "How to author connector YAML files for external services (OAuth 2,
   API key, none, or caller-jwt). Covers file layout, brain-compose registration, optional
   platform type (e.g. elevenlabs), parameter declarations vs secret storage,
@@ -162,7 +162,7 @@ The Connect button in the admin UI starts a full-page redirect to the
 provider. After consent the provider must send the browser back to the
 Management API callback — **not** a SPA-only path.
 
-The URI is `{ManagementApi:BaseUrl}/oauth/callback` (exact match; no trailing
+The URI is the Management API origin plus `/oauth/callback` (exact match; no trailing
 slash). Production Telos Brain:
 
 ```
@@ -538,8 +538,8 @@ Workflows that should be projected as ElevenLabs agents also need
 Use this when the provider is not RFC OAuth 2: camelCase query names, a
 JSON token body, HMAC request signing, or an initiate URL that is itself
 the browser destination. Register
-`https://go.telosbrain.com/oauth/callback` (or
-`{ManagementApi:BaseUrl}/oauth/callback` locally) with the provider.
+`https://go.telosbrain.com/oauth/callback` (or the same path on a local
+Management API) with the provider.
 
 ```yaml
 name: example-partner

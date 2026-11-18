@@ -7,7 +7,9 @@ description: Summarises older conversation turns so a run can continue within th
 
 # No tools — this workflow only reads the transcript passed as the user message
 # and returns a plain-text summary as its final reply.
-output-tokens: 2048
+output-tokens: 5000, 10000, 20000
+thinking: adaptive
+thinking-effort: high
 max-turns: 1
 caching: none
 ---

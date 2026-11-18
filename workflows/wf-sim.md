@@ -16,7 +16,9 @@ input-tools:
       parameters: "{{input.parameters}}"
       count: "{{input.count}}"
 
-output-tokens: 4096
+output-tokens: 5000, 10000, 20000
+thinking: adaptive
+thinking-effort: high
 caching: automatic
 max-turns: 3
 ---

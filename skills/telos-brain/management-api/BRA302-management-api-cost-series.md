@@ -1,7 +1,7 @@
 ---
 name: "Management API: Cost series"
 code: BRA302
-version: 3
+version: 5
 description: How to read daily cost rows for one Brain over a required date
   range — GET /brains/{instance}/cost-series — so an organisation API key
   caller can graph LLM cost, derived brain-minute cost, tokens, minutes, and
@@ -54,7 +54,7 @@ matching the grouped response fields. There is no `page`, `page_size`,
 | `model` | No | One model string, or `—` for runs whose model is null. |
 | `entity` | No | One entity name, or `—` for runs with no live entity. |
 | `unitOfWork` | No | One unit-of-work title, or `—` for runs with no live unit of work. |
-| `user` | No | One brain-user display name (`BrainUsers.Name`), or `—` for runs with no live brain user. |
+| `user` | No | One brain-user display name, or `—` for runs with no live brain user. |
 
 Each filter takes one value. Values are trimmed. Blank or omitted means that
 filter is not applied. A value longer than 500 characters is `400`. Filters
@@ -112,14 +112,14 @@ needs a continuous axis.
 | Field | Type | Meaning |
 |---|---|---|
 | `date` | string | Brain-local calendar day, `yyyy-MM-dd`. |
-| `llmCostCents` | number or **null** | Sum of stored `CostCents` (US cents). **Null means no pricing data**, not free. A real zero-cost bucket is `0`. Null is present in the JSON; do not treat a missing field as null. |
-| `brainCostCents` | number | `(sum of RunSeconds / 60) ×` the brain's **current** `CentsPerMinute`. Derived at read time. Not a credit-ledger debit. |
+| `llmCostCents` | number or **null** | Sum of each run's LLM cost, in US cents. **Null means no pricing data**, not free. A real zero-cost bucket is `0`. Null is present in the JSON; do not treat a missing field as null. |
+| `brainCostCents` | number | Active runtime minutes times the brain's current cents-per-minute rate. Derived at read time. Not a credit-ledger debit. |
 | `totalTokens` | number | Sum of uncached input + output + cache reads + cache writes on the run (`TotalInputTokens + TotalOutputTokens + TotalCacheReadTokens + TotalCacheWriteTokens`). Not re-summed from messages. |
-| `totalMinutes` | number | `sum of RunSeconds / 60`. Fractional. `RunSeconds` is active Hangfire thread time, not wall-clock, so a sync run can have LLM cost and `0` minutes. |
+| `totalMinutes` | number | Active runtime seconds divided by 60. Fractional. That time is thread time, not wall-clock, so a sync run can have LLM cost and `0` minutes. |
 | `embeddingCount` | number | Sum of run-level `EmbeddingCount`. Do not re-sum messages. |
 
-`llmCostCents` stays null only when **every** run in the bucket has null
-`CostCents`. Mixed null and priced runs sum the priced rows.
+`llmCostCents` stays null only when **every** run in the bucket has no LLM
+price. Mixed unpriced and priced runs sum the priced rows.
 
 ### Grouped rows
 
@@ -128,11 +128,11 @@ field and omits the rest:
 
 | `group_by` | Extra field | Value |
 |---|---|---|
-| `model` | `model` | `WorkflowRun.Model`, or `—` when null |
+| `model` | `model` | The run's model, or `—` when null |
 | `workflow` | `workflow` | Workflow title. Runs whose workflow is missing are left out of this grouping only. |
 | `entity` | `entity` | Entity name, or `—` when the run has none |
 | `unitOfWork` | `unitOfWork` | Unit-of-work title, or `—` when the run has none |
-| `user` | `user` | Brain user name (`BrainUsers.Name`), or `—` when the run has no acting user |
+| `user` | `user` | Brain user name, or `—` when the run has no acting user |
 
 `—` is an em dash, not a hyphen. One row per day per group value.
 
@@ -158,7 +158,7 @@ GET /brains/acme/cost-series?from=2026-11-04&to=2026-11-04&group_by=model
     "totalTokens": 3000,
     "totalMinutes": 0.5,
     "embeddingCount": 1,
-    "model": "anthropic/claude-sonnet-4-6"
+    "model": "anthropic/claude-sonnet-5-5"
   }
 ]
 ```

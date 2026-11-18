@@ -1,9 +1,9 @@
 ---
 name: Run Grading System Tool
 code: BRA406
-version: 3
+version: 4
 description: The set_run_grading system tool — how eval workflows
-  persist a 0–100 quality score on a WorkflowRun (and optionally link an
+  persist a 0–100 quality score on a run (and optionally link an
   InboxEntry) so the admin console can show traffic-light grades and grading
   trends. Identity is by 8-character run reference from {{run.reference}}.
 tools:

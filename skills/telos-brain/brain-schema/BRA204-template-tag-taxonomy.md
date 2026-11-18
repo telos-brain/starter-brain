@@ -2,7 +2,7 @@
 name: Template Tag Taxonomy
 code: BRA204
 description: Canonical reference for double-curly-bracket template tags used in workflow Instructions, tool response-markdown / error-markdown, and tool audit title / body. Covers the input scope from Execution API variables, workflow-tool / run_workflow parameters, and input-tools mappings, and the arguments scope for the call being audited.
-version: 25
+version: 26
 ---
 
 # Template Tag Taxonomy
@@ -192,7 +192,7 @@ Notes:
 | --- | --- |
 | **Type** | Scalar bag |
 | **Sort** | N/A |
-| **Requires** | `WorkflowRunId` (subject run) on the template render context; otherwise the scope is empty |
+| **Requires** | A subject run. Without one the scope is empty |
 
 | Field | Description |
 | --- | --- |
@@ -204,9 +204,8 @@ Notes:
 
 Notes:
 
-- Used by `workflowrun:complete` eval workflows. The subject run id is passed as
-  `SubjectRunId` on the eval's `WorkflowRunRequest` — it is **not** the eval
-  run's own id.
+- Used by `workflowrun:complete` eval workflows. The `run` scope is the
+  subject run. It is **not** the eval run.
 - When the subject run is missing, the `run` scope is empty (both tags blank).
 - **`run.reference` is not the run id.** `id` inside `{{run.telemetry}}` is the
   run's UUID. Pass `{{run.reference}}` to `set_run_grading`.
@@ -363,7 +362,7 @@ The `input` scope is a **single flat bag**. Values come from two sources that
 are merged at render time (tool / `run_workflow` parameters overlay API
 variables when the same key appears in both):
 
-| Source | How it is supplied | Persisted on `WorkflowRun`? |
+| Source | How it is supplied | Stored on the run? |
 | --- | --- | --- |
 | Execution API `variables` | Optional string→string map on `POST …/run/sync` and `…/run/async` (BRA403) | Yes |
 | Workflow-tool / `run_workflow` parameters | Resolved args when this workflow is invoked as a child | No (request only; overlays variables) |

@@ -9,7 +9,9 @@ version: 1
 type: RUNNABLE
 system-prompt-code: WF-SYSTEM-PROMPT
 session-timeout: 60
-output-tokens: 2048, 4096
+output-tokens: 5000, 10000, 20000
+thinking: adaptive
+thinking-effort: high
 caching: automatic
 max-turns: 20
 tools:

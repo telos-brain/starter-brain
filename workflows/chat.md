@@ -7,10 +7,11 @@ version: 5
 # RUNNABLE: this workflow is executed manually / interactively as a chat.
 type: RUNNABLE
 
-output-tokens: 2048, 4096, 16384
+output-tokens: 5000, 10000, 20000
 caching: automatic
 max-turns: 50
 thinking: adaptive
+thinking-effort: high
 
 # Reuse the shared persona/tone/constraints as the system prompt.
 system-prompt-code: WF-SYSTEM-PROMPT
